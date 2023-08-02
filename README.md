@@ -13,6 +13,23 @@ The code can be easily replicated for development, staging, production, etc.
 Gantry Crane is currently in the early stages of development.
 **Please support this project with your Github Star!**
 
+## Deployment as Code (DaC)
+
+Deployment as Code (DaC) is a term coined to describe the use of declarative code to deploy from infrastructure to application.
+
+Traditionally, developers must deploy applications using different tools for each layer of infrastructure, OS, middleware, and application, with numerous configuration files, CLIs, and GUIs to maintain exact consistency.
+
+The idea behind DaC is to manage and automate these processes with integrated code to manage and automate the deployment process, thereby reducing costs and the risk of operational errors.
+This allows for safe and fast development.
+Therefore, the idea of DaC is highly compatible with continuous, fast-cycle development such as DevOps, agile development, and microservices architecture.
+
+DaC is similar in concept to IaC, but DaC includes build-release-deploy at the application layer as well as the infrastructure.
+
+Gantry Crane is one of the DaC tools in container technology.
+
+![DaC positioning](./doc/images/positioning.drawio.svg)
+<div style="text-align: center;">DaC Positioning</div>
+
 ## Features
 
 Gantry Crane has the following features
