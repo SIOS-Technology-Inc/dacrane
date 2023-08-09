@@ -42,3 +42,7 @@ Gantry Crane has the following features
 - Integration of multiple repositories
 - Isolation of environments such as local, test, staging, production, etc.
 - Manage change history
+
+## License
+
+[Apache License 2.0](./LICENSE)
