@@ -2,7 +2,7 @@
 
 ## Consistent Deployment
 
-Gantry Crane provides all deployment capabilities from container infrastructure to applications.
+Dacrane provides all deployment capabilities from container infrastructure to applications.
 All deployments will have one set of information for simplified management.
 
 ## Simple Deployment Code
@@ -17,10 +17,12 @@ Multiple deployment codes can be processed collaboratively.
 
 ## Plugin Extension
 
-Gantry Crane's pluggable design allows for additional infrastructure and apps to be easily deployed.
+Dacrane's pluggable design allows for additional infrastructure and apps to be easily deployed.
 Promote open development so that many infrastructures and apps are supported.
 
 ## Environmental Replication
 
-Gantry Crane can easily create multiple equivalent environments.
+Dacrane can easily create multiple equivalent environments.
 You can even change some of them into mock applications or deploy applications on your local PC.
+
+# Model Cases

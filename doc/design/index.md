@@ -1,11 +1,11 @@
 # Architecture
 
-Gantry Crane is used via the CLI, which provides the developer with many of the commands needed for deployment.
+Dacrane is used via the CLI, which provides the developer with many of the commands needed for deployment.
 
 The actual deployment process is performed on the Docker container.
 This allows developers to run the deployment process in the same way they always do.
 Plug-ins are also containers and include all necessary middleware, etc.
-Only the Gantry Crane CLI and Docker need to be installed to get started with Gantry Crane.
+Only the Dacrane CLI and Docker need to be installed to get started with Dacrane.
 
 Logs, status data, and sensitive information are stored in cloud storage.
 This allows multiple developers to collaborate.
@@ -20,10 +20,10 @@ Developers can modify and use the copied code.
 
 ![architecture](../images/architecture.drawio.svg)
 
-A typical Gantry Crane environment build process proceeds as follows:
+A typical Dacrane environment build process proceeds as follows:
 
-1. the developer orders Gantry Crane to launch the environment
-2. Gantry Crane creates a Job on Docker.
+1. the developer orders Dacrane to launch the environment
+2. Dacrane creates a Job on Docker.
 3. The Job analyzes resource and artifact dependencies and determines the order of execution.
 4. Job calls the necessary artifact plugins. Containers are launched using DooD.
 5. The artifact plugin stores build artifacts in the repository.
@@ -35,7 +35,7 @@ A typical Gantry Crane environment build process proceeds as follows:
 
 ## Abstract/Concrete Deployment Code (ADC/CDC)
 
-To meet the requirement of an easily replicable environment, Gantry Crane uses two types of codes: abstract deployment code (ADC) and concrete deployment code (CDC).
+To meet the requirement of an easily replicable environment, Dacrane uses two types of codes: abstract deployment code (ADC) and concrete deployment code (CDC).
 
 The ADC is a configuration definition that is separate from the infrastructure and application entities and contains information such as what infrastructure the application will be deployed to.
 On the other hand, a CDC is a configuration definition that corresponds to the actual infrastructure and application.
@@ -46,3 +46,54 @@ This allows for separation of per-environment deployment settings from the repos
 For example, ADC defines that the application will be deployed to App Services, but does not specifically specify Azure tenants or resource groups. These values are defined separately as environment variables.
 
 ![adc-and-cdc](../images/adc-and-cdc.drawio.svg)
+
+* artifact
+  * build
+  * delete
+*
+* resource
+  *
+
+# Code Specification
+
+
+
+```yaml
+variables:
+
+---
+
+app:
+  name: my_app
+  build:
+    - provider: npm
+      target: ./package.json
+    - provider: docker
+      target: ./Dockerfile
+  release:
+    - repository: my_app_repo
+      version: "${ variables.tag || "latest" }"
+
+---
+
+deploy-group:
+  name: local
+
+---
+
+deploy:
+  name: my_app_
+  provider:
+  image:
+
+---
+
+deploy:
+  name: cloud
+
+---
+
+repository:
+  provider: azure-container-registry
+  name: my_app_repo
+```
