@@ -31,7 +31,7 @@ A typical Gantry Crane environment build process proceeds as follows:
 7. resource plugins perform infrastructure and application deployment.
 8. Users will be able to make requests to the built application.
 
-# Design Concept
+# Data Design
 
 ## Abstract/Concrete Deployment Code (ADC/CDC)
 
