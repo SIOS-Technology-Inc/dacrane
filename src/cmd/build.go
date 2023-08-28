@@ -34,13 +34,13 @@ var buildCmd = &cobra.Command{
 			panic(err)
 		}
 
-		buildCode := utils.Find(codes, func(code core.Code) bool {
+		artifactCode := utils.Find(codes, func(code core.Code) bool {
 			return code.Kind == "artifact" && code.Name == name
 		})
 
-		artifactProvider := core.FindArtifactProvider(buildCode.Provider)
+		artifactProvider := core.FindArtifactProvider(artifactCode.Provider)
 
-		result, err := artifactProvider.Build(workingDir, buildCode.Parameters)
+		result, err := artifactProvider.Build(workingDir, artifactCode.Parameters)
 
 		if err != nil {
 			println(string(result))
