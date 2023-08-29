@@ -1,25 +1,25 @@
 package docker
 
 import (
+	"dacrane/utils"
 	"fmt"
 	"net/http"
-	"os/exec"
 	"strings"
 )
 
 type DockerArtifactProvider struct{}
 
-func (DockerArtifactProvider) Build(params map[string]any) ([]byte, error) {
+func (DockerArtifactProvider) Build(params map[string]any) error {
 	dockerfile := params["dockerfile"].(string)
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 
 	dockerCmd := fmt.Sprintf("docker build -t %s:%s -f %s .", image, tag, dockerfile)
-	cmd := exec.Command("bash", "-c", dockerCmd)
-	return cmd.CombinedOutput()
+	_, err := utils.RunOnBash(dockerCmd)
+	return err
 }
 
-func (DockerArtifactProvider) Publish(params map[string]any) ([]byte, error) {
+func (DockerArtifactProvider) Publish(params map[string]any) error {
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 	repository := params["repository"].(map[string](any))
@@ -33,20 +33,17 @@ func (DockerArtifactProvider) Publish(params map[string]any) ([]byte, error) {
 
 	cmds := []string{dockerLoginCmd, dockerImageTagCmd, dockerPushCmd}
 
-	var log []byte
 	for _, cmd := range cmds {
-		cmd := exec.Command("bash", "-c", cmd)
-		out, err := cmd.CombinedOutput()
-		log = append(log, out...)
+		_, err := utils.RunOnBash(cmd)
 		if err != nil {
-			return log, err
+			return err
 		}
 	}
 
-	return log, nil
+	return nil
 }
 
-func (DockerArtifactProvider) Unpublish(params map[string]any) ([]byte, error) {
+func (DockerArtifactProvider) Unpublish(params map[string]any) error {
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 	repository := params["repository"].(map[string](any))
@@ -56,33 +53,29 @@ func (DockerArtifactProvider) Unpublish(params map[string]any) ([]byte, error) {
 
 	// remove registry image
 	dockerDigestCmd := fmt.Sprintf("docker images %s/%s --format {{.Digest}}", url, image)
-	cmd := exec.Command("bash", "-c", dockerDigestCmd)
-	out, err := cmd.CombinedOutput()
+	out, err := utils.RunOnBash(dockerDigestCmd)
 	if err != nil {
-		return out, err
+		return err
 	}
 	digest := strings.ReplaceAll(string(out), "\n", "")
 
 	// cf. https://docs.docker.com/registry/spec/api/#deleting-an-image
-	client := http.DefaultClient
 	deleteUrl := fmt.Sprintf("https://%s/v2/%s/manifests/%s", url, image, digest)
 	req, err := http.NewRequest("DELETE", deleteUrl, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
 	req.SetBasicAuth(user, password)
-	_, err = client.Do(req)
+	_, err = utils.RequestHttp(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// remove local image
 	dockerRmiCmd := fmt.Sprintf("docker rmi %s/%s:%s", url, image, tag)
-	cmd = exec.Command("bash", "-c", dockerRmiCmd)
-	out, err = cmd.CombinedOutput()
+	_, err = utils.RunOnBash(dockerRmiCmd)
 	if err != nil {
-		return out, err
+		return err
 	}
-	return nil, nil
+	return nil
 }

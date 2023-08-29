@@ -31,10 +31,9 @@ var unpublishCmd = &cobra.Command{
 
 		artifactProvider := core.FindArtifactProvider(artifactCode.Provider)
 
-		result, err := artifactProvider.Unpublish(artifactCode.Parameters)
+		err = artifactProvider.Unpublish(artifactCode.Parameters)
 
 		if err != nil {
-			println(string(result))
 			panic(err)
 		}
 		println("unpublish successfully!")

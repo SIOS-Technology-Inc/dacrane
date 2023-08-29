@@ -28,9 +28,9 @@ type Code struct {
 }
 
 type ArtifactProvider interface {
-	Build(map[string]any) ([]byte, error)
-	Publish(map[string]any) ([]byte, error)
-	Unpublish(map[string]any) ([]byte, error)
+	Build(parameters map[string]any) error
+	Publish(parameters map[string]any) error
+	Unpublish(parameters map[string]any) error
 }
 
 var artifactProviders = map[string](ArtifactProvider){

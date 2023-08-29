@@ -38,10 +38,9 @@ var buildCmd = &cobra.Command{
 
 		artifactProvider := core.FindArtifactProvider(artifactCode.Provider)
 
-		result, err := artifactProvider.Build(artifactCode.Parameters)
+		err = artifactProvider.Build(artifactCode.Parameters)
 
 		if err != nil {
-			println(string(result))
 			panic(err)
 		}
 		println("build successfully!")
