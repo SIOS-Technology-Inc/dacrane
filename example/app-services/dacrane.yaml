@@ -1,0 +1,11 @@
+kind: artifact
+name: api
+provider: docker
+parameters:
+  image: sample-api
+  tag: latest
+  dockerfile: ./Dockerfile
+  repository:
+    url: url
+    user: foo
+    password: bar
