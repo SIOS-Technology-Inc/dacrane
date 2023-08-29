@@ -22,8 +22,4 @@ func Execute() {
 	}
 }
 
-var workingDir string
-
-func init() {
-	rootCmd.PersistentFlags().StringVarP(&workingDir, "work", "w", ".", "working directory")
-}
+func init() {}

@@ -9,18 +9,17 @@ import (
 
 type DockerArtifactProvider struct{}
 
-func (DockerArtifactProvider) Build(workingDir string, params map[string]any) ([]byte, error) {
+func (DockerArtifactProvider) Build(params map[string]any) ([]byte, error) {
 	dockerfile := params["dockerfile"].(string)
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 
 	dockerCmd := fmt.Sprintf("docker build -t %s:%s -f %s .", image, tag, dockerfile)
 	cmd := exec.Command("bash", "-c", dockerCmd)
-	cmd.Dir = workingDir
 	return cmd.CombinedOutput()
 }
 
-func (DockerArtifactProvider) Publish(workingDir string, params map[string]any) ([]byte, error) {
+func (DockerArtifactProvider) Publish(params map[string]any) ([]byte, error) {
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 	repository := params["repository"].(map[string](any))
@@ -37,7 +36,6 @@ func (DockerArtifactProvider) Publish(workingDir string, params map[string]any) 
 	var log []byte
 	for _, cmd := range cmds {
 		cmd := exec.Command("bash", "-c", cmd)
-		cmd.Dir = workingDir
 		out, err := cmd.CombinedOutput()
 		log = append(log, out...)
 		if err != nil {
@@ -48,7 +46,7 @@ func (DockerArtifactProvider) Publish(workingDir string, params map[string]any) 
 	return log, nil
 }
 
-func (DockerArtifactProvider) Unpublish(workingDir string, params map[string]any) ([]byte, error) {
+func (DockerArtifactProvider) Unpublish(params map[string]any) ([]byte, error) {
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 	repository := params["repository"].(map[string](any))

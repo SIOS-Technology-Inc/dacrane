@@ -3,7 +3,6 @@ package cmd
 import (
 	"dacrane/core"
 	"dacrane/utils"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -16,8 +15,7 @@ var unpublishCmd = &cobra.Command{
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		dacranePath := fmt.Sprintf("%s/dacrane.yaml", workingDir)
-		codeBytes, err := os.ReadFile(dacranePath)
+		codeBytes, err := os.ReadFile("dacrane.yaml")
 		if err != nil {
 			panic(err)
 		}
@@ -33,7 +31,7 @@ var unpublishCmd = &cobra.Command{
 
 		artifactProvider := core.FindArtifactProvider(artifactCode.Provider)
 
-		result, err := artifactProvider.Unpublish(workingDir, artifactCode.Parameters)
+		result, err := artifactProvider.Unpublish(artifactCode.Parameters)
 
 		if err != nil {
 			println(string(result))

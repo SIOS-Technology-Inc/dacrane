@@ -4,7 +4,6 @@ import (
 	"dacrane/core"
 	"dacrane/utils"
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,8 +22,7 @@ var buildCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		dacranePath := fmt.Sprintf("%s/dacrane.yaml", workingDir)
-		codeBytes, err := os.ReadFile(dacranePath)
+		codeBytes, err := os.ReadFile("dacrane.yaml")
 		if err != nil {
 			panic(err)
 		}
@@ -40,7 +38,7 @@ var buildCmd = &cobra.Command{
 
 		artifactProvider := core.FindArtifactProvider(artifactCode.Provider)
 
-		result, err := artifactProvider.Build(workingDir, artifactCode.Parameters)
+		result, err := artifactProvider.Build(artifactCode.Parameters)
 
 		if err != nil {
 			println(string(result))
