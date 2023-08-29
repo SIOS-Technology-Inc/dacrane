@@ -2,7 +2,9 @@ package docker
 
 import (
 	"fmt"
+	"net/http"
 	"os/exec"
+	"strings"
 )
 
 type DockerArtifactProvider struct{}
@@ -44,4 +46,45 @@ func (DockerArtifactProvider) Publish(workingDir string, params map[string]any) 
 	}
 
 	return log, nil
+}
+
+func (DockerArtifactProvider) Unpublish(workingDir string, params map[string]any) ([]byte, error) {
+	image := params["image"].(string)
+	tag := params["tag"].(string)
+	repository := params["repository"].(map[string](any))
+	url := repository["url"].(string)
+	user := repository["user"].(string)
+	password := repository["password"].(string)
+
+	// remove registry image
+	dockerDigestCmd := fmt.Sprintf("docker images %s/%s --format {{.Digest}}", url, image)
+	cmd := exec.Command("bash", "-c", dockerDigestCmd)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return out, err
+	}
+	digest := strings.ReplaceAll(string(out), "\n", "")
+
+	// cf. https://docs.docker.com/registry/spec/api/#deleting-an-image
+	client := http.DefaultClient
+	deleteUrl := fmt.Sprintf("https://%s/v2/%s/manifests/%s", url, image, digest)
+	req, err := http.NewRequest("DELETE", deleteUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.SetBasicAuth(user, password)
+	_, err = client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// remove local image
+	dockerRmiCmd := fmt.Sprintf("docker rmi %s/%s:%s", url, image, tag)
+	cmd = exec.Command("bash", "-c", dockerRmiCmd)
+	out, err = cmd.CombinedOutput()
+	if err != nil {
+		return out, err
+	}
+	return nil, nil
 }
