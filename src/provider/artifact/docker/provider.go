@@ -67,10 +67,11 @@ func (DockerArtifactProvider) Unpublish(params map[string]any) error {
 		return err
 	}
 	req.SetBasicAuth(user, password)
-	_, err = utils.RequestHttp(req)
+	res, err := utils.RequestHttp(req)
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
 	// remove local image
 	dockerRmiCmd := fmt.Sprintf("docker rmi %s/%s:%s", url, image, tag)
