@@ -3,6 +3,7 @@ package docker
 import (
 	"dacrane/utils"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -77,5 +78,45 @@ func (DockerArtifactProvider) Unpublish(params map[string]any) error {
 	if err != nil {
 		return err
 	}
+	dockerRmiCmd = fmt.Sprintf("docker rmi %s:%s", image, tag)
+	_, err = utils.RunOnBash(dockerRmiCmd)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (DockerArtifactProvider) SearchVersions(params map[string]any) error {
+	image := params["image"].(string)
+	repository := params["repository"].(map[string](any))
+	url := repository["url"].(string)
+	user := repository["user"].(string)
+	password := repository["password"].(string)
+
+	localVersionsCmd := fmt.Sprintf("docker images %s --format {{.Tag}}", image)
+
+	_, err := utils.RunOnBash(localVersionsCmd)
+	if err != nil {
+		return err
+	}
+
+	listUrl := fmt.Sprintf("https://%s/v2/%s/tags/list", url, image)
+	req, err := http.NewRequest("GET", listUrl, nil)
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(user, password)
+	res, err := utils.RequestHttp(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(b))
+
 	return nil
 }
