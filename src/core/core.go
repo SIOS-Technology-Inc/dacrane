@@ -38,6 +38,7 @@ type ArtifactProvider interface {
 
 type ResourceProvider interface {
 	Create(parameters map[string]any, credentials map[string]any) error
+	Delete(parameters map[string]any, credentials map[string]any) error
 }
 
 var artifactProviders = map[string](ArtifactProvider){
