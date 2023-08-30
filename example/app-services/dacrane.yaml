@@ -9,3 +9,18 @@ parameters:
     url: url
     user: foo
     password: bar
+
+---
+
+kind: resource
+name: resource-group
+provider: azure-resource-group
+parameters:
+  name: sample-rg
+  location: "Japan East"
+credentials:
+  subscription_id: your_subscription_id
+  tenant_id: your_tenant_id
+  client_id: your_client_id
+  username: your_user_name
+  password: your_password
