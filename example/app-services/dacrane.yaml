@@ -13,7 +13,7 @@ credentials:
 ---
 
 kind: resource
-name: resource-group
+name: rg
 provider: azure-resource-group
 parameters:
   name: sample-rg
