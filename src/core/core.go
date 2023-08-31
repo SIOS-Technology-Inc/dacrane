@@ -48,7 +48,7 @@ var artifactProviders = map[string](ArtifactProvider){
 }
 
 var resourceProviders = map[string](ResourceProvider){
-	"azure-resource-group":   azureresourcegroup.AzureResourceGroupArtifactProvider{},
+	"azure-resource-group":   azureresourcegroup.AzureResourceGroupResourceProvider{},
 	"azure-app-service-plan": azureappserviceplan.AzureAppServicePlanResourceProvider{},
 }
 

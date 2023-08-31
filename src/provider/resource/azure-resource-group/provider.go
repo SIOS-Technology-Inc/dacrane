@@ -7,11 +7,11 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 )
 
-type AzureResourceGroupArtifactProvider struct{}
+type AzureResourceGroupResourceProvider struct{}
 
 var ctx = context.Background()
 
-func (AzureResourceGroupArtifactProvider) Create(parameters map[string]any, credentials map[string]any) error {
+func (AzureResourceGroupResourceProvider) Create(parameters map[string]any, credentials map[string]any) error {
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)
@@ -43,7 +43,7 @@ func (AzureResourceGroupArtifactProvider) Create(parameters map[string]any, cred
 	return nil
 }
 
-func (AzureResourceGroupArtifactProvider) Delete(parameters map[string]any, credentials map[string]any) error {
+func (AzureResourceGroupResourceProvider) Delete(parameters map[string]any, credentials map[string]any) error {
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)
