@@ -5,10 +5,10 @@ parameters:
   image: sample-api
   tag: latest
   dockerfile: ./Dockerfile
-  repository:
-    url: url
-    user: foo
-    password: bar
+credentials:
+  url: $REPOSITORY_URL
+  user: $REPOSITORY_USER
+  password: $REPOSITORY_PASSWORD
 
 ---
 
@@ -19,8 +19,8 @@ parameters:
   name: sample-rg
   location: "Japan East"
 credentials:
-  subscription_id: your_subscription_id
-  tenant_id: your_tenant_id
-  client_id: your_client_id
-  username: your_user_name
-  password: your_password
+  subscription_id: $AZURE_SUBSCRIPTION_ID
+  tenant_id: $AZURE_TENANT_ID
+  client_id: $AZURE_CLIENT_ID
+  username: $AZURE_USERNANE
+  password: $AZURE_PASSWORD

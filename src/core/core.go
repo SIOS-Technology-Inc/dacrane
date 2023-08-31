@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"dacrane/provider/artifact/docker"
 	azureresourcegroup "dacrane/provider/resource/azure-resource-group"
+	"fmt"
+	"os"
 
 	"gopkg.in/yaml.v3"
 )
 
 func ParseCode(codeBytes []byte) ([]Code, error) {
-	r := bytes.NewReader(codeBytes)
+	fmt.Println(os.ExpandEnv(string(codeBytes)))
+	r := bytes.NewReader([]byte(os.ExpandEnv(string(codeBytes))))
 	dec := yaml.NewDecoder(r)
 
 	var codes []Code
