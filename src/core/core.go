@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"dacrane/provider/artifact/docker"
+	azureappservice "dacrane/provider/resource/azure-app-service"
 	azureappserviceplan "dacrane/provider/resource/azure-app-service-plan"
 	azureresourcegroup "dacrane/provider/resource/azure-resource-group"
 	"os"
@@ -15,8 +16,11 @@ func ParseCode(codeBytes []byte) ([]Code, error) {
 	dec := yaml.NewDecoder(r)
 
 	var codes []Code
-	var code Code
-	for dec.Decode(&code) == nil {
+	for {
+		var code Code
+		if dec.Decode(&code) != nil {
+			break
+		}
 		codes = append(codes, code)
 	}
 
@@ -50,6 +54,7 @@ var artifactProviders = map[string](ArtifactProvider){
 var resourceProviders = map[string](ResourceProvider){
 	"azure-resource-group":   azureresourcegroup.AzureResourceGroupResourceProvider{},
 	"azure-app-service-plan": azureappserviceplan.AzureAppServicePlanResourceProvider{},
+	"azure-app-service":      azureappservice.AzureAppServiceResourceProvider{},
 }
 
 func FindArtifactProvider(providerName string) ArtifactProvider {
