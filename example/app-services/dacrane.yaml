@@ -13,6 +13,22 @@ credentials:
 ---
 
 kind: resource
+name: acr
+provider: azure-container-registry
+parameters:
+  name: sampleacr
+  resource_group_name: sample-rg
+  location: "Japan East"
+credentials:
+  subscription_id: $AZURE_SUBSCRIPTION_ID
+  tenant_id: $AZURE_TENANT_ID
+  client_id: $AZURE_CLIENT_ID
+  username: $AZURE_USERNANE
+  password: $AZURE_PASSWORD
+
+---
+
+kind: resource
 name: rg
 provider: azure-resource-group
 parameters:

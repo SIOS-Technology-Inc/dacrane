@@ -38,7 +38,7 @@ func (AzureAppServiceResourceProvider) Create(parameters map[string]any, credent
 	cred := auth.NewUsernamePasswordConfig(username, password, clientId, tenantId)
 	auth, err := cred.Authorizer()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	client.Authorizer = auth
@@ -88,7 +88,7 @@ func (AzureAppServiceResourceProvider) Delete(parameters map[string]any, credent
 	cred := auth.NewUsernamePasswordConfig(username, password, clientId, tenantId)
 	auth, err := cred.Authorizer()
 	if err != nil {
-		return nil
+		return err
 	}
 
 	client.Authorizer = auth
