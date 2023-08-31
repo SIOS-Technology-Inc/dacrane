@@ -47,7 +47,7 @@ var artifactProviders = map[string](ArtifactProvider){
 }
 
 var resourceProviders = map[string](ResourceProvider){
-	"azure-resource-group": azureresourcegroup.DockerArtifactProvider{},
+	"azure-resource-group": azureresourcegroup.AzureResourceGroupArtifactProvider{},
 }
 
 func FindArtifactProvider(providerName string) ArtifactProvider {

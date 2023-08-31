@@ -7,11 +7,11 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 )
 
-type DockerArtifactProvider struct{}
+type AzureResourceGroupArtifactProvider struct{}
 
 var ctx = context.Background()
 
-func (DockerArtifactProvider) Create(parameters map[string]any, credentials map[string]any) error {
+func (AzureResourceGroupArtifactProvider) Create(parameters map[string]any, credentials map[string]any) error {
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)
@@ -43,7 +43,7 @@ func (DockerArtifactProvider) Create(parameters map[string]any, credentials map[
 	return nil
 }
 
-func (DockerArtifactProvider) Delete(parameters map[string]any, credentials map[string]any) error {
+func (AzureResourceGroupArtifactProvider) Delete(parameters map[string]any, credentials map[string]any) error {
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)
