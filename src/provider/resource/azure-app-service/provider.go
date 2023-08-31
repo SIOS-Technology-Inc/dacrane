@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	"github.com/Azure/azure-sdk-for-go/services/web/mgmt/2021-02-01/web" // nolint: staticcheck
 	"github.com/Azure/go-autorest/autorest/azure/auth"
 )
@@ -79,18 +77,24 @@ func (AzureAppServiceResourceProvider) Delete(parameters map[string]any, credent
 	password := credentials["password"].(string)
 
 	name := parameters["name"].(string)
+	resourceGroupName := parameters["resource_group_name"].(string)
+	siteConfig := parameters["site_config"].(map[string]any)
 
-	cred, err := azidentity.NewUsernamePasswordCredential(tenantId, clientId, username, password, nil)
+	linuxFxVersion := siteConfig["linux_fx_version"].(string)
+	println(linuxFxVersion)
+
+	client := web.NewAppsClient(subscriptionId)
+
+	cred := auth.NewUsernamePasswordConfig(username, password, clientId, tenantId)
+	auth, err := cred.Authorizer()
 	if err != nil {
-		return err
+		return nil
 	}
 
-	rgClient, err := armresources.NewResourceGroupsClient(subscriptionId, cred, nil)
-	if err != nil {
-		return err
-	}
+	client.Authorizer = auth
 
-	_, err = rgClient.BeginDelete(ctx, name, nil)
+	FALSE := false
+	_, err = client.Delete(ctx, resourceGroupName, name, nil, &FALSE)
 	if err != nil {
 		return err
 	}
