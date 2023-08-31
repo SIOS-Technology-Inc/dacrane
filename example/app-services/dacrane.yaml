@@ -24,3 +24,23 @@ credentials:
   client_id: $AZURE_CLIENT_ID
   username: $AZURE_USERNANE
   password: $AZURE_PASSWORD
+
+---
+
+kind: resource
+name: asp
+provider: azure-app-service-plan
+parameters:
+  name: sample-asp
+  resource_group_name: sample-rg
+  location: "Japan East"
+  kind: "Linux"
+  sku:
+    tier: Free
+    name: F1
+credentials:
+  subscription_id: $AZURE_SUBSCRIPTION_ID
+  tenant_id: $AZURE_TENANT_ID
+  client_id: $AZURE_CLIENT_ID
+  username: $AZURE_USERNANE
+  password: $AZURE_PASSWORD

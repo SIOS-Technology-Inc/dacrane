@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"dacrane/provider/artifact/docker"
+	azureappserviceplan "dacrane/provider/resource/azure-app-service-plan"
 	azureresourcegroup "dacrane/provider/resource/azure-resource-group"
 	"os"
 
@@ -47,7 +48,8 @@ var artifactProviders = map[string](ArtifactProvider){
 }
 
 var resourceProviders = map[string](ResourceProvider){
-	"azure-resource-group": azureresourcegroup.AzureResourceGroupArtifactProvider{},
+	"azure-resource-group":   azureresourcegroup.AzureResourceGroupArtifactProvider{},
+	"azure-app-service-plan": azureappserviceplan.AzureAppServicePlanResourceProvider{},
 }
 
 func FindArtifactProvider(providerName string) ArtifactProvider {
