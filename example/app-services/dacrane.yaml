@@ -5,7 +5,82 @@ parameters:
   image: sample-api
   tag: latest
   dockerfile: ./Dockerfile
-  repository:
-    url: url
-    user: foo
-    password: bar
+credentials:
+  url: $REPOSITORY_URL
+  user: $REPOSITORY_USER
+  password: $REPOSITORY_PASSWORD
+
+---
+
+kind: resource
+name: acr
+provider: azure-container-registry
+parameters:
+  name: sampleacr
+  resource_group_name: sample-rg
+  location: "Japan East"
+credentials:
+  subscription_id: $AZURE_SUBSCRIPTION_ID
+  tenant_id: $AZURE_TENANT_ID
+  client_id: $AZURE_CLIENT_ID
+  username: $AZURE_USERNANE
+  password: $AZURE_PASSWORD
+
+---
+
+kind: resource
+name: rg
+provider: azure-resource-group
+parameters:
+  name: sample-rg
+  location: "Japan East"
+credentials:
+  subscription_id: $AZURE_SUBSCRIPTION_ID
+  tenant_id: $AZURE_TENANT_ID
+  client_id: $AZURE_CLIENT_ID
+  username: $AZURE_USERNANE
+  password: $AZURE_PASSWORD
+
+---
+
+kind: resource
+name: asp
+provider: azure-app-service-plan
+parameters:
+  name: sample-asp
+  resource_group_name: sample-rg
+  location: "Japan East"
+  kind: "Windows"
+  sku:
+    tier: Basic
+    name: B1
+credentials:
+  subscription_id: $AZURE_SUBSCRIPTION_ID
+  tenant_id: $AZURE_TENANT_ID
+  client_id: $AZURE_CLIENT_ID
+  username: $AZURE_USERNANE
+  password: $AZURE_PASSWORD
+
+---
+
+kind: resource
+name: as
+provider: azure-app-service
+parameters:
+  name: sample-as
+  resource_group_name: sample-rg
+  location: "Japan East"
+  app_service_plan_id: sample-asp
+  site_config:
+    linux_fx_version: DOCKER|${REPOSITORY_URL}/sample-api:latest
+  app_settings:
+    DOCKER_REGISTRY_SERVER_URL: $REPOSITORY_URL
+    DOCKER_REGISTRY_SERVER_USERNAME: $REPOSITORY_USER
+    DOCKER_REGISTRY_SERVER_PASSWORD: $REPOSITORY_PASSWORD
+    WEBSITES_PORT: "3000"
+credentials:
+  subscription_id: $AZURE_SUBSCRIPTION_ID
+  tenant_id: $AZURE_TENANT_ID
+  client_id: $AZURE_CLIENT_ID
+  username: $AZURE_USERNANE
+  password: $AZURE_PASSWORD
