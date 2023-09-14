@@ -43,6 +43,28 @@ Dacrane has the following features
 - Isolation of environments such as local, test, staging, production, etc.
 - Manage change history
 
+## Install
+
+```bash
+$ git clone
+```
+
+```bash
+$ make install
+```
+
+```bash
+$ dacrane
+
+Usage:
+  dacrane [command]
+...
+```
+
+```bash
+$ make uninstall
+```
+
 ## License
 
 [Apache License 2.0](./LICENSE)

@@ -47,53 +47,171 @@ For example, ADC defines that the application will be deployed to App Services, 
 
 ![adc-and-cdc](../images/adc-and-cdc.drawio.svg)
 
-* artifact
-  * build
-  * delete
-*
-* resource
-  *
+# Specification
 
-# Code Specification
+## Context
 
+```bash
+$ dacrane show context
+```
 
+```bash
+$ dacrane create context [context_name] \
+  [--storage (local|aws_s3|azure_blob_storage|...)] \
+  [--vault (local|aws_secrets_manager|azure_key_vault|...)]
+```
+
+```bash
+$ dacrane switch context [context_name]
+```
+
+```bash
+$ dacrane delete context [context_name]
+```
+
+## Context Login
+
+```bash
+$ dacrane login [-c context_name] [storage|vault] \
+  [credentials]...
+```
+
+```bash
+$ dacrane logout [-c context_name] [storage|vault]
+```
+
+## Deployment Code
 
 ```yaml
-variables:
+kind: resource
+name: resource_name
+provider: resource_provider_name
+parameters:
+  a: 1
+  b: "string"
+  c: true
+  d: null
+  e: ${ expression }
+```
 
----
+```yaml
+kind: artifact
+name: artifact_name
+provider: artifact_provider_name
+parameters:
+  a: 1
+  b: "string"
+  c: true
+  d: null
+  e: ${ expression }
+```
 
-app:
-  name: my_app
-  build:
-    - provider: npm
-      target: ./package.json
-    - provider: docker
-      target: ./Dockerfile
-  release:
-    - repository: my_app_repo
-      version: "${ variables.tag || "latest" }"
+```yaml
+kind: data
+name: data_name
+provider: data_provider_name
+parameters:
+  a: "abc"
+  b: ${ env.ENVNAME }
+```
 
----
+## Expression
 
-deploy-group:
-  name: local
+```yaml
+parameters:
+  a: ${ env.ENV_NAME }
+```
 
----
+## Control Flow
 
-deploy:
-  name: my_app_
-  provider:
-  image:
+```yaml
+kind: resource
+if: ${ env.local } # bool expression
+name: resource_name
+provider: provider_name
+parameters:
+  a: "string"
+```
 
----
+```yaml
+kind: resource
+for: ${ ["a", "b", "c"] }          # array expression
+name: resource_name_${ for.value } # unique name
+provider: provider_name
+parameters:
+  name: name-${ for.value }
+```
 
-deploy:
-  name: cloud
+## Environment Configuration
 
----
+```bash
+$ dacrane set env [-f env_file_name] [-c context_name]
+```
 
-repository:
-  provider: azure-container-registry
-  name: my_app_repo
+```yaml
+# .env-stg.yaml
+
+```
+
+```bash
+$ dacrane unset env [-c env_name]
+```
+
+
+## Environment
+
+```bash
+$ dacrane create context [environment]
+```
+
+```bash
+$ dacrane switch context [environment]
+```
+
+```bash
+$ dacrane delete context [environment]
+```
+
+## Up & Down
+
+```bash
+$ dacrane up
+```
+
+```bash
+$ dacrane down
+```
+
+## resource
+
+```bash
+$ dacrane deploy [resource]
+```
+
+```bash
+$ dacrane destroy [resource]
+```
+
+## artifact
+
+```bash
+$ dacrane build [artifact] -t [version]
+```
+
+```bash
+$ dacrane publish [artifact] -t [version]
+```
+
+```bash
+$ dacrane list [artifact]
+
+1.0.0 1.0.1
+1.1.0 1.2.1
+
+2.0.0
+2.1.0
+```
+
+```bash
+$ dacrane delete [artifact] -v [version]
 ```
