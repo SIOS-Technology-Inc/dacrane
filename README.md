@@ -46,7 +46,8 @@ Dacrane has the following features
 ## Install
 
 ```bash
-$ git clone
+$ git clone https://github.com/SIOS-Technology-Inc/dacrane.git
+$ cd dacrane
 ```
 
 ```bash
