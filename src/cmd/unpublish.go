@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"dacrane/core"
+	"dacrane/core/code"
 	"dacrane/utils"
 	"errors"
 	"os"
@@ -27,12 +28,12 @@ var unpublishCmd = &cobra.Command{
 			panic(err)
 		}
 
-		codes, err := core.ParseCode(codeBytes)
+		codes, err := code.ParseCode(codeBytes)
 		if err != nil {
 			panic(err)
 		}
 
-		artifactCode := utils.Find(codes, func(code core.Code) bool {
+		artifactCode := utils.Find(codes, func(code code.RawCode) bool {
 			return code.Kind == "artifact" && code.Name == name
 		})
 

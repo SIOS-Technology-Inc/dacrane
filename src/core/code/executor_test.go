@@ -1,4 +1,4 @@
-package expression
+package code
 
 import (
 	"testing"
@@ -7,8 +7,8 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	assert.Equal(t, []string{"a", "b", "c"}, Parse("a.b.c"))
-	assert.Equal(t, []string{"a"}, Parse("a"))
+	assert.Equal(t, NewExprParam(NewRefParam([]string{"a", "b", "c"})), ParseExpr("a.b.c"))
+	assert.Equal(t, NewExprParam(NewRefParam([]string{"a"})), ParseExpr("a"))
 }
 
 func TestExec(t *testing.T) {

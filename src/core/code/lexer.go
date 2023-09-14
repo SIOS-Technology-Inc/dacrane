@@ -1,4 +1,4 @@
-package expression
+package code
 
 import (
 	"fmt"
@@ -12,14 +12,14 @@ import (
 type Lexer struct {
 	lexer     *simplexer.Lexer
 	lastToken *simplexer.Token
-	result    []string
+	result    ExprParam
 }
 
 func NewLexer(reader io.Reader) *Lexer {
 	l := simplexer.NewLexer(reader)
 
 	l.TokenTypes = []simplexer.TokenType{
-		simplexer.NewRegexpTokenType(IDENT, `[a-z]+`),
+		simplexer.NewRegexpTokenType(IDENT, `[a-zA-Z_]+`),
 		simplexer.NewRegexpTokenType(DOT, `\.`),
 	}
 
