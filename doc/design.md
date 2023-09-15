@@ -18,7 +18,7 @@ Plug-ins can be implemented according to a process defined by a common interface
 Templates can be published in a code repository and copied to the local environment from the CLI.
 Developers can modify and use the copied code.
 
-![architecture](../images/architecture.drawio.svg)
+![architecture](./images/architecture.drawio.svg)
 
 A typical Dacrane environment build process proceeds as follows:
 
