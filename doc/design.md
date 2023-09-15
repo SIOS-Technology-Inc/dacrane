@@ -80,7 +80,7 @@ $ dacrane login [-c context_name] [storage|vault] \
 $ dacrane logout [-c context_name] [storage|vault]
 ```
 
-## Deployment Code
+## Abstract Deployment Code
 
 ```yaml
 kind: resource
@@ -142,6 +142,7 @@ LT         ::= "<"
 LTE        ::= "<="
 GT         ::= ">"
 GTE        ::= ">="
+PRIORITY   ::= ">>"
 ADD        ::= "+"
 SUB        ::= "-"
 MUL        ::= "*"
@@ -164,18 +165,20 @@ EXPR
     | BOOLEAN
     | NULL
     | LBRACKET EXPR RBRACKET
-    | EXPR AND EXPR
-    | EXPR OR EXPR
-    | NOT EXPR
-    | EXPR EQ EXPR
-    | EXPR LT EXPR
-    | EXPR LTE EXPR
-    | EXPR GT EXPR
-    | EXPR GTE EXPR
-    | EXPR ADD EXPR
-    | EXPR SUB EXPR
-    | EXPR MUL EXPR
-    | EXPR DIV EXPR
+    | EXPR AND EXPR          (left)
+    | EXPR OR EXPR           (left)
+    | NOT EXPR               (right)
+    | EXPR EQ EXPR           (left)
+    | EXPR LT EXPR           (left)
+    | EXPR LTE EXPR          (left)
+    | EXPR GT EXPR           (left)
+    | EXPR GTE EXPR          (left)
+    | EXPR PRIORITY EXPR     (left)
+    | EXPR ADD EXPR          (left)
+    | EXPR SUB EXPR          (left)
+    | EXPR MUL EXPR          (left)
+    | EXPR DIV EXPR          (left)
+    | SUB EXPR               (right)
     | REF
     | APP
     | LIST
@@ -192,18 +195,18 @@ PARAMS
 
 LIST ::= LSBRACKET ITEMS RSBRACKET
 ITEMS
-  ::= ITEMS COMMA ITEMS
+  ::= ITEMS COMMA ITEMS (left)
     | EXPR
     | (nothing)
 
 MAP ::= LCBRACKET KVS RCBRACKET
 KVS
-  ::= KVS COMMA KVS
+  ::= KVS COMMA KVS (left)
     | STRING COLON EXPR
     | (nothing)
 
 REF
-  ::= REF DOT REF
+  ::= REF DOT REF (left)
     | IDENTIFIER
 ```
 
@@ -240,21 +243,6 @@ $ dacrane set env [-f env_file_name] [-c context_name]
 
 ```bash
 $ dacrane unset env [-c env_name]
-```
-
-
-## Environment
-
-```bash
-$ dacrane create context [environment]
-```
-
-```bash
-$ dacrane switch context [environment]
-```
-
-```bash
-$ dacrane delete context [environment]
 ```
 
 ## Up & Down
@@ -299,4 +287,134 @@ $ dacrane list [artifact]
 
 ```bash
 $ dacrane delete [artifact] -v [version]
+```
+
+# File Tree
+
+```
+.
+├── dacrane.yaml
+├── .env.yaml
+└── .dacrane
+    ├── context.yaml
+    └── local
+        ├── state.yaml
+        ├── 2_yyyyMMddhhmmss
+        ├── 1_yyyyMMddhhmmss
+        └── 0_yyyyMMddhhmmss
+            ├── adc.yaml
+            ├── cdc.yaml
+            ├── arg.yaml
+            └── env.yaml
+
+```
+
+# Flow
+
+```plantuml
+@startuml
+skinparam dpi 72
+skinparam monochrome true
+skinparam shadowing false
+skinparam participantpadding 20
+skinparam boxpadding 5
+
+actor "developer" as developer
+participant "dacrane" as dacrane
+participant "storage" as local<<local>>
+participant "storage" as remote<<cloud>>
+participant "vault" as vault<<cloud>>
+participant "cloud" as cloud<<cloud>>
+
+note right of developer
+$ dacrane init
+end note
+developer -> dacrane++
+  dacrane -> local++: create context.yaml file
+  return
+return
+
+note right of developer
+$ dacrane context create [context_name]
+  [--storage storage_type]
+  [--vault storage_type]
+end note
+developer -> dacrane++
+  dacrane -> local++: write new context info
+  return
+return
+
+opt "when using remote storage"
+  note right of developer
+  $ dacrane login storage [credentials]
+  end note
+  developer -> dacrane++
+    dacrane -> local++: write credential
+    return
+    dacrane -> remote++: check login
+    return
+  return
+end
+
+opt "when using vault"
+  note right of developer
+  $ dacrane login vault [credentials]
+  end note
+  developer -> dacrane++
+    dacrane -> local++: write credential
+    return
+    dacrane -> vault++: check login
+    return
+  return
+end
+
+developer -> local++: write dacrane.yaml
+return
+
+developer -> local++: write .env.yaml
+return
+
+note right of developer
+$ dacrane set -f .env.yaml
+end note
+developer -> dacrane++:
+  alt "use local storage"
+    dacrane -> local++: write env variables and secrets
+    return
+  else "use remote storage"
+    dacrane -> remote++: write env variables
+    return
+    dacrane -> vault++: write secrets
+    return
+  end
+return
+
+note right of developer
+$ dacrane up
+end note
+developer -> dacrane++:
+  alt "use local storage"
+    dacrane -> local++: read state
+    return
+  else
+    dacrane -> remote++: write env variables
+    return
+    dacrane -> vault++: read vault
+    return
+  end
+  dacrane -> local++: acquire lock
+  return
+  dacrane -> dacrane: build
+  dacrane -> cloud++: deploy
+  return
+  alt "use local storage"
+    dacrane -> local++: write state/history
+    return
+  else
+    dacrane -> remote++: write state/history
+    return
+  end
+return
+
+@enduml
 ```
