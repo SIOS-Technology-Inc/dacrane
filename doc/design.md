@@ -122,6 +122,91 @@ parameters:
   a: ${ env.ENV_NAME }
 ```
 
+
+
+```
+# TOKEN
+NUMBER     ::= [0-9]+\.[0-9]+
+STRING     ::= ".*"
+BOOLEAN    ::= ("true"|"false")
+NULL       ::= "null"
+IDENTIFIER ::= [a-zA-Z0-9_-]+
+DOT        ::= "."
+COMMA      ::= ","
+COLON      ::= ":"
+AND        ::= "&&"
+OR         ::= "||"
+NOT        ::= "!"
+EQ         ::= "=="
+LT         ::= "<"
+LTE        ::= "<="
+GT         ::= ">"
+GTE        ::= ">="
+ADD        ::= "+"
+SUB        ::= "-"
+MUL        ::= "*"
+DIV        ::= "/"
+LBRACKET   ::= "("
+RBRACKET   ::= ")"
+LSBRACKET  ::= "[" # square brackets
+RSBRACKET  ::= "]" # square brackets
+LCBRACKET  ::= "{" # curly brackets
+RCBRACKET  ::= "}" # curly brackets
+IF         ::= "if"
+THEN       ::= "then"
+ELSE       ::= "else"
+
+# SYNTAX
+
+EXPR
+  ::= NUMBER
+    | STRING
+    | BOOLEAN
+    | NULL
+    | LBRACKET EXPR RBRACKET
+    | EXPR AND EXPR
+    | EXPR OR EXPR
+    | NOT EXPR
+    | EXPR EQ EXPR
+    | EXPR LT EXPR
+    | EXPR LTE EXPR
+    | EXPR GT EXPR
+    | EXPR GTE EXPR
+    | EXPR ADD EXPR
+    | EXPR SUB EXPR
+    | EXPR MUL EXPR
+    | EXPR DIV EXPR
+    | REF
+    | APP
+    | LIST
+    | MAP
+    | IF_EXPR
+
+IF_EXPR ::= IF EXPR THEN EXPR ELSE EXPR
+
+APP ::= IDENTIFIER LBRACKET PARAMS RBRACKET
+PARAMS
+  ::= PARAMS COMMA PARAMS
+    | EXPR
+    | (nothing)
+
+LIST ::= LSBRACKET ITEMS RSBRACKET
+ITEMS
+  ::= ITEMS COMMA ITEMS
+    | EXPR
+    | (nothing)
+
+MAP ::= LCBRACKET KVS RCBRACKET
+KVS
+  ::= KVS COMMA KVS
+    | STRING COLON EXPR
+    | (nothing)
+
+REF
+  ::= REF DOT REF
+    | IDENTIFIER
+```
+
 ## Control Flow
 
 ```yaml
