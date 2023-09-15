@@ -1,9 +1,25 @@
+kind: data
+name: config
+provider: environment
+parameters:
+  - name: service
+    enum: ["local-docker", "app-service"]
+  - name: spec
+    enum: ["low", "high"]
+---
+kind: data
+name: argument
+provider: argument
+parameters:
+  - name: tag
+    default: "latest"
+---
 kind: artifact
 name: api
 provider: docker
 parameters:
   image: sample-api
-  tag: ${ data.argument.tag }
+  tag: ${ data.argument.tag } # increase attribute
   dockerfile: ./Dockerfile
   remote:
     if: ${ data.config.service == "app-service" }
@@ -84,19 +100,3 @@ parameters:
   - name: username
   - name: password
     secret: true
----
-kind: data
-name: config
-provider: environment
-parameters:
-  - name: service
-    enum: ["local-docker", "app-service"]
-  - name: spec
-    enum: ["low", "high"]
----
-kind: data
-name: argument
-provider: argument
-parameters:
-  - name: tag
-    default: "latest"
