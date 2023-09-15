@@ -45,7 +45,7 @@ This allows for separation of per-environment deployment settings from the repos
 
 For example, ADC defines that the application will be deployed to App Services, but does not specifically specify Azure tenants or resource groups. These values are defined separately as environment variables.
 
-![adc-and-cdc](../images/adc-and-cdc.drawio.svg)
+![adc-and-cdc](./images/adc-and-cdc.drawio.svg)
 
 # Specification
 
