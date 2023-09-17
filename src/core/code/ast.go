@@ -3,20 +3,21 @@ package code
 import (
 	"reflect"
 	"regexp"
-	"strings"
+
+	"github.com/macrat/simplexer"
 )
 
 type ParamType string
 
 const (
-	Map            ParamType = "map"
-	Number         ParamType = "number"
-	String         ParamType = "string"
-	Bool           ParamType = "bool"
-	Null           ParamType = "null"
+	// Map            ParamType = "map"
+	// Number         ParamType = "number"
+	// String         ParamType = "string"
+	Bool ParamType = "bool"
+	// Null           ParamType = "null"
 	StringWithExpr ParamType = "string_with_expr"
-	Expr           ParamType = "expr"
-	Ref            ParamType = "ref"
+	// Expr           ParamType = "expr"
+	// Ref            ParamType = "ref"
 )
 
 type RawCode struct {
@@ -72,7 +73,7 @@ func NewMapParam(raw map[string]any) MapParam {
 }
 
 func (MapParam) Type() ParamType {
-	return Map
+	return ""
 }
 
 func (p MapParam) Get(key string) Param {
@@ -92,7 +93,7 @@ func NewStringParam(raw string) StringParam {
 }
 
 func (StringParam) Type() ParamType {
-	return String
+	return ""
 }
 
 func (p StringParam) Get() string {
@@ -131,40 +132,70 @@ func (p StringWithExprParam) Get(env map[string]string) string {
 	return ""
 }
 
-// define expr parameter
-type ExprParam struct {
-	ref RefParam
+// Expr represents an expression in the AST.
+type Expr interface{}
+
+// Number represents a numeric value.
+type Number struct {
+	Value float64
 }
 
-func NewExprParam(ref RefParam) ExprParam {
-	return ExprParam{
-		ref: ref,
-	}
+// String represents a string value.
+type String struct {
+	Value string
 }
 
-func (ExprParam) Type() ParamType {
-	return Expr
+// Boolean represents a boolean value.
+type Boolean struct {
+	Value bool
 }
 
-// define ref parameter
-type RefParam struct {
-	path Path
+// Null represents a null value.
+type Null struct{}
+
+// BinaryExpr represents a binary operation.
+type BinaryExpr struct {
+	Left  Expr
+	Op    *simplexer.Token
+	Right Expr
 }
 
-func NewRefParam(path Path) RefParam {
-	return RefParam{
-		path: path,
-	}
+// UnaryExpr represents a unary operation.
+type UnaryExpr struct {
+	Op   *simplexer.Token
+	Expr Expr
 }
 
-func (RefParam) Type() ParamType {
-	return Ref
+// IfExpr represents an if-then-else expression.
+type IfExpr struct {
+	Condition Expr
+	Then      Expr
+	Else      Expr
 }
 
-// returns path string
-func (p RefParam) Get() string {
-	return strings.Join(p.path, ".")
+// List represents a list of expressions.
+type List struct {
+	Items []Expr
 }
 
-type Identifier = string
-type Path = []Identifier
+// Map represents a map of string to expression.
+type Map struct {
+	KVs map[string]Expr
+}
+
+// App represents a function application.
+type App struct {
+	Name   string
+	Params []Expr
+}
+
+// Ref represents a reference to another expression.
+type Ref struct {
+	Expr Expr
+	Key  Expr
+}
+
+// Identifier represents an identifier.
+type Identifier struct {
+	Name string
+}

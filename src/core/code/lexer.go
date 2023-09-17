@@ -12,7 +12,7 @@ import (
 type Lexer struct {
 	lexer     *simplexer.Lexer
 	lastToken *simplexer.Token
-	result    ExprParam
+	result    Expr
 }
 
 func NewLexer(reader io.Reader) *Lexer {

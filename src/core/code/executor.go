@@ -7,18 +7,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func ParseExpr(pathStr string) ExprParam {
+func ParseExpr(pathStr string) Expr {
 	lexer := NewLexer(strings.NewReader(pathStr))
 	yyParse(lexer)
 	return lexer.result
-}
-
-func Exec(path Path, objects map[string]any) string {
-	var value any = objects
-	for _, key := range path {
-		value = value.(map[string]any)[key]
-	}
-	return value.(string)
 }
 
 func ParseCode(codeBytes []byte) ([]RawCode, error) {
