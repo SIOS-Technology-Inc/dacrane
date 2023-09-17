@@ -94,7 +94,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line core/code/parser.go.y:113
+//line core/code/parser.go.y:114
 
 //line yacctab:1
 var yyExca = [...]int8{
@@ -108,13 +108,13 @@ const yyPrivate = 57344
 const yyLast = 167
 
 var yyAct = [...]int8{
-	35, 2, 60, 36, 34, 38, 57, 58, 30, 31,
-	68, 37, 59, 39, 32, 33, 25, 26, 10, 40,
+	36, 2, 60, 37, 35, 39, 58, 59, 30, 31,
+	68, 54, 38, 32, 33, 34, 25, 26, 10, 40,
 	41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-	51, 56, 9, 67, 23, 24, 25, 26, 29, 11,
+	51, 57, 9, 67, 23, 24, 25, 26, 29, 11,
 	61, 28, 27, 18, 19, 20, 21, 22, 12, 23,
-	24, 25, 26, 8, 63, 1, 15, 0, 0, 66,
-	64, 65, 0, 52, 54, 55, 13, 0, 14, 61,
+	24, 25, 26, 8, 63, 1, 15, 0, 55, 56,
+	66, 64, 65, 52, 0, 0, 13, 0, 14, 61,
 	71, 70, 0, 0, 3, 4, 5, 6, 17, 0,
 	7, 0, 16, 69, 29, 0, 0, 28, 27, 18,
 	19, 20, 21, 22, 0, 23, 24, 25, 26, 29,
@@ -129,11 +129,11 @@ var yyAct = [...]int8{
 
 var yyPact = [...]int16{
 	49, -1000, 124, -1000, -1000, -1000, -1000, 49, 49, -1000,
-	-1000, -1000, -1000, 49, 49, 49, -15, -18, 49, 49,
+	-1000, -1000, -10, 49, 49, 49, -14, -26, 49, 49,
 	49, 49, 49, 49, 49, 49, 49, 49, 49, 49,
-	31, 109, 16, -1000, 56, 124, -3, -23, -17, 49,
+	31, 109, -18, 16, -1000, 50, 124, -3, -23, 49,
 	16, 16, 16, 16, 16, -4, -4, -1000, -1000, 145,
-	135, 92, -1000, 49, -1000, 49, -1000, -15, 49, -1000,
+	135, 92, -1000, 49, -1000, -1000, 49, -1000, -14, 49,
 	1, 124, -1000, 77, -1000, -1000, 124, -1000, 49, 49,
 	-1000, 124,
 }
@@ -145,37 +145,37 @@ var yyPgo = [...]int8{
 var yyR1 = [...]int8{
 	0, 1, 2, 2, 2, 2, 2, 2, 2, 2,
 	2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-	2, 2, 2, 2, 2, 3, 3, 4, 7, 7,
-	7, 5, 8, 8, 8, 6, 9, 9, 9,
+	2, 2, 2, 2, 2, 3, 3, 3, 4, 7,
+	7, 7, 5, 8, 8, 8, 6, 9, 9, 9,
 }
 
 var yyR2 = [...]int8{
 	0, 1, 1, 1, 1, 1, 3, 6, 1, 1,
 	1, 1, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 2, 2, 4, 3, 4, 3, 1,
-	0, 3, 3, 1, 0, 3, 3, 3, 0,
+	3, 3, 3, 2, 2, 4, 1, 3, 4, 3,
+	1, 0, 3, 3, 1, 0, 3, 3, 3, 0,
 }
 
 var yyChk = [...]int16{
 	-1000, -1, -2, 25, 26, 27, 28, 31, 4, -5,
 	-6, -4, -3, 17, 19, 7, 33, 29, 12, 13,
 	14, 15, 16, 18, 19, 20, 21, 11, 10, 7,
-	-2, -2, -2, -2, -8, -2, -9, 26, 23, 31,
+	-2, -2, 23, -2, -2, -8, -2, -9, 26, 31,
 	-2, -2, -2, -2, -2, -2, -2, -2, -2, -2,
-	-2, -2, 32, 5, 8, 9, 34, 9, 30, 29,
+	-2, -2, 32, 5, 29, 8, 9, 34, 9, 30,
 	-7, -2, 8, -2, -8, -9, -2, 32, 9, 6,
 	-7, -2,
 }
 
 var yyDef = [...]int8{
 	0, -2, 1, 2, 3, 4, 5, 0, 0, 8,
-	9, 10, 11, 0, 0, 34, 38, 0, 0, 0,
+	9, 10, 11, 0, 0, 35, 39, 26, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 23, 24, 0, 33, 0, 0, 0, 30,
+	0, 0, 0, 23, 24, 0, 34, 0, 0, 31,
 	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-	22, 0, 6, 0, 31, 34, 35, 38, 0, 26,
-	0, 29, 25, 0, 32, 36, 37, 27, 30, 0,
-	28, 7,
+	22, 0, 6, 0, 27, 32, 35, 36, 39, 0,
+	0, 30, 25, 0, 33, 37, 38, 28, 31, 0,
+	29, 7,
 }
 
 var yyTok1 = [...]int8{
@@ -690,83 +690,89 @@ yydefault:
 			yyVAL.expr = &Ref{Expr: yyDollar[1].expr, Key: yyDollar[3].expr}
 		}
 	case 26:
-		yyDollar = yyS[yypt-3 : yypt+1]
+		yyDollar = yyS[yypt-1 : yypt+1]
 //line core/code/parser.go.y:89
 		{
-			yyVAL.expr = &Identifier{Name: yyDollar[1].token.Literal + "." + yyDollar[3].token.Literal}
+			yyVAL.expr = &Identifier{Name: yyDollar[1].token.Literal}
 		}
 	case 27:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line core/code/parser.go.y:90
+		{
+			yyVAL.expr = &Identifier{Name: yyDollar[1].expr.(*Identifier).Name + "." + yyDollar[3].token.Literal}
+		}
+	case 28:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line core/code/parser.go.y:92
+//line core/code/parser.go.y:93
 		{
 			yyVAL.expr = &App{Name: yyDollar[1].token.Literal, Params: yyDollar[3].exprs}
 		}
-	case 28:
+	case 29:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line core/code/parser.go.y:94
+//line core/code/parser.go.y:95
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].exprs...)
 		}
-	case 29:
+	case 30:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line core/code/parser.go.y:95
+//line core/code/parser.go.y:96
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
-	case 30:
+	case 31:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line core/code/parser.go.y:96
+//line core/code/parser.go.y:97
 		{
 			yyVAL.exprs = []Expr{}
-		}
-	case 31:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line core/code/parser.go.y:98
-		{
-			yyVAL.expr = &List{Items: yyDollar[2].exprs}
 		}
 	case 32:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line core/code/parser.go.y:100
+//line core/code/parser.go.y:99
+		{
+			yyVAL.expr = &List{Items: yyDollar[2].exprs}
+		}
+	case 33:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line core/code/parser.go.y:101
 		{
 			yyVAL.exprs = append(yyDollar[1].exprs, yyDollar[3].exprs...)
 		}
-	case 33:
+	case 34:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line core/code/parser.go.y:101
+//line core/code/parser.go.y:102
 		{
 			yyVAL.exprs = []Expr{yyDollar[1].expr}
 		}
-	case 34:
+	case 35:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line core/code/parser.go.y:102
+//line core/code/parser.go.y:103
 		{
 			yyVAL.exprs = []Expr{}
-		}
-	case 35:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line core/code/parser.go.y:104
-		{
-			yyVAL.expr = &Map{KVs: yyDollar[2].kvMap}
 		}
 	case 36:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line core/code/parser.go.y:105
+		{
+			yyVAL.expr = &Map{KVs: yyDollar[2].kvMap}
+		}
+	case 37:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line core/code/parser.go.y:106
 		{
 			yyVAL.kvMap = yyDollar[1].kvMap
 			for k, v := range yyDollar[3].kvMap {
 				yyVAL.kvMap[k] = v
 			}
 		}
-	case 37:
+	case 38:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line core/code/parser.go.y:111
+//line core/code/parser.go.y:112
 		{
 			yyVAL.kvMap = map[string]Expr{yyDollar[1].token.Literal: yyDollar[3].expr}
 		}
-	case 38:
+	case 39:
 		yyDollar = yyS[yypt-0 : yypt+1]
-//line core/code/parser.go.y:112
+//line core/code/parser.go.y:113
 		{
 			yyVAL.kvMap = map[string]Expr{}
 		}

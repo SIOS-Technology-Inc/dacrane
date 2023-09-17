@@ -86,7 +86,8 @@ Expr
 
 Ref
 	: Expr LSBRACKET Expr RSBRACKET { $$ = &Ref{Expr: $1, Key: $3} }
-	| IDENTIFIER DOT IDENTIFIER     { $$ = &Identifier{Name: $1.Literal + "." + $3.Literal} }
+	| IDENTIFIER { $$ = &Identifier{Name: $1.Literal} }
+	| Ref DOT IDENTIFIER { $$ = &Identifier{Name: $1.(*Identifier).Name + "." + $3.Literal} }
 
 
 App: IDENTIFIER LBRACKET Params RBRACKET { $$ = &App{Name: $1.Literal, Params: $3} }
