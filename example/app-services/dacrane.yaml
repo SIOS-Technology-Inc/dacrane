@@ -1,17 +1,33 @@
+kind: data
+name: config
+provider: environment
+parameters:
+  - name: service
+    enum: ["local-docker", "app-service"]
+  - name: spec
+    enum: ["low", "high"]
+---
+kind: data
+name: argument
+provider: argument
+parameters:
+  - name: tag
+    default: "latest"
+---
 kind: artifact
 name: api
 provider: docker
 parameters:
   image: sample-api
-  tag: latest
+  tag: ${ data.argument.tag } # increase attribute
   dockerfile: ./Dockerfile
-credentials:
-  url: $REPOSITORY_URL
-  user: $REPOSITORY_USER
-  password: $REPOSITORY_PASSWORD
-
+  remote:
+    if: ${ data.config.service == "app-service" }
+    url: ${ resource.acr.url }
+    user: ${ resource.acr.user }
+    password: ${ resource.acr.password }
 ---
-
+if: ${ data.config.service == "app-service" }
 kind: resource
 name: acr
 provider: azure-container-registry
@@ -19,30 +35,18 @@ parameters:
   name: sampleacr
   resource_group_name: sample-rg
   location: "Japan East"
-credentials:
-  subscription_id: $AZURE_SUBSCRIPTION_ID
-  tenant_id: $AZURE_TENANT_ID
-  client_id: $AZURE_CLIENT_ID
-  username: $AZURE_USERNANE
-  password: $AZURE_PASSWORD
-
+  credentials: ${ data.azure_credential }
 ---
-
+if: ${ data.config.service == "app-service" }
 kind: resource
 name: rg
 provider: azure-resource-group
 parameters:
   name: sample-rg
   location: "Japan East"
-credentials:
-  subscription_id: $AZURE_SUBSCRIPTION_ID
-  tenant_id: $AZURE_TENANT_ID
-  client_id: $AZURE_CLIENT_ID
-  username: $AZURE_USERNANE
-  password: $AZURE_PASSWORD
-
+  credentials: ${ data.azure_credential }
 ---
-
+if: ${ data.config.service == "app-service" }
 kind: resource
 name: asp
 provider: azure-app-service-plan
@@ -52,17 +56,11 @@ parameters:
   location: "Japan East"
   kind: "Windows"
   sku:
-    tier: Basic
-    name: B1
-credentials:
-  subscription_id: $AZURE_SUBSCRIPTION_ID
-  tenant_id: $AZURE_TENANT_ID
-  client_id: $AZURE_CLIENT_ID
-  username: $AZURE_USERNANE
-  password: $AZURE_PASSWORD
-
+    tier: '${ {"low": "Basic", "high": "Premium" }[data.config.spec] }'
+    name: '${ {"low": "B1", "high": "P1" }[data.config.spec] }'
+  credentials: ${ data.azure_credential }
 ---
-
+if: ${ data.config.service == "app-service" }
 kind: resource
 name: as
 provider: azure-app-service
@@ -72,15 +70,33 @@ parameters:
   location: "Japan East"
   app_service_plan_id: sample-asp
   site_config:
-    linux_fx_version: DOCKER|${REPOSITORY_URL}/sample-api:latest
+    linux_fx_version: DOCKER|${ resource.acr.url }/sample-api:${ data.argument.tag }
   app_settings:
-    DOCKER_REGISTRY_SERVER_URL: $REPOSITORY_URL
-    DOCKER_REGISTRY_SERVER_USERNAME: $REPOSITORY_USER
-    DOCKER_REGISTRY_SERVER_PASSWORD: $REPOSITORY_PASSWORD
+    DOCKER_REGISTRY_SERVER_URL: ${ resource.acr.url }
+    DOCKER_REGISTRY_SERVER_USERNAME: ${ resource.acr.user }
+    DOCKER_REGISTRY_SERVER_PASSWORD: ${ resource.acr.password }
     WEBSITES_PORT: "3000"
-credentials:
-  subscription_id: $AZURE_SUBSCRIPTION_ID
-  tenant_id: $AZURE_TENANT_ID
-  client_id: $AZURE_CLIENT_ID
-  username: $AZURE_USERNANE
-  password: $AZURE_PASSWORD
+  credentials: ${ data.azure_credential }
+---
+if: ${ data.config.service == "local-docker" }
+kind: resource
+name: docker
+provider: docker
+parameters:
+  image: sample-api
+  tag: ${ data.argument.tag }
+  port: 3000:3000
+  env:
+    - name: PORT
+      value: 3000
+---
+kind: data
+name: azure_credential
+provider: environment
+parameters:
+  - name: subscription_id
+  - name: tenant_id
+  - name: client_id
+  - name: username
+  - name: password
+    secret: true
