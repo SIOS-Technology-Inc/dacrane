@@ -3,7 +3,6 @@ package cmd
 import (
 	"dacrane/core"
 	"dacrane/core/code"
-	"dacrane/utils"
 	"errors"
 	"os"
 
@@ -28,18 +27,16 @@ var deployCmd = &cobra.Command{
 			panic(err)
 		}
 
-		codes, err := code.ParseCode(codeBytes)
+		code, err := code.ParseCode(codeBytes)
 		if err != nil {
 			panic(err)
 		}
 
-		resourceCode := utils.Find(codes, func(code code.RawCode) bool {
-			return code.Kind == "resource" && code.Name == name
-		})
+		resourceCode := code.Find("resource", name)
 
-		resourceProvider := core.FindResourceProvider(resourceCode.Provider)
+		resourceProvider := core.FindResourceProvider(resourceCode["provider"].(string))
 
-		err = resourceProvider.Create(resourceCode.Parameters, resourceCode.Credentials)
+		err = resourceProvider.Create(resourceCode["parameters"].(map[string]any), resourceCode["credentials"].(map[string]any))
 
 		if err != nil {
 			panic(err)
