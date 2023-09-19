@@ -1,170 +1,126 @@
 package code
 
 import (
+	"dacrane/utils"
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/macrat/simplexer"
 )
 
-type ParamType string
+type Code []Entity
 
-const (
-	Map            ParamType = "map"
-	Number         ParamType = "number"
-	String         ParamType = "string"
-	Bool           ParamType = "bool"
-	Null           ParamType = "null"
-	StringWithExpr ParamType = "string_with_expr"
-	Expr           ParamType = "expr"
-	Ref            ParamType = "ref"
-)
+type Entity map[string]any
 
-type RawCode struct {
-	Kind        string         `yaml:"kind"`
-	Name        string         `yaml:"name"`
-	Provider    string         `yaml:"provider"`
-	Parameters  map[string]any `yaml:"parameters"`
-	Credentials map[string]any `yaml:"credentials"`
+func (code Code) Find(kind string, name string) Entity {
+	return utils.Find(code, func(e Entity) bool {
+		return e["kind"].(string) == kind && e["name"].(string) == name
+	})
 }
 
-type Code struct {
-	Kind        string
-	Name        string
-	Provider    string
-	Parameters  MapParam
-	Credentials MapParam
+func (code Code) Dependency(kind string, name string) []Entity {
+	entity := code.Find(kind, name)
+	paths := references(entity)
+	var dependencies []Entity
+	for _, path := range paths {
+		identifiers := strings.Split(path, ".")
+		kind := identifiers[0]
+		name := identifiers[1]
+		dependency := code.Find(kind, name)
+		dependencies = append(dependencies, dependency)
+	}
+	return dependencies
 }
 
-type Param interface {
-	Type() ParamType
-}
+func references(raw map[string]any) []string {
+	var paths []string
+	for _, v := range raw {
+		switch t := reflect.TypeOf(v); t.Kind() {
+		case reflect.Map:
+			paths = append(paths, references(v.(map[string]any))...)
+		case reflect.String:
+			r, e := regexp.Compile(`\$\{(.*?)\}`)
+			if e != nil {
+				panic(e)
+			}
+			res := r.FindAllStringSubmatch(v.(string), -1)
+			for _, exprStr := range res {
 
-func NewParam(raw any) Param {
-	switch t := reflect.TypeOf(raw); t.Kind() {
-	case reflect.Map:
-		return NewMapParam(raw.(map[string]any))
-	case reflect.String:
-		includesExpandExpr, e := regexp.MatchString("\\$\\{.*?\\}", raw.(string))
-		if e != nil {
-			panic(e)
+				expr := ParseExpr(exprStr[1])
+				paths = append(paths, expr.(Identifier).Name)
+			}
+		default:
+			panic("unexpected parameter type")
 		}
-		if includesExpandExpr {
-			return NewStringWithExprParam(raw.(string))
-		} else {
-			return NewStringParam(raw.(string))
-		}
-	default:
-		panic("unexpected parameter type")
 	}
+	return paths
 }
 
-// define map parameter
-type MapParam struct {
-	Param
-	raw      map[string]any
-	children map[string]Param
+// Expr represents an expression in the AST.
+type Expr interface{}
+
+// Number represents a numeric value.
+type Number struct {
+	Value float64
 }
 
-func NewMapParam(raw map[string]any) MapParam {
-	return MapParam{
-		raw: raw,
-	}
+// String represents a string value.
+type String struct {
+	Value string
 }
 
-func (MapParam) Type() ParamType {
-	return Map
+// Boolean represents a boolean value.
+type Boolean struct {
+	Value bool
 }
 
-func (p MapParam) Get(key string) Param {
-	return p.children[key]
+// Null represents a null value.
+type Null struct{}
+
+// BinaryExpr represents a binary operation.
+type BinaryExpr struct {
+	Left  Expr
+	Op    *simplexer.Token
+	Right Expr
 }
 
-// define number parameter
-type StringParam struct {
-	Param
-	raw string
+// UnaryExpr represents a unary operation.
+type UnaryExpr struct {
+	Op   *simplexer.Token
+	Expr Expr
 }
 
-func NewStringParam(raw string) StringParam {
-	return StringParam{
-		raw: raw,
-	}
+// IfExpr represents an if-then-else expression.
+type IfExpr struct {
+	Condition Expr
+	Then      Expr
+	Else      Expr
 }
 
-func (StringParam) Type() ParamType {
-	return String
+// List represents a list of expressions.
+type List struct {
+	Items []Expr
 }
 
-func (p StringParam) Get() string {
-	return p.raw
+// Map represents a map of string to expression.
+type Map struct {
+	KVs map[string]Expr
 }
 
-// define expr parameter
-type StringWithExprParam struct {
-	Param
-	children []Param
-	exprRaws []string
-	raw      string
+// App represents a function application.
+type App struct {
+	Name   string
+	Params []Expr
 }
 
-func NewStringWithExprParam(raw string) StringWithExprParam {
-	// TODO separate expression from string
-	// r, e := regexp.Compile(`\$\{(.*?)\}`)
-	// if e != nil {
-	// 	panic(e)
-	// }
-
-	// res := r.FindAllStringSubmatch(raw, -1)
-
-	return StringWithExprParam{
-		children: []Param{},
-		raw:      raw,
-	}
+// Ref represents a reference to another expression.
+type Ref struct {
+	Expr Expr
+	Key  Expr
 }
 
-func (StringWithExprParam) Type() ParamType {
-	return StringWithExpr
+// Identifier represents an identifier.
+type Identifier struct {
+	Name string
 }
-
-func (p StringWithExprParam) Get(env map[string]string) string {
-	// TODO resolve ref and env, generate string
-	return ""
-}
-
-// define expr parameter
-type ExprParam struct {
-	ref RefParam
-}
-
-func NewExprParam(ref RefParam) ExprParam {
-	return ExprParam{
-		ref: ref,
-	}
-}
-
-func (ExprParam) Type() ParamType {
-	return Expr
-}
-
-// define ref parameter
-type RefParam struct {
-	path Path
-}
-
-func NewRefParam(path Path) RefParam {
-	return RefParam{
-		path: path,
-	}
-}
-
-func (RefParam) Type() ParamType {
-	return Ref
-}
-
-// returns path string
-func (p RefParam) Get() string {
-	return strings.Join(p.path, ".")
-}
-
-type Identifier = string
-type Path = []Identifier
