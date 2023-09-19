@@ -46,15 +46,52 @@ func references(raw map[string]any) []string {
 			}
 			res := r.FindAllStringSubmatch(v.(string), -1)
 			for _, exprStr := range res {
-
+				print(exprStr[1])
 				expr := ParseExpr(exprStr[1])
-				paths = append(paths, expr.(Identifier).Name)
+				paths = append(paths, extractRefNames(expr)...)
 			}
 		default:
-			panic("unexpected parameter type")
 		}
 	}
 	return paths
+}
+
+func extractRefNames(expr Expr) []string {
+	var names []string
+
+	switch e := expr.(type) {
+	case *Ref:
+		if id, ok := e.Expr.(*Identifier); ok {
+			names = append(names, id.Name)
+		}
+		names = append(names, extractRefNames(e.Expr)...)
+		names = append(names, extractRefNames(e.Key)...)
+	case *Identifier:
+		names = append(names, e.Name)
+	case *BinaryExpr:
+		names = append(names, extractRefNames(e.Left)...)
+		names = append(names, extractRefNames(e.Right)...)
+	case *UnaryExpr:
+		names = append(names, extractRefNames(e.Expr)...)
+	case *IfExpr:
+		names = append(names, extractRefNames(e.Condition)...)
+		names = append(names, extractRefNames(e.Then)...)
+		names = append(names, extractRefNames(e.Else)...)
+	case *List:
+		for _, item := range e.Items {
+			names = append(names, extractRefNames(item)...)
+		}
+	case *Map:
+		for _, v := range e.KVs {
+			names = append(names, extractRefNames(v)...)
+		}
+	case *App:
+		for _, param := range e.Params {
+			names = append(names, extractRefNames(param)...)
+		}
+	}
+
+	return names
 }
 
 // Expr represents an expression in the AST.

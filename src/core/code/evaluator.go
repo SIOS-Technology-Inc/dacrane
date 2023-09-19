@@ -19,7 +19,7 @@ func ParseCode(codeBytes []byte) (Code, error) {
 
 	var code Code
 	for {
-		var entity Entity
+		var entity map[string]any
 		if dec.Decode(&entity) != nil {
 			break
 		}
