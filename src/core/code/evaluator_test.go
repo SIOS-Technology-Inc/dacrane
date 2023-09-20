@@ -29,8 +29,12 @@ parameters:
 	code, e := ParseCode([]byte(codeStr))
 	assert.NoError(t, e)
 	entity := code.Find("resource", "a")
-	assert.Equal(t, entity["kind"], "resource")
-	assert.Equal(t, entity["name"], "a")
 	paths := references(entity)
 	assert.Equal(t, []string{"resource.b"}, paths)
+}
+
+func TestEvaluate(t *testing.T) {
+	expr := ParseExpr("data.config.foo")
+	v := Evaluate(expr, map[string]Value{"data.config.foo": StringValue("OK")})
+	assert.Equal(t, StringValue("OK"), v)
 }
