@@ -58,6 +58,7 @@ func Evaluate(expr Expr, env map[string]Value) Value {
 		case DIV:
 			return NumberValue(left.(NumberValue) / right.(NumberValue))
 		case EQ:
+			println(left.(StringValue), right.(StringValue))
 			return BoolValue(left == right)
 		case LT:
 			return BoolValue(left.(NumberValue) < right.(NumberValue))
@@ -100,14 +101,14 @@ func Evaluate(expr Expr, env map[string]Value) Value {
 		return kvMap
 	case *App:
 		panic("App node evaluation is not supported in this example.")
-	case *NumberValue:
-		return *e
-	case *StringValue:
-		return *e
-	case *BoolValue:
-		return *e
-	case *NullValue:
-		return *e
+	case *Number:
+		return NumberValue(e.Value)
+	case *String:
+		return StringValue(e.Value)
+	case *Boolean:
+		return BoolValue(e.Value)
+	case *Null:
+		return NullValue{}
 	}
 
 	panic("Unsupported expression type")

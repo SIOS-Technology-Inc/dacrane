@@ -19,8 +19,8 @@ func NewLexer(reader io.Reader) *Lexer {
 	l := simplexer.NewLexer(reader)
 
 	l.TokenTypes = []simplexer.TokenType{
-		simplexer.NewRegexpTokenType(NUMBER, `[0-9]+\.[0-9]+`),
-		simplexer.NewRegexpTokenType(STRING, `".*"`),
+		simplexer.NewRegexpTokenType(NUMBER, `[0-9]+(\.[0-9]+)?`),
+		simplexer.NewRegexpTokenType(STRING, `"([^"]*)"`),
 		simplexer.NewRegexpTokenType(BOOLEAN, `true|false`),
 		simplexer.NewRegexpTokenType(NULL, `null`),
 		simplexer.NewRegexpTokenType(IDENTIFIER, `[a-zA-Z0-9_-]+`),

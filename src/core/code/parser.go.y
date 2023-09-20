@@ -3,6 +3,7 @@ package code
 
 import "github.com/macrat/simplexer"
 import "strconv"
+import "strings"
 %}
 
 %union{
@@ -54,7 +55,7 @@ Expr
 		}
 		$$ = &Number{Value: v}
 	}
-	| STRING                      { $$ = &String{Value: $1.Literal} }
+	| STRING                      { $$ = &String{Value: strings.Replace($1.Literal, "\"", "", -1)} }
 	| BOOLEAN {
 		v, err := strconv.ParseBool($1.Literal)
 		if (err != nil) {
