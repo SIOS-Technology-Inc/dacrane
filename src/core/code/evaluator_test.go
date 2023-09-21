@@ -28,21 +28,34 @@ parameters:
 `
 	code, e := ParseCode([]byte(codeStr))
 	assert.NoError(t, e)
-	entity := code.Find("resource", "a")
-	paths := references(entity)
-	assert.Equal(t, []string{"resource.b"}, paths)
+	entities := code.Dependency("resource", "a")
+	assert.Len(t, entities, 1)
+	assert.Equal(t, "resource", entities[0]["kind"])
+	assert.Equal(t, "b", entities[0]["name"])
 }
 
 func TestEvaluate(t *testing.T) {
 	expr := ParseExpr("data.config.foo")
-	v := Evaluate(expr, map[string]Value{"data.config.foo": StringValue("OK")})
-	assert.Equal(t, StringValue("OK"), v)
+	v := Evaluate(expr, map[string]any{
+		"data": map[string]any{
+			"config": map[string]any{
+				"foo": "OK",
+			},
+		},
+	})
+	assert.Equal(t, "OK", v)
 
 	expr = ParseExpr("1 + 2 + 4")
-	v = Evaluate(expr, map[string]Value{})
-	assert.Equal(t, NumberValue(7), v)
+	v = Evaluate(expr, map[string]any{})
+	assert.Equal(t, 7.0, v)
 
 	expr = ParseExpr(`data.config.foo == "OK"`)
-	v = Evaluate(expr, map[string]Value{"data.config.foo": StringValue("OK")})
-	assert.Equal(t, BoolValue(true), v)
+	v = Evaluate(expr, map[string]any{
+		"data": map[string]any{
+			"config": map[string]any{
+				"foo": "OK",
+			},
+		},
+	})
+	assert.Equal(t, true, v)
 }
