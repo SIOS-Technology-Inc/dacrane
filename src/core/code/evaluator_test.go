@@ -36,7 +36,7 @@ parameters:
 
 func TestEvaluate(t *testing.T) {
 	expr := ParseExpr("data.config.foo")
-	v := Evaluate(expr, map[string]any{
+	v := EvaluateExprString(expr, map[string]any{
 		"data": map[string]any{
 			"config": map[string]any{
 				"foo": "OK",
@@ -46,11 +46,11 @@ func TestEvaluate(t *testing.T) {
 	assert.Equal(t, "OK", v)
 
 	expr = ParseExpr("1 + 2 + 4")
-	v = Evaluate(expr, map[string]any{})
+	v = EvaluateExprString(expr, map[string]any{})
 	assert.Equal(t, 7.0, v)
 
 	expr = ParseExpr(`data.config.foo == "OK"`)
-	v = Evaluate(expr, map[string]any{
+	v = EvaluateExprString(expr, map[string]any{
 		"data": map[string]any{
 			"config": map[string]any{
 				"foo": "OK",

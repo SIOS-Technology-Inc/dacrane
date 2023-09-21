@@ -3,8 +3,10 @@ package code
 import (
 	"bytes"
 	"dacrane/utils"
+	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -32,11 +34,11 @@ func ParseCode(codeBytes []byte) (Code, error) {
 	return code, nil
 }
 
-func Evaluate(expr Expr, env map[string]any) any {
+func EvaluateExprString(expr Expr, data map[string]any) any {
 	switch e := expr.(type) {
 	case *Identifier:
 		keys := strings.Split(e.Name, ".")
-		var val any = env
+		var val any = data
 		for _, key := range keys {
 			if v, ok := val.(map[string]any)[key]; ok {
 				val = v
@@ -46,8 +48,8 @@ func Evaluate(expr Expr, env map[string]any) any {
 		}
 		return val
 	case *BinaryExpr:
-		left := Evaluate(e.Left, env)
-		right := Evaluate(e.Right, env)
+		left := EvaluateExprString(e.Left, data)
+		right := EvaluateExprString(e.Right, data)
 		switch e.Op.Type.GetID() {
 		case ADD:
 			return left.(float64) + right.(float64)
@@ -73,7 +75,7 @@ func Evaluate(expr Expr, env map[string]any) any {
 			return left.(bool) || right.(bool)
 		}
 	case *UnaryExpr:
-		val := Evaluate(e.Expr, env)
+		val := EvaluateExprString(e.Expr, data)
 		switch e.Op.Type.GetID() {
 		case SUB:
 			return -val.(float64)
@@ -81,21 +83,21 @@ func Evaluate(expr Expr, env map[string]any) any {
 			return !val.(bool)
 		}
 	case *IfExpr:
-		condition := Evaluate(e.Condition, env)
+		condition := EvaluateExprString(e.Condition, data)
 		if condition.(bool) {
-			return Evaluate(e.Then, env)
+			return EvaluateExprString(e.Then, data)
 		}
-		return Evaluate(e.Else, env)
+		return EvaluateExprString(e.Else, data)
 	case *List:
 		var values []any
 		for _, item := range e.Items {
-			values = append(values, Evaluate(item, env))
+			values = append(values, EvaluateExprString(item, data))
 		}
 		return values
 	case *Map:
 		kvMap := make(map[string]any)
 		for k, v := range e.KVs {
-			kvMap[k] = Evaluate(v, env)
+			kvMap[k] = EvaluateExprString(v, data)
 		}
 		return kvMap
 	case *App:
@@ -133,6 +135,81 @@ func (code Code) Dependency(kind string, name string) []Entity {
 		}
 	}
 	return dependencies
+}
+
+func EvaluateMap(prop any, data map[string]any) any {
+	switch prop := prop.(type) {
+	case string:
+		single := isSingleExprString(prop)
+		if single {
+			r, e := regexp.Compile(`^$\{(.*?)\}$`)
+			if e != nil {
+				panic(e)
+			}
+			exprStr := r.FindStringSubmatch(prop)[1]
+			return EvaluateExprString(exprStr, data)
+		} else {
+			return expandExpr(prop, data)
+		}
+	case map[string]any:
+		prop, exists := evalIfProp(prop, data)
+		if !exists {
+			return nil
+		}
+		output := map[string]any{}
+		for k, v := range prop {
+			output[k] = EvaluateMap(v, data)
+		}
+		return output
+	default:
+		return prop
+	}
+}
+
+func expandExpr(prop string, data map[string]any) string {
+	r, e := regexp.Compile(`\$\{(.*?)\}`)
+	if e != nil {
+		panic(e)
+	}
+	return r.ReplaceAllStringFunc(prop, func(s string) string {
+		exprStr := r.FindStringSubmatch(s)
+		expr := ParseExpr(exprStr[1])
+		v := EvaluateExprString(expr, data)
+		return convertToString(v)
+	})
+}
+
+func evalIfProp(prop map[string]any, data map[string]any) (map[string]any, bool) {
+	if condition, ok := prop["if"]; ok {
+		if !EvaluateMap(condition, data).(bool) {
+			return nil, false
+		}
+	}
+	delete(prop, "if")
+	return prop, true
+}
+
+func isSingleExprString(s string) bool {
+	r, e := regexp.Compile(`^$\{.*?\}$`)
+	if e != nil {
+		panic(e)
+	}
+	return r.MatchString(s)
+}
+
+func convertToString(value interface{}) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case bool:
+		return strconv.FormatBool(v)
+	case nil:
+		return "null"
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }
 
 func references(raw map[string]any) []string {
