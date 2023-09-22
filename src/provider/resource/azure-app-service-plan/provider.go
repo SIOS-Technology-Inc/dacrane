@@ -39,9 +39,13 @@ func (AzureAppServicePlanResourceProvider) Create(parameters map[string]any) (ma
 
 	client := clientFactory.NewPlansClient()
 
+	TRUE := true
 	_, err = client.BeginCreateOrUpdate(ctx, resourceGroupName, name, armappservice.Plan{
 		Location: &location,
 		Kind:     &kind,
+		Properties: &armappservice.PlanProperties{
+			Reserved: &TRUE,
+		},
 		SKU: &armappservice.SKUDescription{
 			Name: &sku_name,
 			Tier: &sku_tier,

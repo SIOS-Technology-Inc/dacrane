@@ -20,13 +20,13 @@ func (DockerArtifactProvider) Build(params map[string]any) error {
 	return err
 }
 
-func (DockerArtifactProvider) Publish(params map[string]any) error {
+func (DockerArtifactProvider) Publish(params map[string]any) (map[string]any, error) {
 	image := params["image"].(string)
 	tag := params["tag"].(string)
-	repository := params["repository"].(map[string](any))
-	url := repository["url"].(string)
-	user := repository["user"].(string)
-	password := repository["password"].(string)
+	remote := params["remote"].(map[string]any)
+	url := remote["url"].(string)
+	user := remote["user"].(string)
+	password := remote["password"].(string)
 
 	dockerLoginCmd := fmt.Sprintf("docker login -u %s -p %s %s", user, password, url)
 	dockerImageTagCmd := fmt.Sprintf("docker image tag %s:%s %s/%s:%s", image, tag, url, image, tag)
@@ -37,11 +37,11 @@ func (DockerArtifactProvider) Publish(params map[string]any) error {
 	for _, cmd := range cmds {
 		_, err := utils.RunOnBash(cmd)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return params, nil
 }
 
 func (DockerArtifactProvider) Unpublish(params map[string]any) error {

@@ -36,7 +36,7 @@ var publishCmd = &cobra.Command{
 
 		artifactProvider := core.FindArtifactProvider(artifactCode["provider"].(string))
 
-		err = artifactProvider.Publish(artifactCode["parameters"].(map[string]any))
+		_, err = artifactProvider.Publish(artifactCode["parameters"].(map[string]any))
 
 		if err != nil {
 			panic(err)

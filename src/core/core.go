@@ -10,7 +10,7 @@ import (
 
 type ArtifactProvider interface {
 	Build(parameters map[string]any) error
-	Publish(parameters map[string]any) error
+	Publish(parameters map[string]any) (map[string]any, error)
 	Unpublish(parameters map[string]any) error
 	SearchVersions(map[string]any) error
 }

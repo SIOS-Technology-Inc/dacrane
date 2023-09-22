@@ -69,7 +69,14 @@ to quickly create a Cobra application.`,
 				artifactProvider := core.FindArtifactProvider(evaluatedEntity.Provider())
 
 				err = artifactProvider.Build(evaluatedEntity.Parameters())
-				err = artifactProvider.Publish(evaluatedEntity.Parameters())
+				if err != nil {
+					panic(err)
+				}
+				ret, err := artifactProvider.Publish(evaluatedEntity.Parameters())
+				if err != nil {
+					panic(err)
+				}
+				data["artifact"].(map[string]any)[entity.Name()] = ret
 			case "data":
 
 			}

@@ -32,7 +32,7 @@ kind: resource
 name: acr
 provider: azure-container-registry
 parameters:
-  name: sampleacrtikeda
+  name: sampledacraneacr
   resource_group_name: ${{ resource.rg.name }}
   location: "Japan East"
   credentials: ${{ data.azure_credential }}
@@ -54,7 +54,7 @@ parameters:
   name: sample-asp
   resource_group_name: ${{ resource.rg.name }}
   location: "Japan East"
-  kind: "Windows"
+  kind: "Linux"
   sku:
     tier: '${{ {"low": "Basic", "high": "Premium" }[data.config.spec] }}'
     name: '${{ {"low": "B1", "high": "P1" }[data.config.spec] }}'
@@ -68,9 +68,9 @@ parameters:
   name: sample-as
   resource_group_name: sample-rg
   location: "Japan East"
-  app_service_plan_id: sample-asp
+  app_service_plan_id: ${{ resource.asp.name }}
   site_config:
-    linux_fx_version: DOCKER|${{ resource.acr.url }}/sample-api:${{ data.argument.tag }}
+    linux_fx_version: DOCKER|${{ resource.acr.url }}/sample-api:${{ artifact.api.tag }}
   app_settings:
     DOCKER_REGISTRY_SERVER_URL: ${{ resource.acr.url }}
     DOCKER_REGISTRY_SERVER_USERNAME: ${{ resource.acr.user }}
