@@ -41,7 +41,7 @@ to quickly create a Cobra application.`,
 
 		resourceProvider := core.FindResourceProvider(resourceCode["provider"].(string))
 
-		err = resourceProvider.Delete(resourceCode["parameters"].(map[string]any), resourceCode["credentials"].(map[string]any))
+		err = resourceProvider.Delete(resourceCode.Parameters())
 
 		if err != nil {
 			panic(err)

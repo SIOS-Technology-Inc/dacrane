@@ -1,9 +1,7 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
+	"dacrane/core"
 	"dacrane/core/code"
 	"os"
 
@@ -36,13 +34,33 @@ to quickly create a Cobra application.`,
 		if err != nil {
 			panic(err)
 		}
-		data := map[string]any{}
 		env := map[string]any{}
 		yaml.Unmarshal(envBytes, &env)
-		data["data"] = env
+		data := map[string]any{
+			"data":     env,
+			"resource": map[string]any{},
+			"artifact": map[string]any{},
+		}
 
-		for entity := range code {
-			println(entity)
+		sortedEntities := code.TopologicalSort()
+		for _, entity := range sortedEntities {
+			evaluatedEntity := entity.Evaluate(data)
+			switch evaluatedEntity.Kind() {
+			case "resource":
+				resourceProvider := core.FindResourceProvider(entity.Provider())
+				ret, err := resourceProvider.Create(entity.Parameters())
+				if err != nil {
+					panic(err)
+				}
+				data["resource"].(map[string]any)[entity.Name()] = ret
+			case "artifact":
+				artifactProvider := core.FindArtifactProvider(entity.Provider())
+
+				err = artifactProvider.Build(entity.Parameters())
+				err = artifactProvider.Publish(entity.Parameters())
+			case "data":
+
+			}
 		}
 	},
 }

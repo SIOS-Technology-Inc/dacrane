@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/simple"
+	"gonum.org/v1/gonum/graph/topo"
 	"gopkg.in/yaml.v3"
 )
 
@@ -117,12 +120,46 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 
 func (code Code) Find(kind string, name string) Entity {
 	return utils.Find(code, func(e Entity) bool {
-		return e["kind"].(string) == kind && e["name"].(string) == name
+		return e.Kind() == kind && e.Name() == name
 	})
 }
 
-func (code Code) Dependency(kind string, name string) []Entity {
-	entity := code.Find(kind, name)
+func (code Code) FindById(id string) Entity {
+	return utils.Find(code, func(e Entity) bool {
+		return e.Id() == id
+	})
+}
+
+func (code Code) TopologicalSort() []Entity {
+	g := simple.NewDirectedGraph()
+
+	idToEntity := map[int64]Entity{}
+	nodes := map[string]graph.Node{}
+	for _, entity := range code {
+		node := g.NewNode()
+		nodes[entity.Id()] = node
+		g.AddNode(node)
+		idToEntity[node.ID()] = entity
+	}
+
+	for _, entity := range code {
+		ds := code.Dependency(entity.Id())
+		for _, d := range ds {
+			g.SetEdge(g.NewEdge(nodes[entity.Id()], nodes[d.Id()]))
+		}
+	}
+
+	sorted, err := topo.Sort(g)
+	if err != nil {
+		panic(err)
+	}
+	return utils.Map(sorted, func(node graph.Node) Entity {
+		return idToEntity[node.ID()]
+	})
+}
+
+func (code Code) Dependency(id string) []Entity {
+	entity := code.FindById(id)
 	paths := references(entity)
 	var dependencies []Entity
 	for _, path := range paths {
@@ -135,6 +172,30 @@ func (code Code) Dependency(kind string, name string) []Entity {
 		}
 	}
 	return dependencies
+}
+
+func (entity Entity) Kind() string {
+	return entity["kind"].(string)
+}
+
+func (entity Entity) Name() string {
+	return entity["name"].(string)
+}
+
+func (entity Entity) Provider() string {
+	return entity["provider"].(string)
+}
+
+func (entity Entity) Id() string {
+	return fmt.Sprintf("%s.%s", entity.Kind(), entity.Name())
+}
+
+func (entity Entity) Parameters() map[string]any {
+	return entity["parameters"].(map[string]any)
+}
+
+func (entity Entity) Evaluate(data map[string]any) Entity {
+	return Entity(EvaluateMap(entity, data).(map[string]any))
 }
 
 func EvaluateMap(prop any, data map[string]any) any {

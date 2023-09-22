@@ -11,7 +11,8 @@ type AzureAppServicePlanResourceProvider struct{}
 
 var ctx = context.Background()
 
-func (AzureAppServicePlanResourceProvider) Create(parameters map[string]any, credentials map[string]any) error {
+func (AzureAppServicePlanResourceProvider) Create(parameters map[string]any) (map[string]any, error) {
+	credentials := parameters["credentials"].(map[string]any)
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)
@@ -28,12 +29,12 @@ func (AzureAppServicePlanResourceProvider) Create(parameters map[string]any, cre
 
 	cred, err := azidentity.NewUsernamePasswordCredential(tenantId, clientId, username, password, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	clientFactory, err := armappservice.NewClientFactory(subscriptionId, cred, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	client := clientFactory.NewPlansClient()
@@ -47,13 +48,14 @@ func (AzureAppServicePlanResourceProvider) Create(parameters map[string]any, cre
 		},
 	}, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return parameters, nil
 }
 
-func (AzureAppServicePlanResourceProvider) Delete(parameters map[string]any, credentials map[string]any) error {
+func (AzureAppServicePlanResourceProvider) Delete(parameters map[string]any) error {
+	credentials := parameters["credentials"].(map[string]any)
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)

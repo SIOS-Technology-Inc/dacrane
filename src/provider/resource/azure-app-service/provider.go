@@ -12,7 +12,8 @@ type AzureAppServiceResourceProvider struct{}
 
 var ctx = context.Background()
 
-func (AzureAppServiceResourceProvider) Create(parameters map[string]any, credentials map[string]any) error {
+func (AzureAppServiceResourceProvider) Create(parameters map[string]any) (map[string]any, error) {
+	credentials := parameters["credentials"].(map[string]any)
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)
@@ -38,7 +39,7 @@ func (AzureAppServiceResourceProvider) Create(parameters map[string]any, credent
 	cred := auth.NewUsernamePasswordConfig(username, password, clientId, tenantId)
 	auth, err := cred.Authorizer()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	client.Authorizer = auth
@@ -55,7 +56,7 @@ func (AzureAppServiceResourceProvider) Create(parameters map[string]any, credent
 
 	_, err = client.CreateOrUpdate(ctx, resourceGroupName, name, siteEnvelope)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	settings := web.StringDictionary{
@@ -63,13 +64,14 @@ func (AzureAppServiceResourceProvider) Create(parameters map[string]any, credent
 	}
 
 	if _, err := client.UpdateApplicationSettings(ctx, resourceGroupName, name, settings); err != nil {
-		return fmt.Errorf("updating Application Settings for App Service %q: %+v", name, err)
+		return nil, fmt.Errorf("updating Application Settings for App Service %q: %+v", name, err)
 	}
 
-	return nil
+	return parameters, nil
 }
 
-func (AzureAppServiceResourceProvider) Delete(parameters map[string]any, credentials map[string]any) error {
+func (AzureAppServiceResourceProvider) Delete(parameters map[string]any) error {
+	credentials := parameters["credentials"].(map[string]any)
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)

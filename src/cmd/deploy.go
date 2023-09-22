@@ -36,7 +36,7 @@ var deployCmd = &cobra.Command{
 
 		resourceProvider := core.FindResourceProvider(resourceCode["provider"].(string))
 
-		err = resourceProvider.Create(resourceCode["parameters"].(map[string]any), resourceCode["credentials"].(map[string]any))
+		_, err = resourceProvider.Create(resourceCode.Parameters())
 
 		if err != nil {
 			panic(err)

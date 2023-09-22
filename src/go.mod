@@ -53,4 +53,5 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
 	golang.org/x/tools v0.13.0 // indirect
+	gonum.org/v1/gonum v0.14.0 // indirect
 )

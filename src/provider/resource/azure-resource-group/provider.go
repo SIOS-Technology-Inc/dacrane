@@ -11,7 +11,8 @@ type AzureResourceGroupResourceProvider struct{}
 
 var ctx = context.Background()
 
-func (AzureResourceGroupResourceProvider) Create(parameters map[string]any, credentials map[string]any) error {
+func (AzureResourceGroupResourceProvider) Create(parameters map[string]any) (map[string]any, error) {
+	credentials := parameters["credentials"].(map[string]any)
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)
@@ -23,12 +24,12 @@ func (AzureResourceGroupResourceProvider) Create(parameters map[string]any, cred
 
 	cred, err := azidentity.NewUsernamePasswordCredential(tenantId, clientId, username, password, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	rgClient, err := armresources.NewResourceGroupsClient(subscriptionId, cred, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	param := armresources.ResourceGroup{
@@ -37,13 +38,14 @@ func (AzureResourceGroupResourceProvider) Create(parameters map[string]any, cred
 
 	_, err = rgClient.CreateOrUpdate(ctx, name, param, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return parameters, nil
 }
 
-func (AzureResourceGroupResourceProvider) Delete(parameters map[string]any, credentials map[string]any) error {
+func (AzureResourceGroupResourceProvider) Delete(parameters map[string]any) error {
+	credentials := parameters["credentials"].(map[string]any)
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)

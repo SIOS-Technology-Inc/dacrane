@@ -11,7 +11,8 @@ type AzureContainerRegistryResourceProvider struct{}
 
 var ctx = context.Background()
 
-func (AzureContainerRegistryResourceProvider) Create(parameters map[string]any, credentials map[string]any) error {
+func (AzureContainerRegistryResourceProvider) Create(parameters map[string]any) (map[string]any, error) {
+	credentials := parameters["credentials"].(map[string]any)
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)
@@ -26,7 +27,7 @@ func (AzureContainerRegistryResourceProvider) Create(parameters map[string]any, 
 	cred := auth.NewUsernamePasswordConfig(username, password, clientId, tenantId)
 	auth, err := cred.Authorizer()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	client.Authorizer = auth
@@ -40,13 +41,14 @@ func (AzureContainerRegistryResourceProvider) Create(parameters map[string]any, 
 
 	_, err = client.Create(ctx, resourceGroupName, name, params)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return parameters, nil
 }
 
-func (AzureContainerRegistryResourceProvider) Delete(parameters map[string]any, credentials map[string]any) error {
+func (AzureContainerRegistryResourceProvider) Delete(parameters map[string]any) error {
+	credentials := parameters["credentials"].(map[string]any)
 	subscriptionId := credentials["subscription_id"].(string)
 	tenantId := credentials["tenant_id"].(string)
 	clientId := credentials["client_id"].(string)

@@ -28,7 +28,7 @@ parameters:
 `
 	code, e := ParseCode([]byte(codeStr))
 	assert.NoError(t, e)
-	entities := code.Dependency("resource", "a")
+	entities := code.Dependency("resource.a")
 	assert.Len(t, entities, 1)
 	assert.Equal(t, "resource", entities[0]["kind"])
 	assert.Equal(t, "b", entities[0]["name"])
