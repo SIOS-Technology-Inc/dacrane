@@ -56,7 +56,7 @@ type List struct {
 
 // Map represents a map of string to expression.
 type Map struct {
-	KVs map[string]Expr
+	KVs map[Expr]Expr
 }
 
 // App represents a function application.

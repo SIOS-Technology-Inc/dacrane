@@ -50,6 +50,10 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 			}
 		}
 		return val
+	case *Ref:
+		m := EvaluateExprString(e.Expr, data).(map[Expr]any)
+		key := EvaluateExprString(e.Key, data)
+		return m[key]
 	case *BinaryExpr:
 		left := EvaluateExprString(e.Left, data)
 		right := EvaluateExprString(e.Right, data)
@@ -98,9 +102,9 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 		}
 		return values
 	case *Map:
-		kvMap := make(map[string]any)
+		kvMap := make(map[Expr]any)
 		for k, v := range e.KVs {
-			kvMap[k] = EvaluateExprString(v, data)
+			kvMap[EvaluateExprString(k, data)] = EvaluateExprString(v, data)
 		}
 		return kvMap
 	case *App:
@@ -114,7 +118,6 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 	case *Null:
 		return nil
 	}
-
 	panic("Unsupported expression type")
 }
 
@@ -145,7 +148,7 @@ func (code Code) TopologicalSort() []Entity {
 	for _, entity := range code {
 		ds := code.Dependency(entity.Id())
 		for _, d := range ds {
-			g.SetEdge(g.NewEdge(nodes[entity.Id()], nodes[d.Id()]))
+			g.SetEdge(g.NewEdge(nodes[d.Id()], nodes[entity.Id()]))
 		}
 	}
 
@@ -195,7 +198,19 @@ func (entity Entity) Parameters() map[string]any {
 }
 
 func (entity Entity) Evaluate(data map[string]any) Entity {
-	return Entity(EvaluateMap(entity, data).(map[string]any))
+	m := EvaluateMap(entity.ToMap(), data)
+	if m == nil {
+		return nil
+	}
+	return Entity(m.(map[string]any))
+}
+
+func (entity Entity) ToMap() map[string]any {
+	m := map[string]any{}
+	for k, v := range entity {
+		m[k] = v
+	}
+	return m
 }
 
 func EvaluateMap(prop any, data map[string]any) any {
@@ -203,12 +218,13 @@ func EvaluateMap(prop any, data map[string]any) any {
 	case string:
 		single := isSingleExprString(prop)
 		if single {
-			r, e := regexp.Compile(`^$\{(.*?)\}$`)
+			r, e := regexp.Compile(`^\$\{\{(.*?)\}\}$`)
 			if e != nil {
 				panic(e)
 			}
 			exprStr := r.FindStringSubmatch(prop)[1]
-			return EvaluateExprString(exprStr, data)
+			expr := ParseExpr(exprStr)
+			return EvaluateExprString(expr, data)
 		} else {
 			return expandExpr(prop, data)
 		}
@@ -228,7 +244,7 @@ func EvaluateMap(prop any, data map[string]any) any {
 }
 
 func expandExpr(prop string, data map[string]any) string {
-	r, e := regexp.Compile(`\$\{(.*?)\}`)
+	r, e := regexp.Compile(`\$\{\{(.*?)\}\}`)
 	if e != nil {
 		panic(e)
 	}
@@ -251,7 +267,7 @@ func evalIfProp(prop map[string]any, data map[string]any) (map[string]any, bool)
 }
 
 func isSingleExprString(s string) bool {
-	r, e := regexp.Compile(`^$\{.*?\}$`)
+	r, e := regexp.Compile(`^\$\{\{.*?\}\}$`)
 	if e != nil {
 		panic(e)
 	}
@@ -280,13 +296,12 @@ func references(raw map[string]any) []string {
 		case reflect.Map:
 			paths = append(paths, references(v.(map[string]any))...)
 		case reflect.String:
-			r, e := regexp.Compile(`\$\{(.*?)\}`)
+			r, e := regexp.Compile(`\$\{\{(.*?)\}\}`)
 			if e != nil {
 				panic(e)
 			}
 			res := r.FindAllStringSubmatch(v.(string), -1)
 			for _, exprStr := range res {
-				print(exprStr[1])
 				expr := ParseExpr(exprStr[1])
 				paths = append(paths, extractRefNames(expr)...)
 			}

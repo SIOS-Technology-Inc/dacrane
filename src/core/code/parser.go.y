@@ -10,7 +10,7 @@ import "strings"
 	token    *simplexer.Token
 	expr     Expr
 	exprs    []Expr
-	kvMap    map[string]Expr
+	kvMap    map[Expr]Expr
 }
 
 %right IF THEN ELSE
@@ -110,6 +110,6 @@ KVs: KVs COMMA KVs {
 			$$[k] = v
 		}
 	}
-	| STRING COLON Expr { $$ = map[string]Expr{$1.Literal: $3} }
-	| { $$ = map[string]Expr{} }
+	| Expr COLON Expr { $$ = map[Expr]Expr{$1: $3} }
+	| { $$ = map[Expr]Expr{} }
 %%

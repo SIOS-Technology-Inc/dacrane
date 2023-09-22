@@ -58,4 +58,15 @@ func TestEvaluate(t *testing.T) {
 		},
 	})
 	assert.Equal(t, true, v)
+
+	expr = ParseExpr(`{"low": "Basic", "high": "Premium" }`)
+	v = EvaluateExprString(expr, map[string]any{})
+	assert.Equal(t, map[Expr]any{
+		"low":  "Basic",
+		"high": "Premium",
+	}, v)
+
+	expr = ParseExpr(`{"low": "Basic", "high": "Premium" }["high"]`)
+	v = EvaluateExprString(expr, map[string]any{})
+	assert.Equal(t, "Premium", v)
 }

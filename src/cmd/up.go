@@ -3,6 +3,7 @@ package cmd
 import (
 	"dacrane/core"
 	"dacrane/core/code"
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -44,20 +45,31 @@ to quickly create a Cobra application.`,
 
 		sortedEntities := code.TopologicalSort()
 		for _, entity := range sortedEntities {
+			fmt.Printf("============ %s.%s ============\n", entity.Kind(), entity.Name())
 			evaluatedEntity := entity.Evaluate(data)
+			if evaluatedEntity == nil {
+				println("No Resource Provided")
+				continue
+			}
+			yaml, e := yaml.Marshal(evaluatedEntity)
+			if e != nil {
+				panic(e)
+			}
+
+			fmt.Println(string(yaml))
 			switch evaluatedEntity.Kind() {
 			case "resource":
 				resourceProvider := core.FindResourceProvider(entity.Provider())
-				ret, err := resourceProvider.Create(entity.Parameters())
+				ret, err := resourceProvider.Create(evaluatedEntity.Parameters())
 				if err != nil {
 					panic(err)
 				}
 				data["resource"].(map[string]any)[entity.Name()] = ret
 			case "artifact":
-				artifactProvider := core.FindArtifactProvider(entity.Provider())
+				artifactProvider := core.FindArtifactProvider(evaluatedEntity.Provider())
 
-				err = artifactProvider.Build(entity.Parameters())
-				err = artifactProvider.Publish(entity.Parameters())
+				err = artifactProvider.Build(evaluatedEntity.Parameters())
+				err = artifactProvider.Publish(evaluatedEntity.Parameters())
 			case "data":
 
 			}
