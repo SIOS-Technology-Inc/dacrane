@@ -34,6 +34,13 @@ func Map[T, T2 any](array []T, f func(T) T2) (result []T2) {
 	return
 }
 
+func Reverse[T any](array []T) []T {
+	for i := 0; i < len(array)/2; i++ {
+		array[i], array[len(array)-i-1] = array[len(array)-i-1], array[i]
+	}
+	return array
+}
+
 func RunOnBash(script string) ([]byte, error) {
 	fmt.Printf("> %s\n", script)
 	cmd := exec.Command("bash", "-c", script)

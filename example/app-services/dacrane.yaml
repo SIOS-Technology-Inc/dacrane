@@ -19,48 +19,48 @@ name: api
 provider: docker
 parameters:
   image: sample-api
-  tag: ${ data.argument.tag } # increase attribute
+  tag: ${{ data.argument.tag }} # increase attribute
   dockerfile: ./Dockerfile
   remote:
-    if: ${ data.config.service == "app-service" }
-    url: ${ resource.acr.url }
-    user: ${ resource.acr.user }
-    password: ${ resource.acr.password }
+    if: ${{ data.config.service == "app-service" }}
+    url: ${{ resource.acr.url }}
+    user: ${{ resource.acr.user }}
+    password: ${{ resource.acr.password }}
 ---
-if: ${ data.config.service == "app-service" }
+if: ${{ data.config.service == "app-service" }}
 kind: resource
 name: acr
 provider: azure-container-registry
 parameters:
-  name: sampleacr
-  resource_group_name: sample-rg
+  name: sampledacraneacr
+  resource_group_name: ${{ resource.rg.name }}
   location: "Japan East"
-  credentials: ${ data.azure_credential }
+  credentials: ${{ data.azure_credential }}
 ---
-if: ${ data.config.service == "app-service" }
+if: ${{ data.config.service == "app-service" }}
 kind: resource
 name: rg
 provider: azure-resource-group
 parameters:
   name: sample-rg
   location: "Japan East"
-  credentials: ${ data.azure_credential }
+  credentials: ${{ data.azure_credential }}
 ---
-if: ${ data.config.service == "app-service" }
+if: ${{ data.config.service == "app-service" }}
 kind: resource
 name: asp
 provider: azure-app-service-plan
 parameters:
   name: sample-asp
-  resource_group_name: sample-rg
+  resource_group_name: ${{ resource.rg.name }}
   location: "Japan East"
-  kind: "Windows"
+  kind: "Linux"
   sku:
-    tier: '${ {"low": "Basic", "high": "Premium" }[data.config.spec] }'
-    name: '${ {"low": "B1", "high": "P1" }[data.config.spec] }'
-  credentials: ${ data.azure_credential }
+    tier: '${{ {"low": "Basic", "high": "Premium" }[data.config.spec] }}'
+    name: '${{ {"low": "B1", "high": "P1" }[data.config.spec] }}'
+  credentials: ${{ data.azure_credential }}
 ---
-if: ${ data.config.service == "app-service" }
+if: ${{ data.config.service == "app-service" }}
 kind: resource
 name: as
 provider: azure-app-service
@@ -68,23 +68,23 @@ parameters:
   name: sample-as
   resource_group_name: sample-rg
   location: "Japan East"
-  app_service_plan_id: sample-asp
+  app_service_plan_id: ${{ resource.asp.name }}
   site_config:
-    linux_fx_version: DOCKER|${ resource.acr.url }/sample-api:${ data.argument.tag }
+    linux_fx_version: DOCKER|${{ resource.acr.url }}/sample-api:${{ artifact.api.tag }}
   app_settings:
-    DOCKER_REGISTRY_SERVER_URL: ${ resource.acr.url }
-    DOCKER_REGISTRY_SERVER_USERNAME: ${ resource.acr.user }
-    DOCKER_REGISTRY_SERVER_PASSWORD: ${ resource.acr.password }
+    DOCKER_REGISTRY_SERVER_URL: ${{ resource.acr.url }}
+    DOCKER_REGISTRY_SERVER_USERNAME: ${{ resource.acr.user }}
+    DOCKER_REGISTRY_SERVER_PASSWORD: ${{ resource.acr.password }}
     WEBSITES_PORT: "3000"
-  credentials: ${ data.azure_credential }
+  credentials: ${{ data.azure_credential }}
 ---
-if: ${ data.config.service == "local-docker" }
+if: ${{ data.config.service == "local-docker" }}
 kind: resource
 name: docker
 provider: docker
 parameters:
   image: sample-api
-  tag: ${ data.argument.tag }
+  tag: ${{ data.argument.tag }}
   port: 3000:3000
   env:
     - name: PORT

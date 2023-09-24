@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"dacrane/core"
-	"dacrane/utils"
+	"dacrane/core/code"
 	"errors"
 	"os"
 
@@ -27,18 +27,16 @@ var buildCmd = &cobra.Command{
 			panic(err)
 		}
 
-		codes, err := core.ParseCode(codeBytes)
+		code, err := code.ParseCode(codeBytes)
 		if err != nil {
 			panic(err)
 		}
 
-		artifactCode := utils.Find(codes, func(code core.Code) bool {
-			return code.Kind == "artifact" && code.Name == name
-		})
+		artifactCode := code.Find("artifact", name)
 
-		artifactProvider := core.FindArtifactProvider(artifactCode.Provider)
+		artifactProvider := core.FindArtifactProvider(artifactCode["provider"].(string))
 
-		err = artifactProvider.Build(artifactCode.Parameters)
+		err = artifactProvider.Build(artifactCode["parameters"].(map[string]any))
 
 		if err != nil {
 			panic(err)

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"dacrane/core"
-	"dacrane/utils"
+	"dacrane/core/code"
 	"errors"
 	"os"
 
@@ -32,18 +32,16 @@ to quickly create a Cobra application.`,
 			panic(err)
 		}
 
-		codes, err := core.ParseCode(codeBytes)
+		code, err := code.ParseCode(codeBytes)
 		if err != nil {
 			panic(err)
 		}
 
-		resourceCode := utils.Find(codes, func(code core.Code) bool {
-			return code.Kind == "resource" && code.Name == name
-		})
+		resourceCode := code.Find("resource", name)
 
-		resourceProvider := core.FindResourceProvider(resourceCode.Provider)
+		resourceProvider := core.FindResourceProvider(resourceCode["provider"].(string))
 
-		err = resourceProvider.Delete(resourceCode.Parameters, resourceCode.Credentials)
+		err = resourceProvider.Delete(resourceCode.Parameters())
 
 		if err != nil {
 			panic(err)
