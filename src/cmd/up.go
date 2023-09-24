@@ -13,13 +13,8 @@ import (
 // upCmd represents the up command
 var upCmd = &cobra.Command{
 	Use:   "up",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "deploy resource and build artifact",
+	Long:  "deploy resource and build artifact",
 	Run: func(cmd *cobra.Command, args []string) {
 		codeBytes, err := os.ReadFile("dacrane.yaml")
 		if err != nil {
@@ -43,42 +38,58 @@ to quickly create a Cobra application.`,
 			"artifact": map[string]any{},
 		}
 
+		states := []map[string]any{}
 		sortedEntities := code.TopologicalSort()
 		for _, entity := range sortedEntities {
-			fmt.Printf("============ %s.%s ============\n", entity.Kind(), entity.Name())
+			fmt.Printf("[%s] Evaluating...\n", entity.Id())
 			evaluatedEntity := entity.Evaluate(data)
 			if evaluatedEntity == nil {
-				println("No Resource Provided")
+				fmt.Printf("[%s] Skipped.", entity.Id())
 				continue
 			}
-			yaml, e := yaml.Marshal(evaluatedEntity)
-			if e != nil {
-				panic(e)
-			}
 
-			fmt.Println(string(yaml))
 			switch evaluatedEntity.Kind() {
 			case "resource":
 				resourceProvider := core.FindResourceProvider(entity.Provider())
+				fmt.Printf("[%s] Crating...\n", entity.Id())
 				ret, err := resourceProvider.Create(evaluatedEntity.Parameters())
 				if err != nil {
 					panic(err)
 				}
+				fmt.Printf("[%s] Created.\n", entity.Id())
 				data["resource"].(map[string]any)[entity.Name()] = ret
 			case "artifact":
 				artifactProvider := core.FindArtifactProvider(evaluatedEntity.Provider())
-
+				fmt.Printf("[%s] Building...\n", entity.Id())
 				err = artifactProvider.Build(evaluatedEntity.Parameters())
 				if err != nil {
 					panic(err)
 				}
+				fmt.Printf("[%s] Built.\n", entity.Id())
+				fmt.Printf("[%s] Publishing...\n", entity.Id())
 				ret, err := artifactProvider.Publish(evaluatedEntity.Parameters())
 				if err != nil {
 					panic(err)
 				}
+				fmt.Printf("[%s] Published.\n", entity.Id())
 				data["artifact"].(map[string]any)[entity.Name()] = ret
 			case "data":
 
+			}
+			states = append(states, evaluatedEntity)
+			statesYaml := []byte{}
+			for _, state := range states {
+				stateYaml, e := yaml.Marshal(state)
+				statesYaml = append(statesYaml, []byte("---\n")...)
+				statesYaml = append(statesYaml, stateYaml...)
+				if e != nil {
+					panic(e)
+				}
+			}
+
+			e := os.WriteFile(".dacrane.state.yaml", statesYaml, 0644)
+			if e != nil {
+				panic(e)
 			}
 		}
 	},
@@ -86,14 +97,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rootCmd.AddCommand(upCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// upCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// upCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

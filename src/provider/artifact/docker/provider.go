@@ -47,10 +47,10 @@ func (DockerArtifactProvider) Publish(params map[string]any) (map[string]any, er
 func (DockerArtifactProvider) Unpublish(params map[string]any) error {
 	image := params["image"].(string)
 	tag := params["tag"].(string)
-	repository := params["repository"].(map[string](any))
-	url := repository["url"].(string)
-	user := repository["user"].(string)
-	password := repository["password"].(string)
+	remote := params["remote"].(map[string](any))
+	url := remote["url"].(string)
+	user := remote["user"].(string)
+	password := remote["password"].(string)
 
 	// remove registry image
 	dockerDigestCmd := fmt.Sprintf("docker images %s/%s --format {{.Digest}}", url, image)

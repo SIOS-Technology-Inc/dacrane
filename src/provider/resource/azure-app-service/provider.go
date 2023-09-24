@@ -32,7 +32,6 @@ func (AzureAppServiceResourceProvider) Create(parameters map[string]any) (map[st
 	}
 
 	linuxFxVersion := siteConfig["linux_fx_version"].(string)
-	println(linuxFxVersion)
 
 	client := web.NewAppsClient(subscriptionId)
 
@@ -80,10 +79,6 @@ func (AzureAppServiceResourceProvider) Delete(parameters map[string]any) error {
 
 	name := parameters["name"].(string)
 	resourceGroupName := parameters["resource_group_name"].(string)
-	siteConfig := parameters["site_config"].(map[string]any)
-
-	linuxFxVersion := siteConfig["linux_fx_version"].(string)
-	println(linuxFxVersion)
 
 	client := web.NewAppsClient(subscriptionId)
 
