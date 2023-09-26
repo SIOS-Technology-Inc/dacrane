@@ -163,7 +163,7 @@ func (code Code) TopologicalSort() []Entity {
 
 func (code Code) Dependency(id string) []Entity {
 	entity := code.FindById(id)
-	paths := references(entity)
+	paths := append(references(entity), entity.Dependencies()...)
 	var dependencies []Entity
 	for _, path := range paths {
 		identifiers := strings.Split(path, ".")
@@ -195,6 +195,17 @@ func (entity Entity) Id() string {
 
 func (entity Entity) Parameters() map[string]any {
 	return entity["parameters"].(map[string]any)
+}
+
+func (entity Entity) Dependencies() []string {
+	if entity["dependencies"] == nil {
+		return []string{}
+	}
+	paths := []string{}
+	for _, d := range entity["dependencies"].([]any) {
+		paths = append(paths, d.(string))
+	}
+	return paths
 }
 
 func (entity Entity) Evaluate(data map[string]any) Entity {
