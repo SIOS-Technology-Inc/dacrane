@@ -21,6 +21,9 @@ func (DockerArtifactProvider) Build(params map[string]any) error {
 }
 
 func (DockerArtifactProvider) Publish(params map[string]any) (map[string]any, error) {
+	if params["remote"] == nil {
+		return params, nil
+	}
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 	remote := params["remote"].(map[string]any)
@@ -47,40 +50,44 @@ func (DockerArtifactProvider) Publish(params map[string]any) (map[string]any, er
 func (DockerArtifactProvider) Unpublish(params map[string]any) error {
 	image := params["image"].(string)
 	tag := params["tag"].(string)
-	remote := params["remote"].(map[string](any))
-	url := remote["url"].(string)
-	user := remote["user"].(string)
-	password := remote["password"].(string)
 
-	// remove registry image
-	dockerDigestCmd := fmt.Sprintf("docker images %s/%s --format {{.Digest}}", url, image)
-	out, err := utils.RunOnBash(dockerDigestCmd)
-	if err != nil {
-		return err
-	}
-	digest := strings.ReplaceAll(string(out), "\n", "")
+	if params["remote"] != nil {
+		remote := params["remote"].(map[string](any))
+		url := remote["url"].(string)
+		user := remote["user"].(string)
+		password := remote["password"].(string)
 
-	// cf. https://docs.docker.com/registry/spec/api/#deleting-an-image
-	deleteUrl := fmt.Sprintf("https://%s/v2/%s/manifests/%s", url, image, digest)
-	req, err := http.NewRequest("DELETE", deleteUrl, nil)
-	if err != nil {
-		return err
+		// remove registry image
+		dockerDigestCmd := fmt.Sprintf("docker images %s/%s --format {{.Digest}}", url, image)
+		out, err := utils.RunOnBash(dockerDigestCmd)
+		if err != nil {
+			return err
+		}
+		digest := strings.ReplaceAll(string(out), "\n", "")
+
+		// cf. https://docs.docker.com/registry/spec/api/#deleting-an-image
+		deleteUrl := fmt.Sprintf("https://%s/v2/%s/manifests/%s", url, image, digest)
+		req, err := http.NewRequest("DELETE", deleteUrl, nil)
+		if err != nil {
+			return err
+		}
+		req.SetBasicAuth(user, password)
+		res, err := utils.RequestHttp(req)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+
+		dockerRmiCmd := fmt.Sprintf("docker rmi %s/%s:%s", url, image, tag)
+		_, err = utils.RunOnBash(dockerRmiCmd)
+		if err != nil {
+			return err
+		}
 	}
-	req.SetBasicAuth(user, password)
-	res, err := utils.RequestHttp(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
 
 	// remove local image
-	dockerRmiCmd := fmt.Sprintf("docker rmi %s/%s:%s", url, image, tag)
-	_, err = utils.RunOnBash(dockerRmiCmd)
-	if err != nil {
-		return err
-	}
-	dockerRmiCmd = fmt.Sprintf("docker rmi %s:%s", image, tag)
-	_, err = utils.RunOnBash(dockerRmiCmd)
+	dockerRmiCmd := fmt.Sprintf("docker rmi %s:%s", image, tag)
+	_, err := utils.RunOnBash(dockerRmiCmd)
 	if err != nil {
 		return err
 	}

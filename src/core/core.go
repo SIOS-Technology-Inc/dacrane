@@ -6,6 +6,7 @@ import (
 	azureappserviceplan "dacrane/provider/resource/azure-app-service-plan"
 	azurecontainerregistry "dacrane/provider/resource/azure-container-registry"
 	azureresourcegroup "dacrane/provider/resource/azure-resource-group"
+	dockerresource "dacrane/provider/resource/docker"
 )
 
 type ArtifactProvider interface {
@@ -29,6 +30,7 @@ var resourceProviders = map[string](ResourceProvider){
 	"azure-app-service-plan":   azureappserviceplan.AzureAppServicePlanResourceProvider{},
 	"azure-app-service":        azureappservice.AzureAppServiceResourceProvider{},
 	"azure-container-registry": azurecontainerregistry.AzureContainerRegistryResourceProvider{},
+	"docker":                   dockerresource.DockerResourceProvider{},
 }
 
 func FindArtifactProvider(providerName string) ArtifactProvider {
