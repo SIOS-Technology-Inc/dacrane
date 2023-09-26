@@ -83,12 +83,13 @@ kind: resource
 name: docker
 provider: docker
 parameters:
-  image: sample-api
+  name: api
+  image: ${{ artifact.api.image }}
   tag: ${{ data.argument.tag }}
   port: 3000:3000
   env:
     - name: PORT
-      value: 3000
+      value: "3000"
 ---
 kind: data
 name: azure_credential
