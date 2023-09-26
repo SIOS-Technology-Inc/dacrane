@@ -17,10 +17,8 @@ var downCmd = &cobra.Command{
 	Short: "destroy resource and artifact",
 	Long:  "destroy resource and artifact",
 	Run: func(cmd *cobra.Command, args []string) {
-		stateBytes, err := os.ReadFile(".dacrane.state.yaml")
-		if err != nil {
-			panic(err)
-		}
+		context := core.LoadContextConfig().CurrentContext()
+		stateBytes := context.ReadState()
 
 		states, err := code.ParseCode(stateBytes)
 		if err != nil {
@@ -78,10 +76,7 @@ var downCmd = &cobra.Command{
 				}
 			}
 
-			e := os.WriteFile(".dacrane.state.yaml", statesYaml, 0644)
-			if e != nil {
-				panic(e)
-			}
+			context.WriteState(statesYaml)
 		}
 	},
 }

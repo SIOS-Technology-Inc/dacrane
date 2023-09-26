@@ -47,6 +47,7 @@ func (config ContextConfig) Init() {
 
 func (config *ContextConfig) Add(context Context) {
 	config.Contexts = append(config.Contexts, context)
+	context.Init()
 	config.save()
 }
 
@@ -88,10 +89,6 @@ func (context Context) Init() {
 	if err != nil {
 		panic(err)
 	}
-	err = os.WriteFile(context.StateFilePath(), []byte{}, 0644)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (context Context) Dir() string {
@@ -99,7 +96,11 @@ func (context Context) Dir() string {
 }
 
 func (context Context) StateFilePath() string {
-	return fmt.Sprintf("%s/%s.yaml", context.Dir(), context.Name)
+	return fmt.Sprintf("%s/state.yaml", context.Dir())
+}
+
+func (context Context) EnvFilePath() string {
+	return fmt.Sprintf("%s/env.yaml", context.Dir())
 }
 
 func NewDefaultContextConfig() ContextConfig {
@@ -136,5 +137,23 @@ func (context Context) ReadState() []byte {
 }
 
 func (context Context) WriteState(data []byte) {
-	os.WriteFile(context.StateFilePath(), data, 0644)
+	err := os.WriteFile(context.StateFilePath(), data, 0644)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (context Context) ReadEnv() []byte {
+	data, err := os.ReadFile(context.EnvFilePath())
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
+func (context Context) WriteEnv(data []byte) {
+	err := os.WriteFile(context.EnvFilePath(), data, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
