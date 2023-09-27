@@ -16,6 +16,7 @@ var upCmd = &cobra.Command{
 	Short: "deploy resource and build artifact",
 	Long:  "deploy resource and build artifact",
 	Run: func(cmd *cobra.Command, args []string) {
+		context := core.LoadContextConfig().CurrentContext()
 		codeBytes, err := os.ReadFile("dacrane.yaml")
 		if err != nil {
 			panic(err)
@@ -26,10 +27,7 @@ var upCmd = &cobra.Command{
 			panic(err)
 		}
 
-		envBytes, err := os.ReadFile(".env.yaml")
-		if err != nil {
-			panic(err)
-		}
+		envBytes := context.ReadEnv()
 		env := map[string]any{}
 		yaml.Unmarshal(envBytes, &env)
 		data := map[string]any{
@@ -87,10 +85,7 @@ var upCmd = &cobra.Command{
 				}
 			}
 
-			e := os.WriteFile(".dacrane.state.yaml", statesYaml, 0644)
-			if e != nil {
-				panic(e)
-			}
+			context.WriteState(statesYaml)
 		}
 	},
 }
