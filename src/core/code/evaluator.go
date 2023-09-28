@@ -58,6 +58,12 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 		left := EvaluateExprString(e.Left, data)
 		right := EvaluateExprString(e.Right, data)
 		switch e.Op.Type.GetID() {
+		case PRIORITY:
+			if left != nil {
+				return left
+			} else {
+				return right
+			}
 		case ADD:
 			return left.(float64) + right.(float64)
 		case SUB:

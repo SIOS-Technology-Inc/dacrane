@@ -71,6 +71,7 @@ Expr
 	| App                         { $$ = $1 }
 	| Ref                         { $$ = $1 }
 	| Expr EQ Expr                { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
+	| Expr PRIORITY Expr          { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
 	| Expr LT Expr                { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
 	| Expr LTE Expr               { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
 	| Expr GT Expr                { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }

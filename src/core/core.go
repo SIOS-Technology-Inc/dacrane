@@ -2,6 +2,7 @@ package core
 
 import (
 	"dacrane/provider/artifact/docker"
+	environemnt "dacrane/provider/data/environment"
 	azureappservice "dacrane/provider/resource/azure-app-service"
 	azureappserviceplan "dacrane/provider/resource/azure-app-service-plan"
 	azurecontainerregistry "dacrane/provider/resource/azure-container-registry"
@@ -21,6 +22,10 @@ type ResourceProvider interface {
 	Delete(parameters map[string]any) error
 }
 
+type DataProvider interface {
+	Get(parameters map[string]any) (map[string]any, error)
+}
+
 var artifactProviders = map[string](ArtifactProvider){
 	"docker": docker.DockerArtifactProvider{},
 }
@@ -33,10 +38,18 @@ var resourceProviders = map[string](ResourceProvider){
 	"docker":                   dockerresource.DockerResourceProvider{},
 }
 
+var dataProviders = map[string](DataProvider){
+	"environment": environemnt.EnvironmentDataProvider{},
+}
+
 func FindArtifactProvider(providerName string) ArtifactProvider {
 	return artifactProviders[providerName]
 }
 
 func FindResourceProvider(providerName string) ResourceProvider {
 	return resourceProviders[providerName]
+}
+
+func FindDataProvider(providerName string) DataProvider {
+	return dataProviders[providerName]
 }

@@ -30,10 +30,18 @@ var upCmd = &cobra.Command{
 		envBytes := context.ReadEnv()
 		env := map[string]any{}
 		yaml.Unmarshal(envBytes, &env)
+
+		inputs := map[string]any{}
+		for k, v := range vars {
+			fmt.Printf("%s = %s", k, v)
+			inputs[k] = v
+		}
 		data := map[string]any{
-			"data":     env,
+			"config":   env,
+			"arg":      inputs,
 			"resource": map[string]any{},
 			"artifact": map[string]any{},
+			"data":     map[string]any{},
 		}
 
 		states := []map[string]any{}
@@ -42,7 +50,7 @@ var upCmd = &cobra.Command{
 			fmt.Printf("[%s] Evaluating...\n", entity.Id())
 			evaluatedEntity := entity.Evaluate(data)
 			if evaluatedEntity == nil {
-				fmt.Printf("[%s] Skipped.", entity.Id())
+				fmt.Printf("[%s] Skipped.\n", entity.Id())
 				continue
 			}
 
@@ -72,7 +80,14 @@ var upCmd = &cobra.Command{
 				fmt.Printf("[%s] Published.\n", entity.Id())
 				data["artifact"].(map[string]any)[entity.Name()] = ret
 			case "data":
-
+				dataProvider := core.FindDataProvider(evaluatedEntity.Provider())
+				fmt.Printf("[%s] Reading...\n", entity.Id())
+				ret, err := dataProvider.Get(entity.Parameters())
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("[%s] Read.\n", entity.Id())
+				data["data"].(map[string]any)[entity.Name()] = ret
 			}
 			states = append(states, evaluatedEntity)
 			statesYaml := []byte{}
@@ -90,6 +105,9 @@ var upCmd = &cobra.Command{
 	},
 }
 
+var vars = map[string]string{}
+
 func init() {
 	rootCmd.AddCommand(upCmd)
+	upCmd.Flags().StringToStringVarP(&vars, "argument", "a", nil, "Argument")
 }

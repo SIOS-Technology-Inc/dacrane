@@ -1,33 +1,17 @@
-kind: data
-name: config
-provider: environment
-parameters:
-  - name: service
-    enum: ["local-docker", "app-service"]
-  - name: spec
-    enum: ["low", "high"]
----
-kind: data
-name: argument
-provider: argument
-parameters:
-  - name: tag
-    default: "latest"
----
 kind: artifact
 name: api
 provider: docker
 parameters:
   image: sample-api
-  tag: ${{ data.argument.tag }} # increase attribute
+  tag: ${{ arg.tag }} # increase attribute
   dockerfile: ./Dockerfile
   remote:
-    if: ${{ data.config.service == "app-service" }}
+    if: ${{ config.service == "app-service" }}
     url: ${{ resource.acr.url }}
     user: ${{ resource.acr.user }}
     password: ${{ resource.acr.password }}
 ---
-if: ${{ data.config.service == "app-service" }}
+if: ${{ config.service == "app-service" }}
 kind: resource
 name: acr
 provider: azure-container-registry
@@ -37,7 +21,7 @@ parameters:
   location: "Japan East"
   credentials: ${{ data.azure_credential }}
 ---
-if: ${{ data.config.service == "app-service" }}
+if: ${{ config.service == "app-service" }}
 kind: resource
 name: rg
 provider: azure-resource-group
@@ -46,7 +30,7 @@ parameters:
   location: "Japan East"
   credentials: ${{ data.azure_credential }}
 ---
-if: ${{ data.config.service == "app-service" }}
+if: ${{ config.service == "app-service" }}
 kind: resource
 name: asp
 provider: azure-app-service-plan
@@ -56,11 +40,11 @@ parameters:
   location: "Japan East"
   kind: "Linux"
   sku:
-    tier: '${{ {"low": "Basic", "high": "Premium" }[data.config.spec] }}'
-    name: '${{ {"low": "B1", "high": "P1" }[data.config.spec] }}'
+    tier: '${{ {"low": "Basic", "high": "Premium" }[config.spec] }}'
+    name: '${{ {"low": "B1", "high": "P1" }[config.spec] }}'
   credentials: ${{ data.azure_credential }}
 ---
-if: ${{ data.config.service == "app-service" }}
+if: ${{ config.service == "app-service" }}
 kind: resource
 name: as
 provider: azure-app-service
@@ -78,14 +62,14 @@ parameters:
     WEBSITES_PORT: "3000"
   credentials: ${{ data.azure_credential }}
 ---
-if: ${{ data.config.service == "local-docker" }}
+if: ${{ config.service == "local-docker" }}
 kind: resource
 name: docker
 provider: docker
 parameters:
   name: api
   image: ${{ artifact.api.image }}
-  tag: ${{ data.argument.tag }}
+  tag: ${{ arg.tag }}
   port: 3000:3000
   env:
     - name: PORT
@@ -95,9 +79,8 @@ kind: data
 name: azure_credential
 provider: environment
 parameters:
-  - name: subscription_id
-  - name: tenant_id
-  - name: client_id
-  - name: username
-  - name: password
-    secret: true
+  subscription_id: AZURE_SUBSCRIPTION_ID
+  tenant_id: AZURE_TENANT_ID
+  client_id: AZURE_CLIENT_ID
+  username: AZURE_USERNANE
+  password: AZURE_PASSWORD
