@@ -46,7 +46,7 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 			if v, ok := val.(map[string]any)[key]; ok {
 				val = v
 			} else {
-				panic("Undefined variable: " + e.Name)
+				val = nil
 			}
 		}
 		return val
