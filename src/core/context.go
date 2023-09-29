@@ -52,6 +52,8 @@ func (config *ContextConfig) Add(context Context) {
 }
 
 func (config *ContextConfig) Delete(name string) {
+	context := config.GetContext(name)
+	context.Delete()
 	config.Contexts = utils.Filter(config.Contexts, func(c Context) bool {
 		return c.Name != name
 	})
@@ -91,8 +93,15 @@ func (context Context) Init() {
 	}
 }
 
+func (context Context) Delete() {
+	err := os.RemoveAll(context.Dir())
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (context Context) Dir() string {
-	return fmt.Sprintf(".dacrane/%s", context.Name)
+	return fmt.Sprintf("%s/%s", contextConfigDir, context.Name)
 }
 
 func (context Context) StateFilePath() string {
@@ -118,6 +127,16 @@ func (config ContextConfig) CurrentContext() Context {
 	return utils.Find(config.Contexts, func(c Context) bool {
 		return c.Name == config.CurrentContextName
 	})
+}
+
+func (config ContextConfig) GetContext(name string) Context {
+	context := utils.Find(config.Contexts, func(c Context) bool {
+		return c.Name == name
+	})
+	if context.Name == "" {
+		panic(fmt.Sprintf("%s context is not found.", name))
+	}
+	return context
 }
 
 func (config ContextConfig) GenerateYaml() []byte {
