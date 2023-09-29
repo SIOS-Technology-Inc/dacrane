@@ -1,0 +1,12 @@
+# Required.
+# "local-docker" or "app-service" must be specified.
+service: "local-docker"
+# service: "app-service"
+
+# Required when service is "app-service".
+# low" or "high" must be specified.
+# spec: "low"
+
+# Required when service is "app-service".
+# Only alphanumeric characters can be specified.
+# prefix: "dacrane"
