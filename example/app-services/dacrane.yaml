@@ -16,7 +16,7 @@ kind: resource
 name: acr
 provider: azure-container-registry
 parameters:
-  name: sampledacraneacr
+  name: ${{ config.prefix }}sampleacr
   resource_group_name: ${{ resource.rg.name }}
   location: "Japan East"
   credentials: ${{ data.azure_credential }}
@@ -26,7 +26,7 @@ kind: resource
 name: rg
 provider: azure-resource-group
 parameters:
-  name: sample-rg
+  name: ${{ config.prefix }}-sample-rg
   location: "Japan East"
   credentials: ${{ data.azure_credential }}
 ---
@@ -35,7 +35,7 @@ kind: resource
 name: asp
 provider: azure-app-service-plan
 parameters:
-  name: sample-asp
+  name: ${{ config.prefix }}-sample-asp
   resource_group_name: ${{ resource.rg.name }}
   location: "Japan East"
   kind: "Linux"
@@ -49,8 +49,8 @@ kind: resource
 name: as
 provider: azure-app-service
 parameters:
-  name: sample-as
-  resource_group_name: sample-rg
+  name: ${{ config.prefix }}-sample-as
+  resource_group_name: ${{ resource.rg.name }}
   location: "Japan East"
   app_service_plan_id: ${{ resource.asp.name }}
   site_config:
