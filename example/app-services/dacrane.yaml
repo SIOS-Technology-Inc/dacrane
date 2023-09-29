@@ -3,7 +3,7 @@ name: api
 provider: docker
 parameters:
   image: sample-api
-  tag: ${{ arg.tag }} # increase attribute
+  tag: ${{ arg.tag >> "latest" }} # increase attribute
   dockerfile: ./Dockerfile
   remote:
     if: ${{ config.service == "app-service" }}
@@ -69,7 +69,7 @@ provider: docker
 parameters:
   name: api
   image: ${{ artifact.api.image }}
-  tag: ${{ arg.tag }}
+  tag: ${{ arg.tag >> "latest" }}
   port: 3000:3000
   env:
     - name: PORT
