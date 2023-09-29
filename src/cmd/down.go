@@ -39,7 +39,7 @@ var downCmd = &cobra.Command{
 		for _, entity := range sortedEntities {
 			stateEntity := states.Find(entity.Kind(), entity.Name())
 			if stateEntity == nil {
-				println("No Resource Provided")
+				fmt.Printf("[%s] Skipped.\n", entity.Id())
 				continue
 			}
 
