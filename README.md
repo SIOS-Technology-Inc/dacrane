@@ -66,6 +66,33 @@ Usage:
 $ make uninstall
 ```
 
+## Try Dacrane on Local Docker
+
+```bash
+$ cd ./example/app-services
+```
+
+```bash
+$ dacrane init
+```
+
+```bash
+$ dacrane set .config.yaml
+```
+
+```bash
+$ dacrane up
+```
+
+```bash
+$ curl http://localhost:3000
+hello world
+```
+
+```bash
+$ dacrane down
+```
+
 ## License
 
 [Apache License 2.0](./LICENSE)
