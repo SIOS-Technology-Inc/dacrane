@@ -10,9 +10,10 @@ var ctx = context.Background()
 func (FileProvider) Create(parameters map[string]any) (map[string]any, error) {
 	statesYaml := []byte{}
 	contents := parameters["contents"].(string)
+	filename := parameters["filename"].(string)
 
 	statesYaml = append(statesYaml, []byte(contents)...)
-	e := os.WriteFile("Dockerfile", statesYaml, 0644)
+	e := os.WriteFile(filename, statesYaml, 0644)
 	if e != nil {
     return nil, e
 	}
@@ -22,7 +23,8 @@ func (FileProvider) Create(parameters map[string]any) (map[string]any, error) {
 
 func (fp FileProvider) Delete(parameters map[string]interface{}) error {
 
-	err := os.Remove("Dockerfile")
+	filename := parameters["filename"].(string)
+	err := os.Remove(filename)
 	if err != nil {
 			return err
 	}
