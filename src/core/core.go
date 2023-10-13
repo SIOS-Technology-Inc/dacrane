@@ -8,6 +8,7 @@ import (
 	azurecontainerregistry "dacrane/provider/resource/azure-container-registry"
 	azureresourcegroup "dacrane/provider/resource/azure-resource-group"
 	dockerresource "dacrane/provider/resource/docker"
+	file "dacrane/provider/resource/file"
 )
 
 type ArtifactProvider interface {
@@ -36,6 +37,7 @@ var resourceProviders = map[string](ResourceProvider){
 	"azure-app-service":        azureappservice.AzureAppServiceResourceProvider{},
 	"azure-container-registry": azurecontainerregistry.AzureContainerRegistryResourceProvider{},
 	"docker":                   dockerresource.DockerResourceProvider{},
+	"file": 										file.FileProvider{},
 }
 
 var dataProviders = map[string](DataProvider){
