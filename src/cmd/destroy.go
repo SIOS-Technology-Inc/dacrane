@@ -3,50 +3,81 @@ package cmd
 import (
 	"dacrane/core"
 	"dacrane/core/code"
-	"errors"
+	"dacrane/utils"
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
-// destroyCmd represents the destroy command
+// destroyCmd represents the down command
 var destroyCmd = &cobra.Command{
 	Use:   "destroy",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 1 {
-			return errors.New("requires resource name")
-		}
-		return nil
-	},
+	Short: "destroy resource and artifact",
+	Long:  "destroy resource and artifact",
 	Run: func(cmd *cobra.Command, args []string) {
-		name := args[0]
+		context := core.LoadContextConfig().CurrentContext()
+		stateBytes := context.ReadState()
+
+		states, err := code.ParseCode(stateBytes)
+		if err != nil {
+			panic(err)
+		}
+
 		codeBytes, err := os.ReadFile("dacrane.yaml")
 		if err != nil {
 			panic(err)
 		}
 
-		code, err := code.ParseCode(codeBytes)
+		dcode, err := code.ParseCode(codeBytes)
 		if err != nil {
 			panic(err)
 		}
 
-		resourceCode := code.Find("resource", name)
+		sortedEntities := utils.Reverse(dcode.TopologicalSort())
+		for _, entity := range sortedEntities {
+			stateEntity := states.Find(entity.Kind(), entity.Name())
+			if stateEntity == nil {
+				fmt.Printf("[%s] Skipped.\n", entity.Id())
+				continue
+			}
 
-		resourceProvider := core.FindResourceProvider(resourceCode["provider"].(string))
+			switch stateEntity.Kind() {
+			case "resource":
+				resourceProvider := core.FindResourceProvider(entity.Provider())
+				fmt.Printf("[%s] Deleting...\n", entity.Id())
+				err := resourceProvider.Delete(stateEntity.Parameters())
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("[%s] Deleted.\n", entity.Id())
+			case "artifact":
+				artifactProvider := core.FindArtifactProvider(stateEntity.Provider())
+				fmt.Printf("[%s] Unpublish...\n", entity.Id())
+				err = artifactProvider.Unpublish(stateEntity.Parameters())
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("[%s] Unpublished.\n", entity.Id())
+			case "data":
 
-		err = resourceProvider.Delete(resourceCode.Parameters())
+			}
+			states = utils.Filter(states, func(e code.Entity) bool {
+				return e.Id() != entity.Id()
+			})
+			statesYaml := []byte{}
+			for _, state := range states {
+				stateYaml, e := yaml.Marshal(state)
+				statesYaml = append(statesYaml, []byte("---\n")...)
+				statesYaml = append(statesYaml, stateYaml...)
+				if e != nil {
+					panic(e)
+				}
+			}
 
-		if err != nil {
-			panic(err)
+			context.WriteState(statesYaml)
 		}
-		println("destroy successfully!")
 	},
 }
 

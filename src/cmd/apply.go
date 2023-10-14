@@ -10,11 +10,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// upCmd represents the up command
-var upCmd = &cobra.Command{
-	Use:   "up",
-	Short: "deploy resource and build artifact",
-	Long:  "deploy resource and build artifact",
+// applyCmd represents the up command
+var applyCmd = &cobra.Command{
+	Use:   "apply",
+	Short: "create or update resource",
+	Long:  "create or update resource",
 	Run: func(cmd *cobra.Command, args []string) {
 		context := core.LoadContextConfig().CurrentContext()
 		codeBytes, err := os.ReadFile("dacrane.yaml")
@@ -108,6 +108,6 @@ var upCmd = &cobra.Command{
 var vars = map[string]string{}
 
 func init() {
-	rootCmd.AddCommand(upCmd)
-	upCmd.Flags().StringToStringVarP(&vars, "argument", "a", nil, "Argument")
+	rootCmd.AddCommand(applyCmd)
+	applyCmd.Flags().StringToStringVarP(&vars, "argument", "a", nil, "Argument")
 }

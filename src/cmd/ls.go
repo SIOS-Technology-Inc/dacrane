@@ -9,10 +9,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// buildCmd represents the build command
-var buildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "Build the specific artifact",
+// lsCmd represents the versions command
+var lsCmd = &cobra.Command{
+	Use:   "ls",
+	Short: "Search for the specific artifact versions",
 	Long:  "",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
@@ -36,15 +36,15 @@ var buildCmd = &cobra.Command{
 
 		artifactProvider := core.FindArtifactProvider(artifactCode["provider"].(string))
 
-		err = artifactProvider.Build(artifactCode["parameters"].(map[string]any))
+		err = artifactProvider.SearchVersions(artifactCode["parameters"].(map[string]any))
 
 		if err != nil {
 			panic(err)
 		}
-		println("build successfully!")
+		println("search versions successfully!")
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(buildCmd)
+	rootCmd.AddCommand(lsCmd)
 }
