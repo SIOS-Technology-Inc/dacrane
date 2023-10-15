@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"dacrane/core"
-	"dacrane/core/code"
 	"errors"
 	"os"
 
@@ -12,8 +11,8 @@ import (
 // lsCmd represents the versions command
 var lsCmd = &cobra.Command{
 	Use:   "ls",
-	Short: "Search for the specific artifact versions",
-	Long:  "",
+	Short: "show instance list",
+	Long:  "show instance list",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			return errors.New("requires artifact name")

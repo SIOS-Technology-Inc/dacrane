@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"dacrane/core"
-	"dacrane/core/code"
 	"dacrane/utils"
 	"fmt"
 	"os"
@@ -63,7 +62,7 @@ var destroyCmd = &cobra.Command{
 			case "data":
 
 			}
-			states = utils.Filter(states, func(e code.Entity) bool {
+			states = utils.Filter(states, func(e code.Module) bool {
 				return e.Id() != entity.Id()
 			})
 			statesYaml := []byte{}

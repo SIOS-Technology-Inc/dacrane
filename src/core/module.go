@@ -1,12 +1,28 @@
-package code
+package core
 
 import (
 	"github.com/macrat/simplexer"
 )
 
-type Code []Entity
+type Module struct {
+	Name         string       `yaml:"name"`
+	Import       []string     `yaml:"import"`
+	Parameter    any          `yaml:"parameter"`
+	Dependencies []Dependency `yaml:"dependencies"`
+	ModuleCalls  []ModuleCall `yaml:"modules"`
+}
 
-type Entity map[string]any
+type Dependency struct {
+	Name   string `yaml:"name"`
+	Module string `yaml:"module"`
+}
+
+type ModuleCall struct {
+	Name      string   `yaml:"name"`
+	DependsOn []string `yaml:"depends_on"`
+	Module    string   `yaml:"module"`
+	Argument  any      `yaml:"argument"`
+}
 
 // Expr represents an expression in the AST.
 type Expr interface{}

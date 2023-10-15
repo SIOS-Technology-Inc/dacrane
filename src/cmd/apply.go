@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"dacrane/core"
-	"dacrane/core/code"
+	"dacrane/utils"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -16,80 +17,82 @@ var applyCmd = &cobra.Command{
 	Short: "create or update resource",
 	Long:  "create or update resource",
 	Run: func(cmd *cobra.Command, args []string) {
+		targetModuleName := args[0]
+		// instanceName := args[1]
 		context := core.LoadContextConfig().CurrentContext()
 		codeBytes, err := os.ReadFile("dacrane.yaml")
 		if err != nil {
 			panic(err)
 		}
 
-		code, err := code.ParseCode(codeBytes)
+		modules := core.ParseModules(codeBytes)
+		module := utils.Find(modules, func(m core.Module) bool {
+			return m.Name == targetModuleName
+		})
+
+		var argument map[string]any
+		err = yaml.Unmarshal([]byte(argumentString), &argument)
 		if err != nil {
 			panic(err)
 		}
 
-		envBytes := context.ReadEnv()
-		env := map[string]any{}
-		yaml.Unmarshal(envBytes, &env)
+		// for _, instanceName := range dependencies {
+		// }
 
-		inputs := map[string]any{}
-		for k, v := range vars {
-			fmt.Printf("%s = %s", k, v)
-			inputs[k] = v
-		}
 		data := map[string]any{
-			"config":   env,
-			"arg":      inputs,
-			"resource": map[string]any{},
-			"artifact": map[string]any{},
-			"data":     map[string]any{},
+			"parameter": argument,
+			"module":    map[string]any{},
 		}
 
 		states := []map[string]any{}
-		sortedEntities := code.TopologicalSort()
-		for _, entity := range sortedEntities {
-			fmt.Printf("[%s] Evaluating...\n", entity.Id())
-			evaluatedEntity := entity.Evaluate(data)
-			if evaluatedEntity == nil {
-				fmt.Printf("[%s] Skipped.\n", entity.Id())
-				continue
-			}
+		moduleCalls := module.TopologicalSortedModuleCalls()
+		for _, moduleCall := range moduleCalls {
+			fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
+			evaluatedModuleCall := moduleCall.Evaluate(data)
+			fmt.Printf("[%s (%s)] Evaluated\n", moduleCall.Name, moduleCall.Module)
 
-			switch evaluatedEntity.Kind() {
+			modulePaths := strings.Split(evaluatedModuleCall.Module, "/")
+			kind := modulePaths[0]
+
+			switch kind {
 			case "resource":
-				resourceProvider := core.FindResourceProvider(entity.Provider())
-				fmt.Printf("[%s] Crating...\n", entity.Id())
-				ret, err := resourceProvider.Create(evaluatedEntity.Parameters())
+				name := modulePaths[1]
+				resourceProvider := core.FindResourceProvider(name)
+				fmt.Printf("[%s (%s)] Crating...\n", moduleCall.Name, moduleCall.Module)
+				ret, err := resourceProvider.Create(evaluatedModuleCall.Argument.(map[string]any))
 				if err != nil {
 					panic(err)
 				}
-				fmt.Printf("[%s] Created.\n", entity.Id())
-				data["resource"].(map[string]any)[entity.Name()] = ret
+				fmt.Printf("[%s (%s)] Created.\n", moduleCall.Name, moduleCall.Module)
+				data["resource"].(map[string]any)[evaluatedModuleCall.Name] = ret
 			case "artifact":
-				artifactProvider := core.FindArtifactProvider(evaluatedEntity.Provider())
-				fmt.Printf("[%s] Building...\n", entity.Id())
-				err = artifactProvider.Build(evaluatedEntity.Parameters())
+				name := modulePaths[1]
+				artifactProvider := core.FindArtifactProvider(name)
+				fmt.Printf("[%s (%s)] Building...\n", moduleCall.Name, moduleCall.Module)
+				err = artifactProvider.Build(evaluatedModuleCall.Argument.(map[string]any))
 				if err != nil {
 					panic(err)
 				}
-				fmt.Printf("[%s] Built.\n", entity.Id())
-				fmt.Printf("[%s] Publishing...\n", entity.Id())
-				ret, err := artifactProvider.Publish(evaluatedEntity.Parameters())
+				fmt.Printf("[%s (%s)] Built.\n", moduleCall.Name, moduleCall.Module)
+				fmt.Printf("[%s (%s)] Publishing...\n", moduleCall.Name, moduleCall.Module)
+				ret, err := artifactProvider.Publish(evaluatedModuleCall.Argument.(map[string]any))
 				if err != nil {
 					panic(err)
 				}
-				fmt.Printf("[%s] Published.\n", entity.Id())
-				data["artifact"].(map[string]any)[entity.Name()] = ret
+				fmt.Printf("[%s (%s)] Published.\n", moduleCall.Name, moduleCall.Module)
+				data["artifact"].(map[string]any)[evaluatedModuleCall.Name] = ret
 			case "data":
-				dataProvider := core.FindDataProvider(evaluatedEntity.Provider())
-				fmt.Printf("[%s] Reading...\n", entity.Id())
-				ret, err := dataProvider.Get(entity.Parameters())
+				name := modulePaths[1]
+				dataProvider := core.FindDataProvider(name)
+				fmt.Printf("[%s (%s)] Reading...\n", moduleCall.Name, moduleCall.Module)
+				ret, err := dataProvider.Get(evaluatedModuleCall.Argument.(map[string]any))
 				if err != nil {
 					panic(err)
 				}
-				fmt.Printf("[%s] Read.\n", entity.Id())
-				data["data"].(map[string]any)[entity.Name()] = ret
+				fmt.Printf("[%s (%s)] Read.\n", moduleCall.Name, moduleCall.Module)
+				data["data"].(map[string]any)[evaluatedModuleCall.Name] = ret
 			}
-			states = append(states, evaluatedEntity)
+			states = append(states, evaluatedModuleCall.Argument.(map[string]any))
 			statesYaml := []byte{}
 			for _, state := range states {
 				stateYaml, e := yaml.Marshal(state)
@@ -105,9 +108,11 @@ var applyCmd = &cobra.Command{
 	},
 }
 
-var vars = map[string]string{}
+var argumentString = ""
+var dependencies = map[string]string{}
 
 func init() {
 	rootCmd.AddCommand(applyCmd)
-	applyCmd.Flags().StringToStringVarP(&vars, "argument", "a", nil, "Argument")
+	applyCmd.Flags().StringVarP(&argumentString, "argument", "a", "{}", "Argument")
+	applyCmd.Flags().StringToStringVarP(&dependencies, "dependency", "d", map[string]string{}, "Argument")
 }
