@@ -2,18 +2,17 @@ package cmd
 
 import (
 	"dacrane/core"
-	"dacrane/core/code"
 	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-// buildCmd represents the build command
-var buildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "Build the specific artifact",
-	Long:  "",
+// lsCmd represents the versions command
+var lsCmd = &cobra.Command{
+	Use:   "ls",
+	Short: "show instance list",
+	Long:  "show instance list",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			return errors.New("requires artifact name")
@@ -36,15 +35,15 @@ var buildCmd = &cobra.Command{
 
 		artifactProvider := core.FindArtifactProvider(artifactCode["provider"].(string))
 
-		err = artifactProvider.Build(artifactCode["parameters"].(map[string]any))
+		err = artifactProvider.SearchVersions(artifactCode["parameters"].(map[string]any))
 
 		if err != nil {
 			panic(err)
 		}
-		println("build successfully!")
+		println("search versions successfully!")
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(buildCmd)
+	rootCmd.AddCommand(lsCmd)
 }

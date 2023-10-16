@@ -9,8 +9,8 @@ import (
 )
 
 type ContextConfig struct {
-	CurrentContextName string    `yaml:"current"`
-	Contexts           []Context `yaml:"contexts"`
+	Instance string    `yaml:"current"`
+	Contexts []Context `yaml:"contexts"`
 }
 
 type Context struct {
@@ -61,7 +61,7 @@ func (config *ContextConfig) Delete(name string) {
 }
 
 func (config *ContextConfig) Switch(name string) {
-	config.CurrentContextName = name
+	config.Instance = name
 	config.save()
 }
 
@@ -83,7 +83,7 @@ func (config ContextConfig) save() {
 }
 
 func (config ContextConfig) IsCurrent(context Context) bool {
-	return config.CurrentContextName == context.Name
+	return config.Instance == context.Name
 }
 
 func (context Context) Init() {
@@ -114,7 +114,7 @@ func (context Context) EnvFilePath() string {
 
 func NewDefaultContextConfig() ContextConfig {
 	return ContextConfig{
-		CurrentContextName: "default",
+		Instance: "default",
 		Contexts: []Context{
 			{
 				Name: "default",
@@ -125,7 +125,7 @@ func NewDefaultContextConfig() ContextConfig {
 
 func (config ContextConfig) CurrentContext() Context {
 	return utils.Find(config.Contexts, func(c Context) bool {
-		return c.Name == config.CurrentContextName
+		return c.Name == config.Instance
 	})
 }
 

@@ -23,7 +23,6 @@
     - [apply](#apply)
     - [destroy](#destroy)
     - [ls](#ls)
-    - [tree](#tree)
 - [Flow](#flow)
 
 # Architecture
@@ -481,12 +480,13 @@ argument:
 
 ### init
 
-
 ```bash
 $ dacrane init
 ```
 
 ### apply
+
+Creates or updates the specified instance.
 
 ```bash
 $ dacrane apply -a [argument] -d [dependencies] [module] [instance_name]
@@ -494,22 +494,25 @@ $ dacrane apply -a [argument] -d [dependencies] [module] [instance_name]
 
 ### destroy
 
+Destroys the specified instance.
+
 ```bash
 $ dacrane destroy [instance]
 ```
 
 ### ls
 
-```bash
-$ dacrane ls [instance]
-```
-
-### tree
+List instances and their modules.
 
 ```bash
-$ dacrane tree [instance]
+$ dacrane ls
 ```
 
+```
+instance1 (module1)
+instance2 (module2)
+...
+```
 
 # Flow
 

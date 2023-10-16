@@ -1,5 +1,5 @@
 %{
-package code
+package core
 
 import "github.com/macrat/simplexer"
 import "strconv"
