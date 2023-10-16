@@ -1,86 +1,111 @@
-kind: artifact
-name: api
-provider: docker
-parameters:
-  image: sample-api
-  tag: ${{ arg.tag >> "latest" }} # increase attribute
-  dockerfile: ./Dockerfile
-  remote:
-    if: ${{ config.service == "app-service" }}
-    url: ${{ resource.acr.url }}
-    user: ${{ resource.acr.user }}
-    password: ${{ resource.acr.password }}
+name: local-docker
+parameter:
+  type: object
+  properties:
+    api: { type: string }
+    tag: { type: string, default: "latest" }
+modules:
+- module: resource/docker
+  name: docker
+  parameters:
+    name: api
+    image: ${{ parameters.api.image }}
+    tag: ${{ arguments.tag >> "latest" }}
+    port: 3000:3000
+    env:
+      - name: PORT
+        value: "3000"
 ---
-if: ${{ config.service == "app-service" }}
-kind: resource
-name: acr
-provider: azure-container-registry
-parameters:
-  name: ${{ config.prefix }}sampleacr
-  resource_group_name: ${{ resource.rg.name }}
-  location: "Japan East"
-  credentials: ${{ data.azure_credential }}
+name: api-image
+parameter:
+  type: object
+  properties:
+    tag: { type: string, default: "latest" }
+dependencies:
+- name: acr
+  module: resource/azure-container-registry
+modules:
+- name: api-image
+  module: artifact/docker
+  parameters:
+    image: sample-api
+    tag: ${{ parameter.tag }}
+    remote:
+      if: ${{ module.acr != null }}
+      url: ${{ module.acr.url }}
+      user: ${{ module.acr.user }}
+      password: ${{ module.acr.password }}
 ---
-if: ${{ config.service == "app-service" }}
-kind: resource
-name: rg
-provider: azure-resource-group
-parameters:
-  name: ${{ config.prefix }}-sample-rg
-  location: "Japan East"
-  credentials: ${{ data.azure_credential }}
+name: "app-service"
+argument:
+parameter:
+  type: object
+  properties:
+    spec: { type: string, default: "low", enum: ["low", "high"] }
+dependencies:
+- name: base
+  module: base
+- name: api
+  module: api-image
+modules:
+- name: credentials
+  module: azure_credentials
+- name: asp
+  module: resource/azure-app-service-plan
+  argument:
+    name: ${{ module.base.parameter.prefix }}-sample-asp
+    resource_group_name: ${{ module.base.rg.name }}
+    location: "Japan East"
+    kind: "Linux"
+    sku:
+      tier: '${{ {"low": "Basic", "high": "Premium" }[module.spec] }}'
+      name: '${{ {"low": "B1", "high": "P1" }[module.spec] }}'
+    credentials: ${{ module.credentials }}
+- name: as
+  module: resource/azure-app-service
+  argument:
+    name: ${{ module.base.parameter.prefix }}-sample-as
+    resource_group_name: ${{ module.base.rg.name }}
+    location: "Japan East"
+    app_service_plan_id: ${{ module.base.asp.name }}
+    site_config:
+      linux_fx_version: DOCKER|${{ module.base.acr.url }}/sample-api:${{ module.api.tag }}
+    app_settings:
+      DOCKER_REGISTRY_SERVER_URL: ${{ module.base.acr.url }}
+      DOCKER_REGISTRY_SERVER_USERNAME: ${{ module.base.acr.user }}
+      DOCKER_REGISTRY_SERVER_PASSWORD: ${{ module.base.acr.password }}
+      WEBSITES_PORT: "3000"
+    credentials: ${{ module.credentials }}
 ---
-if: ${{ config.service == "app-service" }}
-kind: resource
-name: asp
-provider: azure-app-service-plan
-parameters:
-  name: ${{ config.prefix }}-sample-asp
-  resource_group_name: ${{ resource.rg.name }}
-  location: "Japan East"
-  kind: "Linux"
-  sku:
-    tier: '${{ {"low": "Basic", "high": "Premium" }[config.spec] }}'
-    name: '${{ {"low": "B1", "high": "P1" }[config.spec] }}'
-  credentials: ${{ data.azure_credential }}
+name: base
+parameter:
+  type: object
+  properties:
+    prefix: { type: string, default: "dacrane" }
+modules:
+- name: credentials
+  module: azure_credentials
+- name: rg
+  module: resource/azure-resource-group
+  argument:
+    name: ${{ parameter.prefix }}-sample-rg
+    location: "Japan East"
+    credentials: ${{ module.credentials }}
+- name: acr
+  module: resource/azure-container-registry
+  argument:
+    name: ${{ parameter.prefix }}sampleacr
+    resource_group_name: ${{ module.rg.name }}
+    location: "Japan East"
+    credentials: ${{ module.credentials }}
 ---
-if: ${{ config.service == "app-service" }}
-kind: resource
-name: as
-provider: azure-app-service
-parameters:
-  name: ${{ config.prefix }}-sample-as
-  resource_group_name: ${{ resource.rg.name }}
-  location: "Japan East"
-  app_service_plan_id: ${{ resource.asp.name }}
-  site_config:
-    linux_fx_version: DOCKER|${{ resource.acr.url }}/sample-api:${{ artifact.api.tag }}
-  app_settings:
-    DOCKER_REGISTRY_SERVER_URL: ${{ resource.acr.url }}
-    DOCKER_REGISTRY_SERVER_USERNAME: ${{ resource.acr.user }}
-    DOCKER_REGISTRY_SERVER_PASSWORD: ${{ resource.acr.password }}
-    WEBSITES_PORT: "3000"
-  credentials: ${{ data.azure_credential }}
----
-if: ${{ config.service == "local-docker" }}
-kind: resource
-name: docker
-provider: docker
-parameters:
-  name: api
-  image: ${{ artifact.api.image }}
-  tag: ${{ arg.tag >> "latest" }}
-  port: 3000:3000
-  env:
-    - name: PORT
-      value: "3000"
----
-kind: data
-name: azure_credential
-provider: environment
-parameters:
-  subscription_id: AZURE_SUBSCRIPTION_ID
-  tenant_id: AZURE_TENANT_ID
-  client_id: AZURE_CLIENT_ID
-  username: AZURE_USERNANE
-  password: AZURE_PASSWORD
+name: azure_credentials
+modules:
+- name: credentials
+  module: data/environment
+  argument:
+    subscription_id: AZURE_SUBSCRIPTION_ID
+    tenant_id: AZURE_TENANT_ID
+    client_id: AZURE_CLIENT_ID
+    username: AZURE_USERNANE
+    password: AZURE_PASSWORD
