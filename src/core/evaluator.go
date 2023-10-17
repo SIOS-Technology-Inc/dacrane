@@ -184,9 +184,17 @@ func (mc ModuleCall) Evaluate(data map[string]any) ModuleCall {
 	castString := func(v any) string {
 		return v.(string)
 	}
+
+	var dependsOn []string
+	if mc.DependsOn == nil {
+		dependsOn = nil
+	} else {
+		dependsOn = utils.Map(Evaluate(mc.DependsOn, data).([]any), castString)
+	}
+
 	return ModuleCall{
 		Name:      Evaluate(mc.Name, data).(string),
-		DependsOn: utils.Map(Evaluate(mc.DependsOn, data).([]any), castString),
+		DependsOn: dependsOn,
 		Module:    Evaluate(mc.Module, data).(string),
 		Argument:  Evaluate(mc.Argument, data),
 	}

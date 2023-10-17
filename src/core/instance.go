@@ -38,7 +38,7 @@ func NewProjectConfig() ProjectConfig {
 }
 
 func LoadProjectConfig() ProjectConfig {
-	data, err := os.ReadFile(projectConfigDir)
+	data, err := os.ReadFile(configFilePath)
 	if err != nil {
 		panic(err)
 	}
@@ -67,12 +67,12 @@ func (config ProjectConfig) Init() {
 
 func (config *ProjectConfig) CreateInstance(instance Instance) {
 	config.InstanceNames = append(config.InstanceNames, instance.Name)
-	instance.save(config.InstancesDir + "/" + instance.Name)
+	instance.save(config.InstanceDir(instance.Name))
 	config.save()
 }
 
 func (config ProjectConfig) UpdateInstance(instance Instance) {
-	instance.save(config.InstancesDir + "/" + instance.Name)
+	instance.save(config.InstanceDir(instance.Name))
 }
 
 func (config *ProjectConfig) DeleteInstance(name string) {
@@ -107,7 +107,7 @@ func (config ProjectConfig) save() {
 }
 
 func (config ProjectConfig) GetInstance(name string) Instance {
-	instanceDir := projectConfigDir + "/" + config.InstancesDir + "/" + name
+	instanceDir := config.InstanceDir(name)
 	return Instance{
 		Name:   name,
 		Module: loadModule(instanceDir),
