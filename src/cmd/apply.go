@@ -3,6 +3,7 @@ package cmd
 import (
 	"dacrane/core"
 	"dacrane/utils"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -16,10 +17,16 @@ var applyCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "create or update resource",
 	Long:  "create or update resource",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 2 {
+			return errors.New("requires module name and instance name")
+		}
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		targetModuleName := args[0]
-		// instanceName := args[1]
-		context := core.LoadContextConfig().CurrentContext()
+		instanceName := args[1]
+		config := core.LoadProjectConfig()
 		codeBytes, err := os.ReadFile("dacrane.yaml")
 		if err != nil {
 			panic(err)
@@ -39,16 +46,21 @@ var applyCmd = &cobra.Command{
 		// for _, instanceName := range dependencies {
 		// }
 
-		data := map[string]any{
+		state := map[string]any{
 			"parameter": argument,
 			"module":    map[string]any{},
 		}
 
-		states := []map[string]any{}
+		instance := core.Instance{
+			Name:   instanceName,
+			Module: module,
+			State:  state,
+		}
+		config.CreateInstance(instance)
 		moduleCalls := module.TopologicalSortedModuleCalls()
 		for _, moduleCall := range moduleCalls {
 			fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
-			evaluatedModuleCall := moduleCall.Evaluate(data)
+			evaluatedModuleCall := moduleCall.Evaluate(state)
 			fmt.Printf("[%s (%s)] Evaluated\n", moduleCall.Name, moduleCall.Module)
 
 			modulePaths := strings.Split(evaluatedModuleCall.Module, "/")
@@ -64,7 +76,7 @@ var applyCmd = &cobra.Command{
 					panic(err)
 				}
 				fmt.Printf("[%s (%s)] Created.\n", moduleCall.Name, moduleCall.Module)
-				data["resource"].(map[string]any)[evaluatedModuleCall.Name] = ret
+				state["module"].(map[string]any)[evaluatedModuleCall.Name] = ret
 			case "artifact":
 				name := modulePaths[1]
 				artifactProvider := core.FindArtifactProvider(name)
@@ -80,7 +92,7 @@ var applyCmd = &cobra.Command{
 					panic(err)
 				}
 				fmt.Printf("[%s (%s)] Published.\n", moduleCall.Name, moduleCall.Module)
-				data["artifact"].(map[string]any)[evaluatedModuleCall.Name] = ret
+				state["module"].(map[string]any)[evaluatedModuleCall.Name] = ret
 			case "data":
 				name := modulePaths[1]
 				dataProvider := core.FindDataProvider(name)
@@ -90,20 +102,10 @@ var applyCmd = &cobra.Command{
 					panic(err)
 				}
 				fmt.Printf("[%s (%s)] Read.\n", moduleCall.Name, moduleCall.Module)
-				data["data"].(map[string]any)[evaluatedModuleCall.Name] = ret
+				state["module"].(map[string]any)[evaluatedModuleCall.Name] = ret
 			}
-			states = append(states, evaluatedModuleCall.Argument.(map[string]any))
-			statesYaml := []byte{}
-			for _, state := range states {
-				stateYaml, e := yaml.Marshal(state)
-				statesYaml = append(statesYaml, []byte("---\n")...)
-				statesYaml = append(statesYaml, stateYaml...)
-				if e != nil {
-					panic(e)
-				}
-			}
-
-			context.WriteState(statesYaml)
+			instance.State = state
+			config.UpdateInstance(instance)
 		}
 	},
 }

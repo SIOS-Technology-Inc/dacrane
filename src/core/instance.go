@@ -8,138 +8,114 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type ContextConfig struct {
-	Instance string    `yaml:"current"`
-	Contexts []Context `yaml:"contexts"`
+type ProjectConfig struct {
+	InstancesDir  string   `yaml:"instances_dir"`
+	InstanceNames []string `yaml:"instances"`
 }
 
-type Context struct {
-	Name string `yaml:"name"`
+type Instance struct {
+	Name   string
+	Module Module
+	State  map[string]any
 }
 
-var contextConfigDir = ".dacrane"
-var contextConfigFilePath = fmt.Sprintf("%s/context.yaml", contextConfigDir)
+var projectConfigDir = ".dacrane"
+var configFilePath = fmt.Sprintf("%s/config.yaml", projectConfigDir)
 
-func LoadContextConfig() ContextConfig {
-	data, err := os.ReadFile(contextConfigFilePath)
+func StateFilePath(instanceDir string) string {
+	return fmt.Sprintf("%s/state.yaml", instanceDir)
+}
+
+func ModuleFilePath(instanceDir string) string {
+	return fmt.Sprintf("%s/module.yaml", instanceDir)
+}
+
+func NewProjectConfig() ProjectConfig {
+	return ProjectConfig{
+		InstancesDir:  "instances",
+		InstanceNames: []string{},
+	}
+}
+
+func LoadProjectConfig() ProjectConfig {
+	data, err := os.ReadFile(projectConfigDir)
 	if err != nil {
 		panic(err)
 	}
-	var config ContextConfig
+	var config ProjectConfig
 	yaml.Unmarshal(data, &config)
 	return config
 }
 
-func (config ContextConfig) Init() {
-	err := os.Mkdir(contextConfigDir, 0755)
-	if err != nil {
-		panic(err)
-	}
-	err = os.WriteFile(contextConfigFilePath, config.GenerateYaml(), 0644)
+func (config ProjectConfig) Init() {
+	err := os.Mkdir(projectConfigDir, 0755)
 	if err != nil {
 		panic(err)
 	}
 
-	for _, c := range config.Contexts {
-		c.Init()
+	instanceDir := fmt.Sprintf("%s/%s", projectConfigDir, config.InstancesDir)
+	err = os.Mkdir(instanceDir, 0755)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.WriteFile(configFilePath, config.GenerateYaml(), 0644)
+	if err != nil {
+		panic(err)
 	}
 }
 
-func (config *ContextConfig) Add(context Context) {
-	config.Contexts = append(config.Contexts, context)
-	context.Init()
+func (config *ProjectConfig) CreateInstance(instance Instance) {
+	config.InstanceNames = append(config.InstanceNames, instance.Name)
+	instance.save(config.InstancesDir + "/" + instance.Name)
 	config.save()
 }
 
-func (config *ContextConfig) Delete(name string) {
-	context := config.GetContext(name)
-	context.Delete()
-	config.Contexts = utils.Filter(config.Contexts, func(c Context) bool {
-		return c.Name != name
+func (config ProjectConfig) UpdateInstance(instance Instance) {
+	instance.save(config.InstancesDir + "/" + instance.Name)
+}
+
+func (config *ProjectConfig) DeleteInstance(name string) {
+	instanceDir := config.InstanceDir(name)
+	err := os.RemoveAll(instanceDir)
+	if err != nil {
+		panic(err)
+	}
+	config.InstanceNames = utils.Filter(config.InstanceNames, func(n string) bool {
+		return n != name
 	})
 	config.save()
 }
 
-func (config *ContextConfig) Switch(name string) {
-	config.Instance = name
-	config.save()
-}
-
-func (config ContextConfig) PrettyList() string {
+func (config ProjectConfig) PrettyList() string {
 	s := ""
-	for _, c := range config.Contexts {
-		if config.IsCurrent(c) {
-			s = s + fmt.Sprintf("* %s\n", c.Name)
-		} else {
-			s = s + fmt.Sprintf("  %s\n", c.Name)
-		}
+	for _, name := range config.InstanceNames {
+		instance := config.GetInstance(name)
+		s = s + fmt.Sprintf("%s (%s)\n", name, instance.Module.Name)
 	}
 	return s
 }
 
-func (config ContextConfig) save() {
+func (config ProjectConfig) InstanceDir(instanceName string) string {
+	return fmt.Sprintf("%s/%s/%s", projectConfigDir, config.InstancesDir, instanceName)
+}
+
+func (config ProjectConfig) save() {
 	data := config.GenerateYaml()
-	os.WriteFile(contextConfigFilePath, data, 0644)
+
+	os.WriteFile(configFilePath, data, 0644)
 }
 
-func (config ContextConfig) IsCurrent(context Context) bool {
-	return config.Instance == context.Name
-}
-
-func (context Context) Init() {
-	err := os.Mkdir(context.Dir(), 0755)
-	if err != nil {
-		panic(err)
+func (config ProjectConfig) GetInstance(name string) Instance {
+	instanceDir := projectConfigDir + "/" + config.InstancesDir + "/" + name
+	return Instance{
+		Name:   name,
+		Module: loadModule(instanceDir),
+		State:  loadState(instanceDir),
 	}
 }
 
-func (context Context) Delete() {
-	err := os.RemoveAll(context.Dir())
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (context Context) Dir() string {
-	return fmt.Sprintf("%s/%s", contextConfigDir, context.Name)
-}
-
-func (context Context) StateFilePath() string {
-	return fmt.Sprintf("%s/state.yaml", context.Dir())
-}
-
-func (context Context) EnvFilePath() string {
-	return fmt.Sprintf("%s/env.yaml", context.Dir())
-}
-
-func NewDefaultContextConfig() ContextConfig {
-	return ContextConfig{
-		Instance: "default",
-		Contexts: []Context{
-			{
-				Name: "default",
-			},
-		},
-	}
-}
-
-func (config ContextConfig) CurrentContext() Context {
-	return utils.Find(config.Contexts, func(c Context) bool {
-		return c.Name == config.Instance
-	})
-}
-
-func (config ContextConfig) GetContext(name string) Context {
-	context := utils.Find(config.Contexts, func(c Context) bool {
-		return c.Name == name
-	})
-	if context.Name == "" {
-		panic(fmt.Sprintf("%s context is not found.", name))
-	}
-	return context
-}
-
-func (config ContextConfig) GenerateYaml() []byte {
+func (config ProjectConfig) GenerateYaml() []byte {
 	data, err := yaml.Marshal(config)
 	if err != nil {
 		panic(err)
@@ -147,32 +123,63 @@ func (config ContextConfig) GenerateYaml() []byte {
 	return data
 }
 
-func (context Context) ReadState() []byte {
-	data, err := os.ReadFile(context.StateFilePath())
+func loadState(instanceDir string) map[string]any {
+	data, err := os.ReadFile(StateFilePath(instanceDir))
 	if err != nil {
 		panic(err)
 	}
-	return data
+	var state map[string]any
+	err = yaml.Unmarshal(data, &state)
+	if err != nil {
+		panic(err)
+	}
+
+	return state
 }
 
-func (context Context) WriteState(data []byte) {
-	err := os.WriteFile(context.StateFilePath(), data, 0644)
+func loadModule(instanceDir string) Module {
+	data, err := os.ReadFile(ModuleFilePath(instanceDir))
+	if err != nil {
+		panic(err)
+	}
+	var module Module
+	err = yaml.Unmarshal(data, &module)
+	if err != nil {
+		panic(err)
+	}
+
+	return module
+}
+
+func (instance Instance) WriteState(instanceDir string) {
+	data, err := yaml.Marshal(instance.State)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.WriteFile(StateFilePath(instanceDir), data, 0644)
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (context Context) ReadEnv() []byte {
-	data, err := os.ReadFile(context.EnvFilePath())
+func (instance Instance) WriteModule(instanceDir string) {
+	data, err := yaml.Marshal(instance.Module)
 	if err != nil {
 		panic(err)
 	}
-	return data
+
+	err = os.WriteFile(ModuleFilePath(instanceDir), data, 0644)
+	if err != nil {
+		panic(err)
+	}
 }
 
-func (context Context) WriteEnv(data []byte) {
-	err := os.WriteFile(context.EnvFilePath(), data, 0644)
+func (instance Instance) save(instanceDir string) {
+	err := os.MkdirAll(instanceDir, 0755)
 	if err != nil {
 		panic(err)
 	}
+	instance.WriteModule(instanceDir)
+	instance.WriteState(instanceDir)
 }

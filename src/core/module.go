@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/macrat/simplexer"
+	"gopkg.in/yaml.v3"
 )
 
 type Module struct {
@@ -90,4 +91,12 @@ type Ref struct {
 // Identifier represents an identifier.
 type Identifier struct {
 	Name string
+}
+
+func (module Module) GenerateYaml() []byte {
+	data, err := yaml.Marshal(module)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }

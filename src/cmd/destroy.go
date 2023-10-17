@@ -3,11 +3,11 @@ package cmd
 import (
 	"dacrane/core"
 	"dacrane/utils"
+	"errors"
 	"fmt"
-	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 // destroyCmd represents the down command
@@ -15,68 +15,55 @@ var destroyCmd = &cobra.Command{
 	Use:   "destroy",
 	Short: "destroy resource and artifact",
 	Long:  "destroy resource and artifact",
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			return errors.New("requires instance name")
+		}
+		return nil
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		context := core.LoadContextConfig().CurrentContext()
-		stateBytes := context.ReadState()
+		instanceName := args[0]
+		config := core.LoadProjectConfig()
 
-		states, err := code.ParseCode(stateBytes)
-		if err != nil {
-			panic(err)
-		}
+		instance := config.GetInstance(instanceName)
 
-		codeBytes, err := os.ReadFile("dacrane.yaml")
-		if err != nil {
-			panic(err)
-		}
-
-		dcode, err := code.ParseCode(codeBytes)
-		if err != nil {
-			panic(err)
-		}
-
-		sortedEntities := utils.Reverse(dcode.TopologicalSort())
-		for _, entity := range sortedEntities {
-			stateEntity := states.Find(entity.Kind(), entity.Name())
-			if stateEntity == nil {
-				fmt.Printf("[%s] Skipped.\n", entity.Id())
+		sortedModuleCalls := utils.Reverse(instance.Module.TopologicalSortedModuleCalls())
+		for _, moduleCall := range sortedModuleCalls {
+			state := instance.State["module"].(map[string]any)[moduleCall.Name]
+			if state == nil {
+				fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
 				continue
 			}
 
-			switch stateEntity.Kind() {
+			modulePaths := strings.Split(moduleCall.Module, "/")
+			kind := modulePaths[0]
+
+			switch kind {
 			case "resource":
-				resourceProvider := core.FindResourceProvider(entity.Provider())
-				fmt.Printf("[%s] Deleting...\n", entity.Id())
-				err := resourceProvider.Delete(stateEntity.Parameters())
+				name := modulePaths[1]
+				resourceProvider := core.FindResourceProvider(name)
+				fmt.Printf("[%s (%s)] Deleting...\n", moduleCall.Name, moduleCall.Module)
+				err := resourceProvider.Delete(state.(map[string]any))
 				if err != nil {
 					panic(err)
 				}
-				fmt.Printf("[%s] Deleted.\n", entity.Id())
+				fmt.Printf("[%s (%s)] Deleted.\n", moduleCall.Name, moduleCall.Module)
 			case "artifact":
-				artifactProvider := core.FindArtifactProvider(stateEntity.Provider())
-				fmt.Printf("[%s] Unpublish...\n", entity.Id())
-				err = artifactProvider.Unpublish(stateEntity.Parameters())
+				name := modulePaths[1]
+				artifactProvider := core.FindArtifactProvider(name)
+				fmt.Printf("[%s (%s)] Unpublish...\n", moduleCall.Name, moduleCall.Module)
+				err := artifactProvider.Unpublish(state.(map[string]any))
 				if err != nil {
 					panic(err)
 				}
-				fmt.Printf("[%s] Unpublished.\n", entity.Id())
+				fmt.Printf("[%s (%s)] Unpublished.\n", moduleCall.Name, moduleCall.Module)
 			case "data":
 
 			}
-			states = utils.Filter(states, func(e code.Module) bool {
-				return e.Id() != entity.Id()
-			})
-			statesYaml := []byte{}
-			for _, state := range states {
-				stateYaml, e := yaml.Marshal(state)
-				statesYaml = append(statesYaml, []byte("---\n")...)
-				statesYaml = append(statesYaml, stateYaml...)
-				if e != nil {
-					panic(e)
-				}
-			}
-
-			context.WriteState(statesYaml)
+			delete(instance.State["module"].(map[string]any), "")
+			config.UpdateInstance(instance)
 		}
+		config.DeleteInstance(instanceName)
 	},
 }
 
