@@ -224,22 +224,6 @@ func (config ProjectConfig) Apply(
 			}
 			fmt.Printf("[%s (%s)] Created.\n", moduleCall.Name, moduleCall.Module)
 			state["module"].(map[string]any)[evaluatedModuleCall.Name] = ret
-		case "artifact":
-			name := modulePaths[1]
-			artifactProvider := FindArtifactProvider(name)
-			fmt.Printf("[%s (%s)] Building...\n", moduleCall.Name, moduleCall.Module)
-			err := artifactProvider.Build(evaluatedModuleCall.Argument.(map[string]any))
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("[%s (%s)] Built.\n", moduleCall.Name, moduleCall.Module)
-			fmt.Printf("[%s (%s)] Publishing...\n", moduleCall.Name, moduleCall.Module)
-			ret, err := artifactProvider.Publish(evaluatedModuleCall.Argument.(map[string]any))
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("[%s (%s)] Published.\n", moduleCall.Name, moduleCall.Module)
-			state["module"].(map[string]any)[evaluatedModuleCall.Name] = ret
 		case "data":
 			name := modulePaths[1]
 			dataProvider := FindDataProvider(name)
@@ -286,15 +270,6 @@ func (config ProjectConfig) Destroy(
 				panic(err)
 			}
 			fmt.Printf("[%s (%s)] Deleted.\n", moduleCall.Name, moduleCall.Module)
-		case "artifact":
-			name := modulePaths[1]
-			artifactProvider := FindArtifactProvider(name)
-			fmt.Printf("[%s (%s)] Unpublish...\n", moduleCall.Name, moduleCall.Module)
-			err := artifactProvider.Unpublish(state.(map[string]any))
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("[%s (%s)] Unpublished.\n", moduleCall.Name, moduleCall.Module)
 		case "data":
 
 		}

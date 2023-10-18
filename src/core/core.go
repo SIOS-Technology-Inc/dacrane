@@ -1,21 +1,15 @@
 package core
 
 import (
-	"dacrane/provider/artifact/docker"
-	environemnt "dacrane/provider/data/environment"
-	azureappservice "dacrane/provider/resource/azure-app-service"
-	azureappserviceplan "dacrane/provider/resource/azure-app-service-plan"
-	azurecontainerregistry "dacrane/provider/resource/azure-container-registry"
-	azureresourcegroup "dacrane/provider/resource/azure-resource-group"
-	dockerresource "dacrane/provider/resource/docker"
+	"dacrane/provider/data/environment"
+	azure_app_service "dacrane/provider/resource/azure-app-service"
+	azure_app_service_plan "dacrane/provider/resource/azure-app-service-plan"
+	azure_container_registry "dacrane/provider/resource/azure-container-registry"
+	azure_resource_group "dacrane/provider/resource/azure-resource-group"
+	docker_container "dacrane/provider/resource/docker-container"
+	docker_local_image "dacrane/provider/resource/docker-local-image"
+	docker_remote_image "dacrane/provider/resource/docker-remote-image"
 )
-
-type ArtifactProvider interface {
-	Build(parameters map[string]any) error
-	Publish(parameters map[string]any) (map[string]any, error)
-	Unpublish(parameters map[string]any) error
-	SearchVersions(map[string]any) error
-}
 
 type ResourceProvider interface {
 	Create(parameters map[string]any) (map[string]any, error)
@@ -26,24 +20,18 @@ type DataProvider interface {
 	Get(parameters map[string]any) (map[string]any, error)
 }
 
-var artifactProviders = map[string](ArtifactProvider){
-	"docker": docker.DockerArtifactProvider{},
-}
-
 var resourceProviders = map[string](ResourceProvider){
-	"azure-resource-group":     azureresourcegroup.AzureResourceGroupResourceProvider{},
-	"azure-app-service-plan":   azureappserviceplan.AzureAppServicePlanResourceProvider{},
-	"azure-app-service":        azureappservice.AzureAppServiceResourceProvider{},
-	"azure-container-registry": azurecontainerregistry.AzureContainerRegistryResourceProvider{},
-	"docker":                   dockerresource.DockerResourceProvider{},
+	"azure-resource-group":     azure_resource_group.AzureResourceGroupResourceProvider{},
+	"azure-app-service-plan":   azure_app_service_plan.AzureAppServicePlanResourceProvider{},
+	"azure-app-service":        azure_app_service.AzureAppServiceResourceProvider{},
+	"azure-container-registry": azure_container_registry.AzureContainerRegistryResourceProvider{},
+	"docker-container":         docker_container.DockerResourceProvider{},
+	"docker_local_image":       docker_local_image.DockerArtifactProvider{},
+	"docker_remote_image":      docker_remote_image.DockerArtifactProvider{},
 }
 
 var dataProviders = map[string](DataProvider){
-	"environment": environemnt.EnvironmentDataProvider{},
-}
-
-func FindArtifactProvider(providerName string) ArtifactProvider {
-	return artifactProviders[providerName]
+	"environment": environment.EnvironmentDataProvider{},
 }
 
 func FindResourceProvider(providerName string) ResourceProvider {
