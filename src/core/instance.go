@@ -259,3 +259,47 @@ func (config ProjectConfig) Apply(
 	}
 	return state
 }
+
+func (config ProjectConfig) Destroy(
+	instanceName string,
+) {
+	instance := config.GetInstance(instanceName)
+
+	sortedModuleCalls := utils.Reverse(instance.Module.TopologicalSortedModuleCalls())
+	for _, moduleCall := range sortedModuleCalls {
+		state := instance.State["module"].(map[string]any)[moduleCall.Name]
+		if state == nil {
+			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
+			continue
+		}
+
+		modulePaths := strings.Split(moduleCall.Module, "/")
+		kind := modulePaths[0]
+
+		switch kind {
+		case "resource":
+			name := modulePaths[1]
+			resourceProvider := FindResourceProvider(name)
+			fmt.Printf("[%s (%s)] Deleting...\n", moduleCall.Name, moduleCall.Module)
+			err := resourceProvider.Delete(state.(map[string]any))
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("[%s (%s)] Deleted.\n", moduleCall.Name, moduleCall.Module)
+		case "artifact":
+			name := modulePaths[1]
+			artifactProvider := FindArtifactProvider(name)
+			fmt.Printf("[%s (%s)] Unpublish...\n", moduleCall.Name, moduleCall.Module)
+			err := artifactProvider.Unpublish(state.(map[string]any))
+			if err != nil {
+				panic(err)
+			}
+			fmt.Printf("[%s (%s)] Unpublished.\n", moduleCall.Name, moduleCall.Module)
+		case "data":
+
+		}
+		delete(instance.State["module"].(map[string]any), "")
+		config.UpsertInstance(instance)
+	}
+	config.DeleteInstance(instanceName)
+}
