@@ -90,14 +90,14 @@ modules:
   argument:
     name: ${{ parameter.prefix }}-sample-rg
     location: "Japan East"
-    credentials: ${{ module.credentials }}
+    credentials: ${{ module.credentials.credentials }}
 - name: acr
   module: resource/azure-container-registry
   argument:
     name: ${{ parameter.prefix }}sampleacr
     resource_group_name: ${{ module.rg.name }}
     location: "Japan East"
-    credentials: ${{ module.credentials }}
+    credentials: ${{ module.credentials.credentials }}
 ---
 name: azure_credentials
 modules:

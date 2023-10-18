@@ -61,7 +61,7 @@ var destroyCmd = &cobra.Command{
 
 			}
 			delete(instance.State["module"].(map[string]any), "")
-			config.UpdateInstance(instance)
+			config.UpsertInstance(instance)
 		}
 		config.DeleteInstance(instanceName)
 	},
