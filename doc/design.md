@@ -5,7 +5,7 @@
   - [Deployment Code](#deployment-code)
     - [Module](#module)
       - [Name section](#name-section)
-      - [Import section](#import-section)
+      - [Import section (not implemented)](#import-section-not-implemented)
       - [Parameter section](#parameter-section)
       - [Dependencies section](#dependencies-section)
       - [Modules section](#modules-section)
@@ -17,7 +17,7 @@
         - [Object Expansion](#object-expansion)
     - [Control Flow](#control-flow)
       - [if key](#if-key)
-      - [for key](#for-key)
+      - [for key (not implemented)](#for-key-not-implemented)
   - [Command](#command)
     - [init](#init)
     - [apply](#apply)
@@ -138,7 +138,7 @@ For example
 name: foo
 ```
 
-#### Import section
+#### Import section (not implemented)
 
 The import section is used to load external deployment code.
 Import of local files or external files via HTTP is possible.
@@ -451,7 +451,7 @@ argument:
   a: 1
 ```
 
-#### for key
+#### for key (not implemented)
 
 `for` key generates an array of objects for each given array.
 for key can only be used within an array of objects.
