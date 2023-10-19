@@ -1,16 +1,14 @@
 name: local-docker
-parameter:
-  type: object
-  properties:
-    api: { type: string }
-    tag: { type: string, default: "latest" }
+dependencies:
+- name: api
+  module: api-image
 modules:
-- module: resource/docker
+- module: resource/docker-container
   name: docker
-  parameters:
+  argument:
     name: api
-    image: ${{ parameters.api.image }}
-    tag: ${{ arguments.tag >> "latest" }}
+    image: ${{ dependencies.api.modules.api-local-image.image }}
+    tag: ${{ dependencies.api.modules.api-local-image.tag }}
     port: 3000:3000
     env:
       - name: PORT
@@ -22,8 +20,8 @@ parameter:
   properties:
     tag: { type: string, default: "latest" }
 dependencies:
-- name: acr
-  module: resource/azure-container-registry
+- name: base
+  module: base
 modules:
 - name: api-local-image
   module: resource/docker-local-image
@@ -32,12 +30,12 @@ modules:
     image: sample-api
     tag: ${{ parameter.tag }}
 - name: api-remote-image
-  if: ${{ dependencies.acr != null }}
+  if: ${{ dependencies.base != null }}
   module: resource/docker-remote-image
   argument:
     image: ${{ modules.api-local-image.image }}
     tag: ${{ modules.api-local-image.tag }}
-    remote: ${{ dependencies.acr }}
+    remote: ${{ dependencies.base.modules.acr }}
 ---
 name: "app-service"
 argument:
@@ -56,29 +54,29 @@ modules:
 - name: asp
   module: resource/azure-app-service-plan
   argument:
-    name: ${{ modules.base.parameter.prefix }}-sample-asp
-    resource_group_name: ${{ modules.base.rg.name }}
+    name: ${{ dependencies.base.parameter.prefix }}-sample-asp
+    resource_group_name: ${{ dependencies.base.modules.rg.name }}
     location: "Japan East"
     kind: "Linux"
     sku:
-      tier: '${{ {"low": "Basic", "high": "Premium" }[modules.spec] }}'
-      name: '${{ {"low": "B1", "high": "P1" }[modules.spec] }}'
-    credentials: ${{ modules.credentials }}
+      tier: '${{ {"low": "Basic", "high": "Premium" }[parameter.spec] }}'
+      name: '${{ {"low": "B1", "high": "P1" }[parameter.spec] }}'
+    credentials: ${{ modules.credentials.credentials }}
 - name: as
   module: resource/azure-app-service
   argument:
-    name: ${{ modules.base.parameter.prefix }}-sample-as
-    resource_group_name: ${{ modules.base.rg.name }}
+    name: ${{ dependencies.base.parameter.prefix }}-sample-as
+    resource_group_name: ${{ dependencies.base.modules.rg.name }}
     location: "Japan East"
-    app_service_plan_id: ${{ modules.base.asp.name }}
+    app_service_plan_id: ${{ modules.asp.name }}
     site_config:
-      linux_fx_version: DOCKER|${{ modules.base.acr.url }}/sample-api:${{ modules.api.tag }}
+      linux_fx_version: DOCKER|${{ dependencies.base.modules.acr.url }}/sample-api:${{ dependencies.api.modules.api-remote-image.tag }}
     app_settings:
-      DOCKER_REGISTRY_SERVER_URL: ${{ modules.base.acr.url }}
-      DOCKER_REGISTRY_SERVER_USERNAME: ${{ modules.base.acr.user }}
-      DOCKER_REGISTRY_SERVER_PASSWORD: ${{ modules.base.acr.password }}
+      DOCKER_REGISTRY_SERVER_URL: ${{ dependencies.base.modules.acr.url }}
+      DOCKER_REGISTRY_SERVER_USERNAME: ${{ dependencies.base.modules.acr.user }}
+      DOCKER_REGISTRY_SERVER_PASSWORD: ${{ dependencies.base.modules.acr.password }}
       WEBSITES_PORT: "3000"
-    credentials: ${{ modules.credentials }}
+    credentials: ${{ modules.credentials.credentials }}
 ---
 name: base
 parameter:

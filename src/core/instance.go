@@ -194,10 +194,19 @@ func (config ProjectConfig) Apply(
 	module := utils.Find(modules, func(m Module) bool {
 		return m.Name == moduleName
 	})
+	dependenciesState := map[string]any{}
+	for _, dependency := range module.Dependencies {
+		instanceName, exists := dependencies[dependency.Name]
+		if !exists {
+			continue
+		}
+		instance := config.GetInstance(instanceName)
+		dependenciesState[dependency.Name] = instance.State
+	}
 	state := map[string]any{
 		"parameter":    argument,
 		"modules":      map[string]any{},
-		"dependencies": map[string]any{},
+		"dependencies": dependenciesState,
 	}
 	instance := Instance{
 		Name:   instanceName,
