@@ -10,9 +10,6 @@ import (
 type DockerArtifactProvider struct{}
 
 func (DockerArtifactProvider) Create(params map[string]any) (map[string]any, error) {
-	if params["remote"] == nil {
-		return params, nil
-	}
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 	remote := params["remote"].(map[string]any)

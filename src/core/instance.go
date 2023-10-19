@@ -195,8 +195,9 @@ func (config ProjectConfig) Apply(
 		return m.Name == moduleName
 	})
 	state := map[string]any{
-		"parameter": argument,
-		"module":    map[string]any{},
+		"parameter":    argument,
+		"modules":      map[string]any{},
+		"dependencies": map[string]any{},
 	}
 	instance := Instance{
 		Name:   instanceName,
@@ -209,7 +210,10 @@ func (config ProjectConfig) Apply(
 		fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
 		evaluatedModuleCall := moduleCall.Evaluate(state)
 		fmt.Printf("[%s (%s)] Evaluated\n", moduleCall.Name, moduleCall.Module)
-
+		if evaluatedModuleCall == nil {
+			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
+			continue
+		}
 		modulePaths := strings.Split(evaluatedModuleCall.Module, "/")
 		kind := modulePaths[0]
 
@@ -223,7 +227,7 @@ func (config ProjectConfig) Apply(
 				panic(err)
 			}
 			fmt.Printf("[%s (%s)] Created.\n", moduleCall.Name, moduleCall.Module)
-			state["module"].(map[string]any)[evaluatedModuleCall.Name] = ret
+			state["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
 		case "data":
 			name := modulePaths[1]
 			dataProvider := FindDataProvider(name)
@@ -233,10 +237,10 @@ func (config ProjectConfig) Apply(
 				panic(err)
 			}
 			fmt.Printf("[%s (%s)] Read.\n", moduleCall.Name, moduleCall.Module)
-			state["module"].(map[string]any)[evaluatedModuleCall.Name] = ret
+			state["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
 		default:
 			localState := config.Apply(instanceName, kind, moduleCall.Argument, map[string]string{}, modules)
-			state["module"].(map[string]any)[evaluatedModuleCall.Name] = localState["module"]
+			state["modules"].(map[string]any)[evaluatedModuleCall.Name] = localState["modules"]
 		}
 		instance.State = state
 		config.UpsertInstance(instance)
@@ -251,7 +255,7 @@ func (config ProjectConfig) Destroy(
 
 	sortedModuleCalls := utils.Reverse(instance.Module.TopologicalSortedModuleCalls())
 	for _, moduleCall := range sortedModuleCalls {
-		state := instance.State["module"].(map[string]any)[moduleCall.Name]
+		state := instance.State["modules"].(map[string]any)[moduleCall.Name]
 		if state == nil {
 			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
 			continue
@@ -271,9 +275,11 @@ func (config ProjectConfig) Destroy(
 			}
 			fmt.Printf("[%s (%s)] Deleted.\n", moduleCall.Name, moduleCall.Module)
 		case "data":
-
+			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
+		default:
+			// panic("not implemented")
 		}
-		delete(instance.State["module"].(map[string]any), "")
+		delete(instance.State["modules"].(map[string]any), "")
 		config.UpsertInstance(instance)
 	}
 	config.DeleteInstance(instanceName)

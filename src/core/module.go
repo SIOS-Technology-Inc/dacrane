@@ -23,6 +23,7 @@ type ModuleCall struct {
 	DependsOn []string `yaml:"depends_on"`
 	Module    string   `yaml:"module"`
 	Argument  any      `yaml:"argument"`
+	If        any      `yaml:"if"`
 }
 
 // Expr represents an expression in the AST.

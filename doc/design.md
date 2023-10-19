@@ -375,14 +375,16 @@ REF
 
 #### Fixture Variables
 
-| name |  |
+| name | type |
 | -- | -- |
 | parameter | object |
-| module | object |
+| dependencies | object |
+| modules | object |
 
 ```yaml
 ${{ parameter.a }}
-${{ module.foo }}
+${{ modules.foo }}
+${{ dependencies.bar }}
 ```
 
 #### Expansion

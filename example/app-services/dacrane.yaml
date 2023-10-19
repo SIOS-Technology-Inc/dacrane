@@ -25,16 +25,19 @@ dependencies:
 - name: acr
   module: resource/azure-container-registry
 modules:
-- name: api-image
-  module: artifact/docker
-  parameters:
+- name: api-local-image
+  module: resource/docker-local-image
+  argument:
+    dockerfile: ./Dockerfile
     image: sample-api
     tag: ${{ parameter.tag }}
-    remote:
-      if: ${{ module.acr != null }}
-      url: ${{ module.acr.url }}
-      user: ${{ module.acr.user }}
-      password: ${{ module.acr.password }}
+- name: api-remote-image
+  if: ${{ dependencies.acr != null }}
+  module: resource/docker-remote-image
+  argument:
+    image: ${{ modules.api-local-image.image }}
+    tag: ${{ modules.api-local-image.tag }}
+    remote: ${{ dependencies.acr }}
 ---
 name: "app-service"
 argument:
@@ -53,29 +56,29 @@ modules:
 - name: asp
   module: resource/azure-app-service-plan
   argument:
-    name: ${{ module.base.parameter.prefix }}-sample-asp
-    resource_group_name: ${{ module.base.rg.name }}
+    name: ${{ modules.base.parameter.prefix }}-sample-asp
+    resource_group_name: ${{ modules.base.rg.name }}
     location: "Japan East"
     kind: "Linux"
     sku:
-      tier: '${{ {"low": "Basic", "high": "Premium" }[module.spec] }}'
-      name: '${{ {"low": "B1", "high": "P1" }[module.spec] }}'
-    credentials: ${{ module.credentials }}
+      tier: '${{ {"low": "Basic", "high": "Premium" }[modules.spec] }}'
+      name: '${{ {"low": "B1", "high": "P1" }[modules.spec] }}'
+    credentials: ${{ modules.credentials }}
 - name: as
   module: resource/azure-app-service
   argument:
-    name: ${{ module.base.parameter.prefix }}-sample-as
-    resource_group_name: ${{ module.base.rg.name }}
+    name: ${{ modules.base.parameter.prefix }}-sample-as
+    resource_group_name: ${{ modules.base.rg.name }}
     location: "Japan East"
-    app_service_plan_id: ${{ module.base.asp.name }}
+    app_service_plan_id: ${{ modules.base.asp.name }}
     site_config:
-      linux_fx_version: DOCKER|${{ module.base.acr.url }}/sample-api:${{ module.api.tag }}
+      linux_fx_version: DOCKER|${{ modules.base.acr.url }}/sample-api:${{ modules.api.tag }}
     app_settings:
-      DOCKER_REGISTRY_SERVER_URL: ${{ module.base.acr.url }}
-      DOCKER_REGISTRY_SERVER_USERNAME: ${{ module.base.acr.user }}
-      DOCKER_REGISTRY_SERVER_PASSWORD: ${{ module.base.acr.password }}
+      DOCKER_REGISTRY_SERVER_URL: ${{ modules.base.acr.url }}
+      DOCKER_REGISTRY_SERVER_USERNAME: ${{ modules.base.acr.user }}
+      DOCKER_REGISTRY_SERVER_PASSWORD: ${{ modules.base.acr.password }}
       WEBSITES_PORT: "3000"
-    credentials: ${{ module.credentials }}
+    credentials: ${{ modules.credentials }}
 ---
 name: base
 parameter:
@@ -90,14 +93,14 @@ modules:
   argument:
     name: ${{ parameter.prefix }}-sample-rg
     location: "Japan East"
-    credentials: ${{ module.credentials.credentials }}
+    credentials: ${{ modules.credentials.credentials }}
 - name: acr
   module: resource/azure-container-registry
   argument:
     name: ${{ parameter.prefix }}sampleacr
-    resource_group_name: ${{ module.rg.name }}
+    resource_group_name: ${{ modules.rg.name }}
     location: "Japan East"
-    credentials: ${{ module.credentials.credentials }}
+    credentials: ${{ modules.credentials.credentials }}
 ---
 name: azure_credentials
 modules:

@@ -26,8 +26,8 @@ var resourceProviders = map[string](ResourceProvider){
 	"azure-app-service":        azure_app_service.AzureAppServiceResourceProvider{},
 	"azure-container-registry": azure_container_registry.AzureContainerRegistryResourceProvider{},
 	"docker-container":         docker_container.DockerResourceProvider{},
-	"docker_local_image":       docker_local_image.DockerArtifactProvider{},
-	"docker_remote_image":      docker_remote_image.DockerArtifactProvider{},
+	"docker-local-image":       docker_local_image.DockerArtifactProvider{},
+	"docker-remote-image":      docker_remote_image.DockerArtifactProvider{},
 }
 
 var dataProviders = map[string](DataProvider){

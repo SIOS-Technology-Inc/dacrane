@@ -76,6 +76,8 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 			return left.(float64) / right.(float64)
 		case EQ:
 			return left == right
+		case NEQ:
+			return left != right
 		case LT:
 			return left.(float64) < right.(float64)
 		case LTE:
@@ -180,23 +182,45 @@ func (mc ModuleCall) ImplicitDependency() []string {
 	return paths
 }
 
-func (mc ModuleCall) Evaluate(data map[string]any) ModuleCall {
-	castString := func(v any) string {
-		return v.(string)
+func (mc ModuleCall) Evaluate(data map[string]any) *ModuleCall {
+
+	mapMc := mc.toMap()
+
+	evaluated := Evaluate(mapMc, data)
+
+	if evaluated == nil {
+		return nil
 	}
 
+	return toModuleCall(evaluated.(map[string]any))
+}
+
+func (mc ModuleCall) toMap() map[string]any {
+	if mc.If == nil {
+		mc.If = true
+	}
+	return map[string]any{
+		"name":       mc.Name,
+		"depends_on": mc.DependsOn,
+		"module":     mc.Module,
+		"argument":   mc.Argument,
+		"if":         mc.If,
+	}
+}
+
+func toModuleCall(mc map[string]any) *ModuleCall {
 	var dependsOn []string
-	if mc.DependsOn == nil {
-		dependsOn = nil
+	if mc["depends_on"] == nil {
+		dependsOn = []string{}
 	} else {
-		dependsOn = utils.Map(Evaluate(mc.DependsOn, data).([]any), castString)
+		dependsOn = mc["depends_on"].([]string)
 	}
 
-	return ModuleCall{
-		Name:      Evaluate(mc.Name, data).(string),
+	return &ModuleCall{
+		Name:      mc["name"].(string),
 		DependsOn: dependsOn,
-		Module:    Evaluate(mc.Module, data).(string),
-		Argument:  Evaluate(mc.Argument, data),
+		Module:    mc["module"].(string),
+		Argument:  mc["argument"],
 	}
 }
 
@@ -320,7 +344,7 @@ func localModuleReferences(expr Expr) []string {
 	case *Ref:
 		if id, ok := e.Expr.(*Identifier); ok {
 			keys := strings.Split(id.Name, ".")
-			if keys[0] == "module" {
+			if keys[0] == "modules" {
 				names = append(names, keys[1])
 			}
 		}
@@ -328,7 +352,7 @@ func localModuleReferences(expr Expr) []string {
 		names = append(names, localModuleReferences(e.Key)...)
 	case *Identifier:
 		keys := strings.Split(e.Name, ".")
-		if keys[0] == "module" {
+		if keys[0] == "modules" {
 			names = append(names, keys[1])
 		}
 	case *BinaryExpr:

@@ -18,7 +18,7 @@ import "strings"
 %left COMMA
 %left OR
 %left AND
-%left EQ LT LTE GT GTE
+%left EQ NEQ LT LTE GT GTE
 %right NOT
 %left ADD SUB
 %left MUL DIV
@@ -31,7 +31,7 @@ import "strings"
 %token <token> BOOLEAN NULL
 %token <token> IDENTIFIER
 %token <token> DOT COMMA COLON
-%token <token> AND OR NOT EQ LT LTE GT GTE PRIORITY
+%token <token> AND OR NOT EQ NEQ LT LTE GT GTE PRIORITY
 %token <token> ADD SUB MUL DIV
 %token <token> LBRACKET RBRACKET LSBRACKET RSBRACKET LCBRACKET RCBRACKET
 %token <token> IF THEN ELSE
@@ -71,6 +71,7 @@ Expr
 	| App                         { $$ = $1 }
 	| Ref                         { $$ = $1 }
 	| Expr EQ Expr                { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
+	| Expr NEQ Expr                { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
 	| Expr PRIORITY Expr          { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
 	| Expr LT Expr                { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
 	| Expr LTE Expr               { $$ = &BinaryExpr{Left: $1, Op: $2, Right: $3} }
