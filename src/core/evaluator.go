@@ -1,10 +1,9 @@
-package code
+package core
 
 import (
 	"bytes"
 	"dacrane/utils"
 	"fmt"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,20 +20,23 @@ func ParseExpr(exprStr string) Expr {
 	return lexer.result
 }
 
-func ParseCode(codeBytes []byte) (Code, error) {
+func ParseModules(codeBytes []byte) []Module {
 	r := bytes.NewReader(codeBytes)
 	dec := yaml.NewDecoder(r)
 
-	var code Code
+	modules := []Module{}
 	for {
-		var entity map[string]any
-		if dec.Decode(&entity) != nil {
-			break
+		var module Module
+		if err := dec.Decode(&module); err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			panic(err)
 		}
-		code = append(code, entity)
+		modules = append(modules, module)
 	}
 
-	return code, nil
+	return modules
 }
 
 func EvaluateExprString(expr Expr, data map[string]any) any {
@@ -74,6 +76,8 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 			return left.(float64) / right.(float64)
 		case EQ:
 			return left == right
+		case NEQ:
+			return left != right
 		case LT:
 			return left.(float64) < right.(float64)
 		case LTE:
@@ -127,34 +131,28 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 	panic("Unsupported expression type")
 }
 
-func (code Code) Find(kind string, name string) Entity {
-	return utils.Find(code, func(e Entity) bool {
-		return e.Kind() == kind && e.Name() == name
+func (module Module) FindModuleCall(name string) ModuleCall {
+	return utils.Find(module.ModuleCalls, func(mc ModuleCall) bool {
+		return mc.Name == name
 	})
 }
 
-func (code Code) FindById(id string) Entity {
-	return utils.Find(code, func(e Entity) bool {
-		return e.Id() == id
-	})
-}
-
-func (code Code) TopologicalSort() []Entity {
+func (module Module) TopologicalSortedModuleCalls() []ModuleCall {
 	g := simple.NewDirectedGraph()
 
-	idToEntity := map[int64]Entity{}
+	idToName := map[int64]string{}
 	nodes := map[string]graph.Node{}
-	for _, entity := range code {
+	for _, moduleCall := range module.ModuleCalls {
 		node := g.NewNode()
-		nodes[entity.Id()] = node
+		nodes[moduleCall.Name] = node
 		g.AddNode(node)
-		idToEntity[node.ID()] = entity
+		idToName[node.ID()] = moduleCall.Name
 	}
 
-	for _, entity := range code {
-		ds := code.Dependency(entity.Id())
+	for _, mc := range module.ModuleCalls {
+		ds := mc.Dependency()
 		for _, d := range ds {
-			g.SetEdge(g.NewEdge(nodes[d.Id()], nodes[entity.Id()]))
+			g.SetEdge(g.NewEdge(nodes[d], nodes[mc.Name]))
 		}
 	}
 
@@ -162,75 +160,71 @@ func (code Code) TopologicalSort() []Entity {
 	if err != nil {
 		panic(err)
 	}
-	return utils.Map(sorted, func(node graph.Node) Entity {
-		return idToEntity[node.ID()]
+	return utils.Map(sorted, func(node graph.Node) ModuleCall {
+		return module.FindModuleCall(idToName[node.ID()])
 	})
 }
 
-func (code Code) Dependency(id string) []Entity {
-	entity := code.FindById(id)
-	paths := append(references(entity), entity.Dependencies()...)
-	var dependencies []Entity
-	for _, path := range paths {
-		identifiers := strings.Split(path, ".")
-		kind := identifiers[0]
-		name := identifiers[1]
-		dependency := code.Find(kind, name)
-		if dependency != nil {
-			dependencies = append(dependencies, dependency)
-		}
-	}
-	return dependencies
+// returns dependency module name
+func (mc ModuleCall) Dependency() []string {
+	return append(mc.ExplicitDependency(), mc.ImplicitDependency()...)
 }
 
-func (entity Entity) Kind() string {
-	return entity["kind"].(string)
+func (mc ModuleCall) ExplicitDependency() []string {
+	return mc.DependsOn
 }
 
-func (entity Entity) Name() string {
-	return entity["name"].(string)
-}
-
-func (entity Entity) Provider() string {
-	return entity["provider"].(string)
-}
-
-func (entity Entity) Id() string {
-	return fmt.Sprintf("%s.%s", entity.Kind(), entity.Name())
-}
-
-func (entity Entity) Parameters() map[string]any {
-	return entity["parameters"].(map[string]any)
-}
-
-func (entity Entity) Dependencies() []string {
-	if entity["dependencies"] == nil {
-		return []string{}
-	}
-	paths := []string{}
-	for _, d := range entity["dependencies"].([]any) {
-		paths = append(paths, d.(string))
-	}
+func (mc ModuleCall) ImplicitDependency() []string {
+	var paths []string
+	paths = append(paths, references(mc.Name)...)
+	paths = append(paths, references(mc.Module)...)
+	paths = append(paths, references(mc.Argument)...)
 	return paths
 }
 
-func (entity Entity) Evaluate(data map[string]any) Entity {
-	m := EvaluateMap(entity.ToMap(), data)
-	if m == nil {
+func (mc ModuleCall) Evaluate(data map[string]any) *ModuleCall {
+
+	mapMc := mc.toMap()
+
+	evaluated := Evaluate(mapMc, data)
+
+	if evaluated == nil {
 		return nil
 	}
-	return Entity(m.(map[string]any))
+
+	return toModuleCall(evaluated.(map[string]any))
 }
 
-func (entity Entity) ToMap() map[string]any {
-	m := map[string]any{}
-	for k, v := range entity {
-		m[k] = v
+func (mc ModuleCall) toMap() map[string]any {
+	if mc.If == nil {
+		mc.If = true
 	}
-	return m
+	return map[string]any{
+		"name":       mc.Name,
+		"depends_on": mc.DependsOn,
+		"module":     mc.Module,
+		"argument":   mc.Argument,
+		"if":         mc.If,
+	}
 }
 
-func EvaluateMap(prop any, data map[string]any) any {
+func toModuleCall(mc map[string]any) *ModuleCall {
+	var dependsOn []string
+	if mc["depends_on"] == nil {
+		dependsOn = []string{}
+	} else {
+		dependsOn = mc["depends_on"].([]string)
+	}
+
+	return &ModuleCall{
+		Name:      mc["name"].(string),
+		DependsOn: dependsOn,
+		Module:    mc["module"].(string),
+		Argument:  mc["argument"],
+	}
+}
+
+func Evaluate(prop any, data map[string]any) any {
 	switch prop := prop.(type) {
 	case string:
 		single := isSingleExprString(prop)
@@ -252,7 +246,13 @@ func EvaluateMap(prop any, data map[string]any) any {
 		}
 		output := map[string]any{}
 		for k, v := range prop {
-			output[k] = EvaluateMap(v, data)
+			output[k] = Evaluate(v, data)
+		}
+		return output
+	case []any:
+		output := []any{}
+		for _, v := range prop {
+			output = append(output, Evaluate(v, data))
 		}
 		return output
 	default:
@@ -275,7 +275,7 @@ func expandExpr(prop string, data map[string]any) string {
 
 func evalIfProp(prop map[string]any, data map[string]any) (map[string]any, bool) {
 	if condition, ok := prop["if"]; ok {
-		if !EvaluateMap(condition, data).(bool) {
+		if !Evaluate(condition, data).(bool) {
 			return nil, false
 		}
 	}
@@ -306,60 +306,75 @@ func convertToString(value interface{}) string {
 	}
 }
 
-func references(raw map[string]any) []string {
-	var paths []string
-	for _, v := range raw {
-		switch t := reflect.TypeOf(v); t.Kind() {
-		case reflect.Map:
-			paths = append(paths, references(v.(map[string]any))...)
-		case reflect.String:
-			r, e := regexp.Compile(`\$\{\{(.*?)\}\}`)
-			if e != nil {
-				panic(e)
-			}
-			res := r.FindAllStringSubmatch(v.(string), -1)
-			for _, exprStr := range res {
-				expr := ParseExpr(exprStr[1])
-				paths = append(paths, extractRefNames(expr)...)
-			}
-		default:
+func references(raw any) []string {
+	switch raw := raw.(type) {
+	case map[string]any:
+		var paths []string
+		for _, v := range raw {
+			paths = append(paths, references(v)...)
 		}
+		return paths
+	case []any:
+		var paths []string
+		for _, v := range raw {
+			paths = append(paths, references(v)...)
+		}
+		return paths
+	case string:
+		r, e := regexp.Compile(`\$\{\{(.*?)\}\}`)
+		if e != nil {
+			panic(e)
+		}
+		res := r.FindAllStringSubmatch(raw, -1)
+		var paths []string
+		for _, exprStr := range res {
+			expr := ParseExpr(exprStr[1])
+			paths = append(paths, localModuleReferences(expr)...)
+		}
+		return paths
+	default:
+		return []string{}
 	}
-	return paths
 }
 
-func extractRefNames(expr Expr) []string {
+func localModuleReferences(expr Expr) []string {
 	var names []string
 
 	switch e := expr.(type) {
 	case *Ref:
 		if id, ok := e.Expr.(*Identifier); ok {
-			names = append(names, id.Name)
+			keys := strings.Split(id.Name, ".")
+			if keys[0] == "modules" {
+				names = append(names, keys[1])
+			}
 		}
-		names = append(names, extractRefNames(e.Expr)...)
-		names = append(names, extractRefNames(e.Key)...)
+		names = append(names, localModuleReferences(e.Expr)...)
+		names = append(names, localModuleReferences(e.Key)...)
 	case *Identifier:
-		names = append(names, e.Name)
+		keys := strings.Split(e.Name, ".")
+		if keys[0] == "modules" {
+			names = append(names, keys[1])
+		}
 	case *BinaryExpr:
-		names = append(names, extractRefNames(e.Left)...)
-		names = append(names, extractRefNames(e.Right)...)
+		names = append(names, localModuleReferences(e.Left)...)
+		names = append(names, localModuleReferences(e.Right)...)
 	case *UnaryExpr:
-		names = append(names, extractRefNames(e.Expr)...)
+		names = append(names, localModuleReferences(e.Expr)...)
 	case *IfExpr:
-		names = append(names, extractRefNames(e.Condition)...)
-		names = append(names, extractRefNames(e.Then)...)
-		names = append(names, extractRefNames(e.Else)...)
+		names = append(names, localModuleReferences(e.Condition)...)
+		names = append(names, localModuleReferences(e.Then)...)
+		names = append(names, localModuleReferences(e.Else)...)
 	case *List:
 		for _, item := range e.Items {
-			names = append(names, extractRefNames(item)...)
+			names = append(names, localModuleReferences(item)...)
 		}
 	case *Map:
 		for _, v := range e.KVs {
-			names = append(names, extractRefNames(v)...)
+			names = append(names, localModuleReferences(v)...)
 		}
 	case *App:
 		for _, param := range e.Params {
-			names = append(names, extractRefNames(param)...)
+			names = append(names, localModuleReferences(param)...)
 		}
 	}
 

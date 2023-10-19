@@ -1,4 +1,4 @@
-package code
+package core
 
 import (
 	"fmt"
@@ -29,8 +29,9 @@ func NewLexer(reader io.Reader) *Lexer {
 		simplexer.NewRegexpTokenType(COLON, `:`),
 		simplexer.NewRegexpTokenType(AND, `&&`),
 		simplexer.NewRegexpTokenType(OR, `\|\|`),
-		simplexer.NewRegexpTokenType(NOT, `!`),
 		simplexer.NewRegexpTokenType(EQ, `==`),
+		simplexer.NewRegexpTokenType(NEQ, `!=`),
+		simplexer.NewRegexpTokenType(NOT, `!`),
 		simplexer.NewRegexpTokenType(PRIORITY, `>>`),
 		simplexer.NewRegexpTokenType(LT, `<`),
 		simplexer.NewRegexpTokenType(LTE, `<=`),
