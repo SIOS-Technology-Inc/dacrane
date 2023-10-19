@@ -77,11 +77,12 @@ $ dacrane init
 ```
 
 ```bash
-$ dacrane set .config.yaml
+$ dacrane apply quick-start my-quick-start
 ```
 
 ```bash
-$ dacrane up
+$ dacrane ls
+my-quick-start (quick-start)
 ```
 
 ```bash
@@ -90,7 +91,7 @@ hello world
 ```
 
 ```bash
-$ dacrane down
+$ dacrane destroy my-quick-start
 ```
 
 ## License

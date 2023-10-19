@@ -1,3 +1,22 @@
+name: quick-start
+modules:
+- name: image
+  module: resource/docker-local-image
+  argument:
+    dockerfile: ./Dockerfile
+    image: sample-api
+    tag: latest
+- module: resource/docker-container
+  name: container
+  argument:
+    name: api
+    image: ${{ modules.image.image }}
+    tag: ${{ modules.image.tag }}
+    port: 3000:3000
+    env:
+      - name: PORT
+        value: "3000"
+---
 name: local-docker
 dependencies:
 - name: api
