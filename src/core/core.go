@@ -9,6 +9,8 @@ import (
 	azureresourcegroup "dacrane/provider/resource/azure-resource-group"
 	dockerresource "dacrane/provider/resource/docker"
 	file "dacrane/provider/resource/file"
+	terraformResource "dacrane/provider/resource/terraform"
+	terraformData "dacrane/provider/data/terraform"
 )
 
 type ArtifactProvider interface {
@@ -38,10 +40,12 @@ var resourceProviders = map[string](ResourceProvider){
 	"azure-container-registry": azurecontainerregistry.AzureContainerRegistryResourceProvider{},
 	"docker":                   dockerresource.DockerResourceProvider{},
 	"file": 										file.FileProvider{},
+	"terraform": 								terraformResource.TerraformResourceProvider{},
 }
 
 var dataProviders = map[string](DataProvider){
 	"environment": environemnt.EnvironmentDataProvider{},
+	"terraform": 	terraformData.TerraformDataProvider{},
 }
 
 func FindArtifactProvider(providerName string) ArtifactProvider {
