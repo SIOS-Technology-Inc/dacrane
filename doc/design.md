@@ -1,3 +1,30 @@
+- [Architecture](#architecture)
+- [Data Design](#data-design)
+  - [Abstract/Concrete Deployment Code (ADC/CDC)](#abstractconcrete-deployment-code-adccdc)
+- [Specification](#specification)
+  - [Deployment Code](#deployment-code)
+    - [Module](#module)
+      - [Name section](#name-section)
+      - [Import section (not implemented)](#import-section-not-implemented)
+      - [Parameter section](#parameter-section)
+      - [Dependencies section](#dependencies-section)
+      - [Modules section](#modules-section)
+    - [Expression](#expression)
+      - [Syntax](#syntax)
+      - [Fixture Variables](#fixture-variables)
+      - [Expansion](#expansion)
+        - [String Expansion](#string-expansion)
+        - [Object Expansion](#object-expansion)
+    - [Control Flow](#control-flow)
+      - [if key](#if-key)
+      - [for key (not implemented)](#for-key-not-implemented)
+  - [Command](#command)
+    - [init](#init)
+    - [apply](#apply)
+    - [destroy](#destroy)
+    - [ls](#ls)
+- [Flow](#flow)
+
 # Architecture
 
 Dacrane is used via the CLI, which provides the developer with many of the commands needed for deployment.
@@ -49,80 +76,216 @@ For example, ADC defines that the application will be deployed to App Services, 
 
 # Specification
 
-## Context
+## Deployment Code
 
-```bash
-$ dacrane show context
-```
+Deployment code is the [YAML](https://yaml.org/spec/) code that defines the Dacrane deployment.
+The code is structured in units called "modules".
+Expressions can also be written as YAML strings.
 
-```bash
-$ dacrane create context [context_name] \
-  [--storage (local|aws_s3|azure_blob_storage|...)] \
-  [--vault (local|aws_secrets_manager|azure_key_vault|...)]
-```
+### Module
 
-```bash
-$ dacrane switch context [context_name]
-```
+YAML code is described as one module per document. (Not one module per file.)
+A module represents a unit of deployment.
+A module can be concretized by taking arguments and can deploy instances of infrastructure or applications.
+Modules can be called from the dacrane apply command and from another module.
 
-```bash
-$ dacrane delete context [context_name]
-```
+Modules are provided by default, but can also be created by the external community or by the user to create their own.
 
-## Context Login
+The module consists of the following sections
 
-```bash
-$ dacrane login [-c context_name] [storage|vault] \
-  [credentials]...
-```
-
-```bash
-$ dacrane logout [-c context_name] [storage|vault]
-```
-
-## Abstract Deployment Code
+|  section  | description |
+| -- | -- |
+| name  | Module name. |
+| import | Import external deployment code.　|
+| parameter | Parameter schema. |
+| dependencies | List of dependent modules. |
+| modules | List of module calls. |
 
 ```yaml
-kind: resource
-name: resource_name
-provider: resource_provider_name
-parameters:
-  a: 1
-  b: "string"
-  c: true
-  d: null
-  e: ${ expression }
+name:
+
+import:
+
+parameter:
+
+dependencies:
+
+modules:
 ```
+
+#### Name section
+
+The Name section specifies the name of this module.
+
+The restrictions are as follows
+
+* Names must not conflict with modules to be imported in the file and in the import section.
+* Expression cannot be used.
+
+The format is as follows
+
+| key | type | description |
+| -- | -- | -- |
+| name | string | The module name. |
 
 ```yaml
-kind: artifact
-name: artifact_name
-provider: artifact_provider_name
-parameters:
-  a: 1
-  b: "string"
-  c: true
-  d: null
-  e: ${ expression }
+name: [string]
 ```
+
+For example
 
 ```yaml
-kind: data
-name: data_name
-provider: data_provider_name
-parameters:
-  a: "abc"
-  b: ${ env.ENVNAME }
+name: foo
 ```
 
-## Expression
+#### Import section (not implemented)
+
+The import section is used to load external deployment code.
+Import of local files or external files via HTTP is possible.
+
+The restrictions are as follows
+
+* Module names must be imported so that they do not conflict.
+* Expression cannot be used.
+
+The format is as follows
+
+| key | type | description |
+| -- | -- | -- |
+| import | list(string) | The path or URL string list to the local file. |
 
 ```yaml
-parameters:
-  a: ${ env.ENV_NAME }
+import:
+- [string]
 ```
 
+For example
 
+```yaml
+import:
+- ./local_modules.yaml
+- https://example.com/dacrane.yaml
+```
+
+#### Parameter section
+
+The Parameter section defines the data types of parameters for the module.
+[YAML is upward compatible with JSON](https://yaml.org/spec/1.2.2/#102-json-schema), and parameter types are defined as [JSON Schema](https://json-schema.org/specification).
+The defined parameters can be referenced by expressions from the Modules section.
+
+The restrictions are as follows
+
+* Expression cannot be used.
+
+The format is as follows
+
+| key | type | description |
+| -- | -- | -- |
+| parameter | object | Definition of parameter types. Defined in [JSON Schema](https://json-schema.org/specification). |
+
+```yaml
+parameter: [json_schema]
+```
+
+For example
+
+```yaml
+parameter:
+  type: object
+  properties:
+    a: { type: number }
+    b: { type: string, default: latest }
+```
+
+#### Dependencies section
+
+The Dependencies section defines the modules on which this module depends. The instance for a module is determined at runtime.
+
+The restrictions are as follows
+
+* Expression cannot be used.
+
+The format is as follows
+
+| key | type | description |
+| -- | -- | -- |
+| dependencies | list(object) | The module list which it depends on. |
+| dependencies.*.name | string | The name of the module locally. It can be referenced from an expression. |
+| dependencies.*.module | string | The name of the module on which it depends. |
+
+```yaml
+dependencies:
+- name: [string]
+  module: [string]
+```
+
+For example
+
+```yaml
+dependencies:
+- name: a
+  module: foo
+- name: b
+  module: bar
+```
+
+#### Modules section
+
+The Modules section defines a series of modules to be managed.
+
+The restrictions are as follows
+
+* Do not have circular references between modules.
+
+The format is as follows
+
+| key | type | description |
+| -- | -- | -- |
+| modules | list(object) | The module list that it manages. |
+| modules.*.name | string | The name of the module locally. It can be referenced from an expression. |
+| modules.*.depends_on | list(string) | The name of the local module on which it depends. When referenced by an expression, it is considered dependent even if it is not listed here. |
+| modules.*.module | string | The module name that it calls. You can specify the imported module or provider name: `data/[provider_name]` for a data provider or `resource/[provider_name]` for a resource provider. |
+| modules.*.argument | string | Actual arguments to be passed to the calling module. |
+
+```yaml
+modules:
+- name: [string]
+  depends_on: [list(string)]
+  module: [string]
+  argument: [object]
+```
+
+For example
+
+```yaml
+modules:
+- name: foo
+  depends_on:
+    - bar
+  module: resource/baz
+  argument:
+    a: 123
+    b: abc
+- name: bar
+  module: resource/qux
+  argument:
+    a: 123
+    b: abc
+```
+
+### Expression
+
+Expressions can be written in YAML strings enclosed in `${{` and `}}`.
+
+For example
+
+```yaml
+${{ 1 + 1 }} # evaluates to 2.
+```
+
+#### Syntax
+
+The BNF is shown below.
 
 ```
 # TOKEN
@@ -210,103 +373,147 @@ REF
     | IDENTIFIER
 ```
 
-## Control Flow
+#### Fixture Variables
+
+| name | type |
+| -- | -- |
+| parameter | object |
+| dependencies | object |
+| modules | object |
 
 ```yaml
-kind: resource
-if: ${ env.local } # bool expression
-name: resource_name
-provider: provider_name
-parameters:
-  a: "string"
+${{ parameter.a }}
+${{ modules.foo }}
+${{ dependencies.bar }}
 ```
+
+#### Expansion
+
+Expressions are evaluated and expanded to become YAML concrete data.
+There are two types of expression expansion.
+
+* String Expand
+* Object Expand
+
+##### String Expansion
+
+If an expression is written within a string, it is combined with the preceding and following strings.
+The result of expression evaluation must always be a string.
 
 ```yaml
-kind: resource
-for: ${ ["a", "b", "c"] }          # array expression
-name: resource_name_${ for.value } # unique name
-provider: provider_name
-parameters:
-  name: name-${ for.value }
+'abc${{ "def" }}ghi' # evaluates to "abcdefghi".
 ```
 
-## Environment Configuration
+##### Object Expansion
 
-```bash
-$ dacrane set env [-f env_file_name] [-c context_name]
-```
+For strings consisting only of expressions, the evaluated value is expanded as is.
 
 ```yaml
-# .env-stg.yaml
+# boolean expand
+if: '${{ 1 < 2 }}'
+# is the same as
+if: true
 
+# object expand
+argument: '${{ { "a": 1, "b": 2 } }}'
+# is the same as
+argument:
+  a: 1
+  b: 2
 ```
+
+### Control Flow
+
+By using a meta key for flow control, the Meta keys can only be used in modules.
+
+#### if key
+
+`if` key controls the existence of a YAML key-value; if `if` evaluates to `true`, the object is specified; `if` evaluates to `false`, the object is deleted.
+Note that if `if` evaluates to `false`, the expression for that object is not evaluated.
+
+```yaml
+argument:
+  a: 1
+  b:
+    if: ${{ parameter.enable }}
+    c: 123
+    d: abc
+
+# is the same as (parameter.enable == true)
+argument:
+  a: 1
+  b:
+    c: 123
+    d: abc
+
+# is the same as (parameter.enable == false)
+argument:
+  a: 1
+```
+
+#### for key (not implemented)
+
+`for` key generates an array of objects for each given array.
+for key can only be used within an array of objects.
+
+```yaml
+argument:
+  nodes:
+    - for: ["a", "b", "c"]
+      name: node-${{ for.element }}
+      zone: ${{ for.element }}
+      version: v1.0.0
+
+# is the same as
+argument:
+  nodes:
+    - name: node-a
+      zone: a
+      version: v1.0.0
+    - name: node-b
+      zone: b
+      version: v1.0.0
+    - name: node-c
+      zone: c
+      version: v1.0.0
+```
+
+## Command
+
+### init
 
 ```bash
-$ dacrane unset env [-c env_name]
+$ dacrane init
 ```
 
-## Up & Down
+### apply
+
+Creates or updates the specified instance.
 
 ```bash
-$ dacrane up
+$ dacrane apply -a [argument] -d [dependencies] [module] [instance_name]
 ```
+
+### destroy
+
+Destroys the specified instance.
 
 ```bash
-$ dacrane down
+$ dacrane destroy [instance]
 ```
 
-## resource
+### ls
+
+List instances and their modules.
 
 ```bash
-$ dacrane deploy [resource]
+$ dacrane ls
 ```
 
-```bash
-$ dacrane destroy [resource]
 ```
-
-## artifact
-
-```bash
-$ dacrane build [artifact] -t [version]
-```
-
-```bash
-$ dacrane publish [artifact] -t [version]
-```
-
-```bash
-$ dacrane list [artifact]
-
-1.0.0 1.0.1
-1.1.0 1.2.1
-
-2.0.0
-2.1.0
-```
-
-```bash
-$ dacrane delete [artifact] -v [version]
-```
-
-# File Tree
-
-```
-.
-├── dacrane.yaml
-├── .env.yaml
-└── .dacrane
-    ├── context.yaml
-    └── local
-        ├── state.yaml
-        ├── 2_yyyyMMddhhmmss
-        ├── 1_yyyyMMddhhmmss
-        └── 0_yyyyMMddhhmmss
-            ├── adc.yaml
-            ├── cdc.yaml
-            ├── arg.yaml
-            └── env.yaml
-
+instance1 (module1)
+instance2 (module2)
+...
 ```
 
 # Flow
