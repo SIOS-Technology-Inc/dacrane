@@ -9,7 +9,7 @@ import (
 	docker_container "dacrane/provider/resource/docker-container"
 	docker_local_image "dacrane/provider/resource/docker-local-image"
 	docker_remote_image "dacrane/provider/resource/docker-remote-image"
-  file "dacrane/provider/resource/file"
+	file "dacrane/provider/resource/file"
 )
 
 type ResourceProvider interface {
@@ -29,7 +29,7 @@ var resourceProviders = map[string](ResourceProvider){
 	"docker-container":         docker_container.DockerResourceProvider{},
 	"docker-local-image":       docker_local_image.DockerArtifactProvider{},
 	"docker-remote-image":      docker_remote_image.DockerArtifactProvider{},
-  "file": 										file.FileProvider{},
+	"file":                     file.FileProvider{},
 }
 
 var dataProviders = map[string](DataProvider){
