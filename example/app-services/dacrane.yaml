@@ -79,8 +79,8 @@ modules:
     location: "Japan East"
     kind: "Linux"
     sku:
-      tier: '${{ {"low": "Basic", "high": "Premium" }[parameter.spec] }}'
-      name: '${{ {"low": "B1", "high": "P1" }[parameter.spec] }}'
+      tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
+      name: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
     credentials: ${{ modules.credentials.credentials }}
 - name: as
   module: resource/azure-app-service
