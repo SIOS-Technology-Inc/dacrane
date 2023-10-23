@@ -61,6 +61,7 @@ argument:
 parameter:
   type: object
   properties:
+    env: { type: string }
     spec: { type: string, default: "low", enum: ["low", "high"] }
 dependencies:
 - name: base
@@ -73,7 +74,7 @@ modules:
 - name: asp
   module: resource/azure-app-service-plan
   argument:
-    name: ${{ dependencies.base.parameter.prefix }}-sample-asp
+    name: ${{ parameter.env }}-${{ dependencies.base.parameter.prefix }}-sample-asp
     resource_group_name: ${{ dependencies.base.modules.rg.name }}
     location: "Japan East"
     kind: "Linux"
@@ -84,7 +85,7 @@ modules:
 - name: as
   module: resource/azure-app-service
   argument:
-    name: ${{ dependencies.base.parameter.prefix }}-sample-as
+    name: ${{ parameter.env }}-${{ dependencies.base.parameter.prefix }}-sample-as
     resource_group_name: ${{ dependencies.base.modules.rg.name }}
     location: "Japan East"
     app_service_plan_id: ${{ modules.asp.name }}
