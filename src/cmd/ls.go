@@ -15,7 +15,7 @@ var lsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		config := core.LoadProjectConfig()
 		list := config.PrettyList()
-		fmt.Println(list)
+		fmt.Print(list)
 	},
 }
 

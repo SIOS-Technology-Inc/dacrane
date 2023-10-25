@@ -203,6 +203,10 @@ func (config ProjectConfig) Apply(
 		instance := config.GetInstance(instanceName)
 		dependenciesState[dependency.Name] = instance.State
 	}
+	err := utils.Validate(module.Parameter, argument)
+	if err != nil {
+		panic(err)
+	}
 	state := map[string]any{
 		"parameter":    argument,
 		"modules":      map[string]any{},
