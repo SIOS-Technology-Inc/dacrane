@@ -1,32 +1,13 @@
-kind: data
-name: test-file
-argument:
-  - name: version
-    default: 16.20.1
-  - name: src_files
-    default: "**/*.js"
-  - name: package
-    default: ./package.json
-  - name: package-lock
-    default: ./package-lock.json
-  - name: build
-    default: npm ci
-  - name: run
-    default: npm start
-provider: terraform
-parameters:
-  filename: ./Dockerfile
-  contents: >
-    FROM node:${{ config.version }}-alpine3.18
-
-    COPY ${{ config.src_files }} ${{ config.src_files }} 
-
-    COPY ./package.json ./package.json
-
-    COPY ./package-lock.json ./package-lock.json
-
-    RUN npm ci
-
-    CMD [ "npm", "start" ]
-
-# parameterはconfigへ
+modules:
+  - name: foo
+    module: data/terraform
+    arguments:
+      - provider: bar
+        resource: baz
+        name: quz
+        configurations:
+          user: Alice
+          password: abc123
+        arguments:
+          a: 1
+          b: 2
