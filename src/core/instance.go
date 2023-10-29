@@ -234,7 +234,7 @@ func (config ProjectConfig) Apply(
 		case "resource":
 			name := modulePaths[1]
 			resourceProvider := FindResourceProvider(name)
-			fmt.Printf("[%s (%s)] Crating...\n", moduleCall.Name, moduleCall.Module)
+			fmt.Printf("[%s (%s)] Creating...\n", moduleCall.Name, moduleCall.Module)
 			ret, err := resourceProvider.Create(evaluatedModuleCall.Argument.(map[string]any))
 			if err != nil {
 				panic(err)
