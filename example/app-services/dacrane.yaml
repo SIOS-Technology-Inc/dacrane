@@ -36,8 +36,9 @@ modules:
 name: api-image
 parameter:
   type: object
+  required: ["tag"]
   properties:
-    tag: { type: string, default: "latest" }
+    tag: { type: string }
 dependencies:
 - name: base
   module: base
@@ -60,9 +61,10 @@ name: "app-service"
 argument:
 parameter:
   type: object
+  required: ["env", "spec"]
   properties:
     env: { type: string }
-    spec: { type: string, default: "low", enum: ["low", "high"] }
+    spec: { type: string, enum: ["low", "high"] }
 dependencies:
 - name: base
   module: base
@@ -101,8 +103,9 @@ modules:
 name: base
 parameter:
   type: object
+  required: ["prefix"]
   properties:
-    prefix: { type: string, default: "dacrane" }
+    prefix: { type: string }
 modules:
 - name: credentials
   module: azure_credentials

@@ -62,6 +62,9 @@ func RequestHttp(req *http.Request) (*http.Response, error) {
 }
 
 func Validate(schema any, document any) error {
+	if schema == nil {
+		return nil
+	}
 	schemaLoader := gojsonschema.NewGoLoader(schema)
 	documentLoader := gojsonschema.NewGoLoader(document)
 
