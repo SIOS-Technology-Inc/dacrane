@@ -16,7 +16,7 @@ func (FileProvider) Create(parameter any) (any, error) {
 		return nil, e
 	}
 
-	return nil, nil
+	return parameter, nil
 }
 
 func (provider FileProvider) Update(current any, previous any) (any, error) {
