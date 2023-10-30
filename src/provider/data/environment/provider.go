@@ -2,9 +2,9 @@ package environment
 
 import "os"
 
-type EnvironmentDataProvider struct{}
+type EnvironmentProvider struct{}
 
-func (EnvironmentDataProvider) Get(parameter any) (any, error) {
+func (EnvironmentProvider) Get(parameter any) (any, error) {
 	params := parameter.(map[string]any)
 	data := map[string]any{}
 	for key, name := range params {

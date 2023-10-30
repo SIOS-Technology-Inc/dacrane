@@ -5,9 +5,9 @@ import (
 	"fmt"
 )
 
-type DockerArtifactProvider struct{}
+type DockerLocalImageProvider struct{}
 
-func (DockerArtifactProvider) Create(parameter any) (any, error) {
+func (DockerLocalImageProvider) Create(parameter any) (any, error) {
 	params := parameter.(map[string]any)
 	dockerfile := params["dockerfile"].(string)
 	image := params["image"].(string)
@@ -18,7 +18,7 @@ func (DockerArtifactProvider) Create(parameter any) (any, error) {
 	return params, err
 }
 
-func (DockerArtifactProvider) Delete(parameter any) error {
+func (DockerLocalImageProvider) Delete(parameter any) error {
 	params := parameter.(map[string]any)
 	image := params["image"].(string)
 	tag := params["tag"].(string)

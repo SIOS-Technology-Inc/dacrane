@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-type DockerArtifactProvider struct{}
+type DockerRemoteImageProvider struct{}
 
-func (DockerArtifactProvider) Create(parameter any) (any, error) {
+func (DockerRemoteImageProvider) Create(parameter any) (any, error) {
 	params := parameter.(map[string]any)
 	image := params["image"].(string)
 	tag := params["tag"].(string)
@@ -34,7 +34,7 @@ func (DockerArtifactProvider) Create(parameter any) (any, error) {
 	return params, nil
 }
 
-func (DockerArtifactProvider) Delete(parameter any) error {
+func (DockerRemoteImageProvider) Delete(parameter any) error {
 	params := parameter.(map[string]any)
 	image := params["image"].(string)
 	tag := params["tag"].(string)

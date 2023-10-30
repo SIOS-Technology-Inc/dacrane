@@ -18,14 +18,14 @@ type DataProvider interface {
 }
 
 var resourceProviders = map[string](ResourceProvider){
-	"docker-container":    docker_container.DockerResourceProvider{},
-	"docker-local-image":  docker_local_image.DockerArtifactProvider{},
-	"docker-remote-image": docker_remote_image.DockerArtifactProvider{},
+	"docker-container":    docker_container.DockerContainerProvider{},
+	"docker-local-image":  docker_local_image.DockerLocalImageProvider{},
+	"docker-remote-image": docker_remote_image.DockerRemoteImageProvider{},
 	"file":                file.FileProvider{},
 }
 
 var dataProviders = map[string](DataProvider){
-	"environment": environment.EnvironmentDataProvider{},
+	"environment": environment.EnvironmentProvider{},
 }
 
 func FindResourceProvider(providerName string) ResourceProvider {

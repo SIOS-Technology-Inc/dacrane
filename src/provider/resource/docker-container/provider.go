@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-type DockerResourceProvider struct{}
+type DockerContainerProvider struct{}
 
-func (DockerResourceProvider) Create(parameter any) (any, error) {
+func (DockerContainerProvider) Create(parameter any) (any, error) {
 	params := parameter.(map[string]any)
 	image := params["image"].(string)
 	name := params["name"].(string)
@@ -34,7 +34,7 @@ func (DockerResourceProvider) Create(parameter any) (any, error) {
 	return parameter, nil
 }
 
-func (DockerResourceProvider) Delete(parameter any) error {
+func (DockerContainerProvider) Delete(parameter any) error {
 	params := parameter.(map[string]any)
 	name := params["name"].(string)
 	_, err := utils.RunOnBash(fmt.Sprintf("docker stop %s", name))
