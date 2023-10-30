@@ -1,32 +1,32 @@
 package file
 
 import (
-	"context"
 	"os"
 )
-type FileProvider struct{}
-var ctx = context.Background()
 
-func (FileProvider) Create(parameters map[string]any) (map[string]any, error) {
+type FileProvider struct{}
+
+func (FileProvider) Create(parameter any) (any, error) {
+	params := parameter.(map[string]any)
 	statesYaml := []byte{}
-	contents := parameters["contents"].(string)
-	filename := parameters["filename"].(string)
+	contents := params["contents"].(string)
+	filename := params["filename"].(string)
 
 	statesYaml = append(statesYaml, []byte(contents)...)
 	e := os.WriteFile(filename, statesYaml, 0644)
 	if e != nil {
-    return nil, e
+		return nil, e
 	}
 
- return nil, nil
+	return nil, nil
 }
 
-func (fp FileProvider) Delete(parameters map[string]interface{}) error {
-
-	filename := parameters["filename"].(string)
+func (fp FileProvider) Delete(parameter any) error {
+	params := parameter.(map[string]any)
+	filename := params["filename"].(string)
 	err := os.Remove(filename)
 	if err != nil {
-			return err
+		return err
 	}
 	return nil
 }

@@ -9,7 +9,8 @@ import (
 
 type DockerArtifactProvider struct{}
 
-func (DockerArtifactProvider) Create(params map[string]any) (map[string]any, error) {
+func (DockerArtifactProvider) Create(parameter any) (any, error) {
+	params := parameter.(map[string]any)
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 	remote := params["remote"].(map[string]any)
@@ -33,7 +34,8 @@ func (DockerArtifactProvider) Create(params map[string]any) (map[string]any, err
 	return params, nil
 }
 
-func (DockerArtifactProvider) Delete(params map[string]any) error {
+func (DockerArtifactProvider) Delete(parameter any) error {
+	params := parameter.(map[string]any)
 	image := params["image"].(string)
 	tag := params["tag"].(string)
 

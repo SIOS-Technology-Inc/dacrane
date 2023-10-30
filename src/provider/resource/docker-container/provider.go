@@ -8,12 +8,13 @@ import (
 
 type DockerResourceProvider struct{}
 
-func (DockerResourceProvider) Create(parameters map[string]any) (map[string]any, error) {
-	image := parameters["image"].(string)
-	name := parameters["name"].(string)
-	env := parameters["env"].([]any)
-	port := parameters["port"].(string)
-	tag := parameters["tag"].(string)
+func (DockerResourceProvider) Create(parameter any) (any, error) {
+	params := parameter.(map[string]any)
+	image := params["image"].(string)
+	name := params["name"].(string)
+	env := params["env"].([]any)
+	port := params["port"].(string)
+	tag := params["tag"].(string)
 
 	envOpts := []string{}
 	for _, e := range env {
@@ -30,11 +31,12 @@ func (DockerResourceProvider) Create(parameters map[string]any) (map[string]any,
 		panic(err)
 	}
 
-	return parameters, nil
+	return parameter, nil
 }
 
-func (DockerResourceProvider) Delete(parameters map[string]any) error {
-	name := parameters["name"].(string)
+func (DockerResourceProvider) Delete(parameter any) error {
+	params := parameter.(map[string]any)
+	name := params["name"].(string)
 	_, err := utils.RunOnBash(fmt.Sprintf("docker stop %s", name))
 	if err != nil {
 		panic(err)

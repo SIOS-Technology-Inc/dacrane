@@ -4,9 +4,10 @@ import "os"
 
 type EnvironmentDataProvider struct{}
 
-func (EnvironmentDataProvider) Get(parameters map[string]any) (map[string]any, error) {
+func (EnvironmentDataProvider) Get(parameter any) (any, error) {
+	params := parameter.(map[string]any)
 	data := map[string]any{}
-	for key, name := range parameters {
+	for key, name := range params {
 		name := name.(string)
 		value, exists := os.LookupEnv(name)
 		if exists {
