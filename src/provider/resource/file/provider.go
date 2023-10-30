@@ -8,12 +8,10 @@ type FileProvider struct{}
 
 func (FileProvider) Create(parameter any) (any, error) {
 	params := parameter.(map[string]any)
-	statesYaml := []byte{}
 	contents := params["contents"].(string)
 	filename := params["filename"].(string)
 
-	statesYaml = append(statesYaml, []byte(contents)...)
-	e := os.WriteFile(filename, statesYaml, 0644)
+	e := os.WriteFile(filename, []byte(contents), 0644)
 	if e != nil {
 		return nil, e
 	}
