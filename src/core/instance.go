@@ -106,6 +106,10 @@ func (config ProjectConfig) save() {
 	os.WriteFile(configFilePath, data, 0644)
 }
 
+func (config ProjectConfig) HasInstance(name string) bool {
+	return slices.Contains(config.InstanceNames, name)
+}
+
 func (config ProjectConfig) GetInstance(name string) Instance {
 	instanceDir := config.InstanceDir(name)
 	return Instance{
@@ -212,11 +216,17 @@ func (config ProjectConfig) Apply(
 		"modules":      map[string]any{},
 		"dependencies": dependenciesState,
 	}
-	instance := Instance{
-		Name:   instanceName,
-		Module: module,
-		State:  state,
+	var instance Instance
+	if config.HasInstance(instanceName) {
+		instance = config.GetInstance(instanceName)
+	} else {
+		instance = Instance{
+			Name:   instanceName,
+			Module: module,
+			State:  state,
+		}
 	}
+
 	config.UpsertInstance(instance)
 	moduleCalls := module.TopologicalSortedModuleCalls()
 	for _, moduleCall := range moduleCalls {
@@ -234,18 +244,30 @@ func (config ProjectConfig) Apply(
 		case "resource":
 			name := modulePaths[1]
 			resourceProvider := FindResourceProvider(name)
-			fmt.Printf("[%s (%s)] Creating...\n", moduleCall.Name, moduleCall.Module)
-			ret, err := resourceProvider.Create(evaluatedModuleCall.Argument.(map[string]any))
-			if err != nil {
-				panic(err)
+			var ret any
+			if instance.State["modules"].(map[string]any)[moduleCall.Name] == nil {
+				fmt.Printf("[%s (%s)] Creating...\n", moduleCall.Name, moduleCall.Module)
+				ret, err = resourceProvider.Create(evaluatedModuleCall.Argument)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("[%s (%s)] Created.\n", moduleCall.Name, moduleCall.Module)
+			} else {
+				previous := instance.State["modules"].(map[string]any)[moduleCall.Name]
+				fmt.Printf("[%s (%s)] Updating...\n", moduleCall.Name, moduleCall.Module)
+				ret, err = resourceProvider.Update(evaluatedModuleCall.Argument, previous)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("[%s (%s)] Updated.\n", moduleCall.Name, moduleCall.Module)
 			}
-			fmt.Printf("[%s (%s)] Created.\n", moduleCall.Name, moduleCall.Module)
+
 			state["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
 		case "data":
 			name := modulePaths[1]
 			dataProvider := FindDataProvider(name)
 			fmt.Printf("[%s (%s)] Reading...\n", moduleCall.Name, moduleCall.Module)
-			ret, err := dataProvider.Get(evaluatedModuleCall.Argument.(map[string]any))
+			ret, err := dataProvider.Get(evaluatedModuleCall.Argument)
 			if err != nil {
 				panic(err)
 			}
@@ -282,7 +304,7 @@ func (config ProjectConfig) Destroy(
 			name := modulePaths[1]
 			resourceProvider := FindResourceProvider(name)
 			fmt.Printf("[%s (%s)] Deleting...\n", moduleCall.Name, moduleCall.Module)
-			err := resourceProvider.Delete(state.(map[string]any))
+			err := resourceProvider.Delete(state)
 			if err != nil {
 				panic(err)
 			}
