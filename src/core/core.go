@@ -10,6 +10,7 @@ import (
 
 type ResourceProvider interface {
 	Create(parameter any) (any, error)
+	Update(current any, previous any) (any, error)
 	Delete(parameter any) error
 }
 

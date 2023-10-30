@@ -34,6 +34,14 @@ func (DockerRemoteImageProvider) Create(parameter any) (any, error) {
 	return params, nil
 }
 
+func (provider DockerRemoteImageProvider) Update(current any, previous any) (any, error) {
+	err := provider.Delete(previous)
+	if err != nil {
+		return nil, err
+	}
+	return provider.Create(current)
+}
+
 func (DockerRemoteImageProvider) Delete(parameter any) error {
 	params := parameter.(map[string]any)
 	image := params["image"].(string)

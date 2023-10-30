@@ -34,6 +34,14 @@ func (DockerContainerProvider) Create(parameter any) (any, error) {
 	return parameter, nil
 }
 
+func (provider DockerContainerProvider) Update(current any, previous any) (any, error) {
+	err := provider.Delete(previous)
+	if err != nil {
+		return nil, err
+	}
+	return provider.Create(current)
+}
+
 func (DockerContainerProvider) Delete(parameter any) error {
 	params := parameter.(map[string]any)
 	name := params["name"].(string)

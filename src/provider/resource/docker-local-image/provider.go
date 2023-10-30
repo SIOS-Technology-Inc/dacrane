@@ -18,6 +18,14 @@ func (DockerLocalImageProvider) Create(parameter any) (any, error) {
 	return params, err
 }
 
+func (provider DockerLocalImageProvider) Update(current any, previous any) (any, error) {
+	err := provider.Delete(previous)
+	if err != nil {
+		return nil, err
+	}
+	return provider.Create(current)
+}
+
 func (DockerLocalImageProvider) Delete(parameter any) error {
 	params := parameter.(map[string]any)
 	image := params["image"].(string)

@@ -21,6 +21,14 @@ func (FileProvider) Create(parameter any) (any, error) {
 	return nil, nil
 }
 
+func (provider FileProvider) Update(current any, previous any) (any, error) {
+	err := provider.Delete(previous)
+	if err != nil {
+		return nil, err
+	}
+	return provider.Create(current)
+}
+
 func (fp FileProvider) Delete(parameter any) error {
 	params := parameter.(map[string]any)
 	filename := params["filename"].(string)
