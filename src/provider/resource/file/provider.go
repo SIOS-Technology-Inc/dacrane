@@ -29,7 +29,7 @@ func (provider FileProvider) Update(current any, previous any) (any, error) {
 	return provider.Create(current)
 }
 
-func (fp FileProvider) Delete(parameter any) error {
+func (FileProvider) Delete(parameter any) error {
 	params := parameter.(map[string]any)
 	filename := params["filename"].(string)
 	err := os.Remove(filename)
