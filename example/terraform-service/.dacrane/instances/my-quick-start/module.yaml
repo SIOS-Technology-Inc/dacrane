@@ -1,0 +1,19 @@
+name: quick-start
+import: []
+parameter: null
+dependencies: []
+modules:
+    - name: foo
+      depends_on: []
+      module: resource/terraform
+      argument:
+        argument:
+            a: 1
+            b: 2
+        configurations:
+            password: abc123
+            user: Alice
+        name: quz
+        provider: bar
+        resource: baz
+      if: null

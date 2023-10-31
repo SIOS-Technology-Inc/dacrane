@@ -1,18 +1,14 @@
 name: quick-start
 modules:
-  - name: image
+  - name: foo
     module: resource/terraform
     argument:
-      dockerfile: ./Dockerfile
-      image: sample-api
-      tag: latest
-  - module: resource/terraform
-    name: container
-    argument:
-      name: api
-      image: ${{ modules.image.image }}
-      tag: ${{ modules.image.tag }}
-      port: 3000:3000
-      env:
-        - name: PORT
-          value: "3000"
+      provider: bar
+      resource: baz
+      name: quz
+      configurations:
+        user: Alice
+        password: abc123
+      argument:
+        a: 1
+        b: 2
