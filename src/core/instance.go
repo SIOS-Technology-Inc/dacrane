@@ -4,7 +4,6 @@ import (
 	"dacrane/utils"
 	"fmt"
 	"os"
-	"strings"
 
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
@@ -17,7 +16,7 @@ type ProjectConfig struct {
 
 type Instance struct {
 	Name   string
-	Module Module
+	Module ModuleCode
 	State  map[string]any
 }
 
@@ -141,12 +140,12 @@ func loadState(instanceDir string) map[string]any {
 	return state
 }
 
-func loadModule(instanceDir string) Module {
+func loadModule(instanceDir string) ModuleCode {
 	data, err := os.ReadFile(ModuleFilePath(instanceDir))
 	if err != nil {
 		panic(err)
 	}
-	var module Module
+	var module ModuleCode
 	err = yaml.Unmarshal(data, &module)
 	if err != nil {
 		panic(err)
@@ -193,9 +192,9 @@ func (config ProjectConfig) Apply(
 	moduleName string,
 	argument any,
 	dependencies map[string]string,
-	modules []Module,
+	modules []ModuleCode,
 ) map[string]any {
-	module := utils.Find(modules, func(m Module) bool {
+	module := utils.Find(modules, func(m ModuleCode) bool {
 		return m.Name == moduleName
 	})
 	dependenciesState := map[string]any{}
@@ -232,49 +231,24 @@ func (config ProjectConfig) Apply(
 	for _, moduleCall := range moduleCalls {
 		fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
 		evaluatedModuleCall := moduleCall.Evaluate(instance.State)
-		fmt.Printf("[%s (%s)] Evaluated\n", moduleCall.Name, moduleCall.Module)
+		fmt.Printf("[%s (%s)] Evaluated.\n", moduleCall.Name, moduleCall.Module)
 		if evaluatedModuleCall == nil {
 			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
 			continue
 		}
-		modulePaths := strings.Split(evaluatedModuleCall.Module, "/")
-		kind := modulePaths[0]
+		pluginModule, isPluginModules := pluginModules[evaluatedModuleCall.Module]
 
-		switch kind {
-		case "resource":
-			name := modulePaths[1]
-			resourceProvider := FindResourceProvider(name)
-			var ret any
-			if instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] == nil {
-				fmt.Printf("[%s (%s)] Creating...\n", moduleCall.Name, moduleCall.Module)
-				ret, err = resourceProvider.Create(evaluatedModuleCall.Argument)
-				if err != nil {
-					panic(err)
-				}
-				fmt.Printf("[%s (%s)] Created.\n", moduleCall.Name, moduleCall.Module)
-			} else {
-				previous := instance.State["modules"].(map[string]any)[moduleCall.Name]
-				fmt.Printf("[%s (%s)] Updating...\n", moduleCall.Name, moduleCall.Module)
-				ret, err = resourceProvider.Update(evaluatedModuleCall.Argument, previous)
-				if err != nil {
-					panic(err)
-				}
-				fmt.Printf("[%s (%s)] Updated.\n", moduleCall.Name, moduleCall.Module)
-			}
-
-			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
-		case "data":
-			name := modulePaths[1]
-			dataProvider := FindDataProvider(name)
-			fmt.Printf("[%s (%s)] Reading...\n", moduleCall.Name, moduleCall.Module)
-			ret, err := dataProvider.Get(evaluatedModuleCall.Argument)
+		if isPluginModules {
+			previous := instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name]
+			fmt.Printf("[%s (%s)] Applying...\n", moduleCall.Name, moduleCall.Module)
+			ret, err := pluginModule.Apply(evaluatedModuleCall.Argument, previous)
 			if err != nil {
 				panic(err)
 			}
-			fmt.Printf("[%s (%s)] Read.\n", moduleCall.Name, moduleCall.Module)
+			fmt.Printf("[%s (%s)] Applied.\n", moduleCall.Name, moduleCall.Module)
 			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
-		default:
-			localState := config.Apply(instanceName, kind, moduleCall.Argument, map[string]string{}, modules)
+		} else {
+			localState := config.Apply(instanceName, evaluatedModuleCall.Module, moduleCall.Argument, map[string]string{}, modules)
 			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = localState["modules"]
 		}
 		config.UpsertInstance(instance)
@@ -294,24 +268,21 @@ func (config ProjectConfig) Destroy(
 			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
 			continue
 		}
+		pluginModule, isPluginModules := pluginModules[moduleCall.Module]
 
-		modulePaths := strings.Split(moduleCall.Module, "/")
-		kind := modulePaths[0]
-
-		switch kind {
-		case "resource":
-			name := modulePaths[1]
-			resourceProvider := FindResourceProvider(name)
-			fmt.Printf("[%s (%s)] Deleting...\n", moduleCall.Name, moduleCall.Module)
-			err := resourceProvider.Delete(state)
-			if err != nil {
-				panic(err)
+		if isPluginModules {
+			if pluginModule.Destroy == nil {
+				fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
+			} else {
+				fmt.Printf("[%s (%s)] Destroying...\n", moduleCall.Name, moduleCall.Module)
+				err := pluginModule.Destroy(state)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("[%s (%s)] Destroyed.\n", moduleCall.Name, moduleCall.Module)
 			}
-			fmt.Printf("[%s (%s)] Deleted.\n", moduleCall.Name, moduleCall.Module)
-		case "data":
-			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
-		default:
-			// panic("not implemented")
+		} else {
+			// Not Implemented Inner Module
 		}
 		delete(instance.State["modules"].(map[string]any), "")
 		config.UpsertInstance(instance)

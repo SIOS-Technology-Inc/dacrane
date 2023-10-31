@@ -5,7 +5,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-type Module struct {
+type ModuleCode struct {
 	Name         string       `yaml:"name"`
 	Import       []string     `yaml:"import"`
 	Parameter    any          `yaml:"parameter"`
@@ -94,7 +94,7 @@ type Identifier struct {
 	Name string
 }
 
-func (module Module) GenerateYaml() []byte {
+func (module ModuleCode) GenerateYaml() []byte {
 	data, err := yaml.Marshal(module)
 	if err != nil {
 		panic(err)
