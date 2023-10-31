@@ -211,15 +211,15 @@ func (config ProjectConfig) Apply(
 	if err != nil {
 		panic(err)
 	}
-	state := map[string]any{
-		"parameter":    argument,
-		"modules":      map[string]any{},
-		"dependencies": dependenciesState,
-	}
 	var instance Instance
 	if config.HasInstance(instanceName) {
 		instance = config.GetInstance(instanceName)
 	} else {
+		state := map[string]any{
+			"parameter":    argument,
+			"modules":      map[string]any{},
+			"dependencies": dependenciesState,
+		}
 		instance = Instance{
 			Name:   instanceName,
 			Module: module,
@@ -231,7 +231,7 @@ func (config ProjectConfig) Apply(
 	moduleCalls := module.TopologicalSortedModuleCalls()
 	for _, moduleCall := range moduleCalls {
 		fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
-		evaluatedModuleCall := moduleCall.Evaluate(state)
+		evaluatedModuleCall := moduleCall.Evaluate(instance.State)
 		fmt.Printf("[%s (%s)] Evaluated\n", moduleCall.Name, moduleCall.Module)
 		if evaluatedModuleCall == nil {
 			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
@@ -245,7 +245,7 @@ func (config ProjectConfig) Apply(
 			name := modulePaths[1]
 			resourceProvider := FindResourceProvider(name)
 			var ret any
-			if instance.State["modules"].(map[string]any)[moduleCall.Name] == nil {
+			if instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] == nil {
 				fmt.Printf("[%s (%s)] Creating...\n", moduleCall.Name, moduleCall.Module)
 				ret, err = resourceProvider.Create(evaluatedModuleCall.Argument)
 				if err != nil {
@@ -262,7 +262,7 @@ func (config ProjectConfig) Apply(
 				fmt.Printf("[%s (%s)] Updated.\n", moduleCall.Name, moduleCall.Module)
 			}
 
-			state["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
+			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
 		case "data":
 			name := modulePaths[1]
 			dataProvider := FindDataProvider(name)
@@ -272,15 +272,14 @@ func (config ProjectConfig) Apply(
 				panic(err)
 			}
 			fmt.Printf("[%s (%s)] Read.\n", moduleCall.Name, moduleCall.Module)
-			state["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
+			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
 		default:
 			localState := config.Apply(instanceName, kind, moduleCall.Argument, map[string]string{}, modules)
-			state["modules"].(map[string]any)[evaluatedModuleCall.Name] = localState["modules"]
+			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = localState["modules"]
 		}
-		instance.State = state
 		config.UpsertInstance(instance)
 	}
-	return state
+	return instance.State
 }
 
 func (config ProjectConfig) Destroy(
