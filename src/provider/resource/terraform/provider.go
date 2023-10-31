@@ -28,30 +28,47 @@ func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (ma
 	f := hclwrite.NewEmptyFile()
 	rootBody := f.Body()
 
-	// Provider
-	providerBlock := rootBody.AppendNewBlock("provider", []string{"bar"})
+	// Setting Provider
+	providerName, ok := parameters["provider"].(string)
+	if !ok {
+		return nil, fmt.Errorf("provider name is required and must be a string")
+	}
+	providerBlock := rootBody.AppendNewBlock("provider", []string{providerName})
 	providerBody := providerBlock.Body()
-	providerConfig := &ProviderConfig{
-		User:     "Alice", // ここどうやって抽象化する？
-		Password: "abc123", // ここどうやって抽象化する？
+	if configs, ok := parameters["configurations"].(map[string]interface{}); ok {
+		for k, v := range configs {
+			providerBody.SetAttributeValue(k, cty.StringVal(fmt.Sprintf("%v", v)))
+		}
 	}
-	providerBody.SetAttributeRaw("user", hclwrite.TokensForValue(cty.StringVal(providerConfig.User)))
-	providerBody.SetAttributeRaw("password", hclwrite.TokensForValue(cty.StringVal(providerConfig.Password)))
 
-	// Resource
-	resourceBlock := rootBody.AppendNewBlock("resource", []string{"baz", "quz"})
+	// Setting Resource
+	resourceType, ok := parameters["resource"].(string)
+	if !ok {
+		return nil, fmt.Errorf("resource type is required and must be a string")
+	}
+	resourceName, ok := parameters["name"].(string)
+	if !ok {
+		return nil, fmt.Errorf("resource name is required and must be a string")
+	}
+	resourceBlock := rootBody.AppendNewBlock("resource", []string{resourceType, resourceName})
 	resourceBody := resourceBlock.Body()
-	resourceConfig := &ResourceConfig{
-		A: 1,
-		B: 2,
+	if args, ok := parameters["argument"].(map[string]interface{}); ok {
+		for k, v := range args {
+			switch v := v.(type) {
+			case string:
+				resourceBody.SetAttributeValue(k, cty.StringVal(v))
+			case int, int64, float64:
+				resourceBody.SetAttributeValue(k, cty.NumberFloatVal(float64(v.(int))))
+			default:
+				return nil, fmt.Errorf("unsupported type for argument: %v", v)
+			}
+		}
 	}
-	resourceBody.SetAttributeRaw("a", hclwrite.TokensForValue(cty.NumberIntVal(int64(resourceConfig.A))))
-	resourceBody.SetAttributeRaw("b", hclwrite.TokensForValue(cty.NumberIntVal(int64(resourceConfig.B))))
 
-	// Output to a file
-	instanceName := "your_instance_name"  // インスタンス名を適切に設定してください
-	localModuleName := "your_module_name" // モジュール名を適切に設定してください
-	filename := "your_filename.tf"        // ファイル名を適切に設定してください
+	// write file
+	instanceName := "your_instance_name"
+	localModuleName := "your_module_name"
+	filename := "your_filename.tf"
 	dir := filepath.Join(".dacrane", "instances", instanceName, "custom_states", localModuleName)
 	filePath := filepath.Join(dir, filename)
 
@@ -67,7 +84,7 @@ func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (ma
 	
 	fmt.Printf("HCL written to %s\n", filePath)
 	
-	// Terraformを実行
+	// Terraform exec
 	if err := p.ApplyTerraform(filePath); err != nil {
 		return nil, fmt.Errorf("failed to apply terraform: %w", err)
 	}
@@ -95,7 +112,14 @@ func (TerraformResourceProvider) ApplyTerraform(filePath string) error {
 	return nil
 }
 
+func (p TerraformResourceProvider) Delete(parameters map[string]interface{}) error {
+	// terraform destroy
+	cmd := exec.Command("terraform", "destroy", "-auto-approve")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to execute terraform destroy: %v, output: %s", err, output)
+	}
 
-func (TerraformResourceProvider) Delete(parameters map[string]interface{}) error {
+	fmt.Println("Terraform destroy executed successfully.")
 	return nil
 }

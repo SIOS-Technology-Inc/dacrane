@@ -51,6 +51,11 @@ require (
 )
 
 require (
+	github.com/apparentlymart/go-textseg v1.0.0 // indirect
+	github.com/hashicorp/hcl2 v0.0.0-20191002203319-fb75b3253c80 // indirect
+)
+
+require (
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.5 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
