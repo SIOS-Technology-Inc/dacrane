@@ -1,13 +1,14 @@
+name: quick-start
 modules:
   - name: foo
     module: data/terraform
-    arguments:
-      - provider: bar
-        resource: baz
-        name: quz
-        configurations:
-          user: Alice
-          password: abc123
-        arguments:
-          a: 1
-          b: 2
+    argument:
+      provider: bar
+      resource: baz
+      name: quz
+      configurations:
+        user: Alice
+        password: abc123
+      argument:
+        a: 1
+        b: 2
