@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/k0kubun/pp"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 )
@@ -118,6 +119,15 @@ func (config ProjectConfig) GetInstance(name string) Instance {
 	}
 }
 
+func (config ProjectConfig) GetStates() map[string]any {
+	ret := map[string]any{}
+	for _, instanceName := range config.InstanceNames {
+		instance := config.GetInstance(instanceName)
+		ret[instanceName] = instance.State
+	}
+	return ret
+}
+
 func (config ProjectConfig) GenerateYaml() []byte {
 	data, err := yaml.Marshal(config)
 	if err != nil {
@@ -191,21 +201,13 @@ func (config ProjectConfig) Apply(
 	instanceName string,
 	moduleName string,
 	argument any,
-	dependencies map[string]string,
 	modules []ModuleCode,
+	writesInstance bool,
 ) map[string]any {
 	module := utils.Find(modules, func(m ModuleCode) bool {
 		return m.Name == moduleName
 	})
-	dependenciesState := map[string]any{}
-	for _, dependency := range module.Dependencies {
-		instanceName, exists := dependencies[dependency.Name]
-		if !exists {
-			continue
-		}
-		instance := config.GetInstance(instanceName)
-		dependenciesState[dependency.Name] = instance.State
-	}
+	pp.Println(instanceName, argument)
 	err := utils.Validate(module.Parameter, argument)
 	if err != nil {
 		panic(err)
@@ -215,9 +217,8 @@ func (config ProjectConfig) Apply(
 		instance = config.GetInstance(instanceName)
 	} else {
 		state := map[string]any{
-			"parameter":    argument,
-			"modules":      map[string]any{},
-			"dependencies": dependenciesState,
+			"parameter": argument,
+			"modules":   map[string]any{},
 		}
 		instance = Instance{
 			Name:   instanceName,
@@ -226,10 +227,13 @@ func (config ProjectConfig) Apply(
 		}
 	}
 
-	config.UpsertInstance(instance)
+	if writesInstance {
+		config.UpsertInstance(instance)
+	}
 	moduleCalls := module.TopologicalSortedModuleCalls()
 	for _, moduleCall := range moduleCalls {
 		fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
+		pp.Println("state = ", instance.State)
 		evaluatedModuleCall := moduleCall.Evaluate(instance.State)
 		fmt.Printf("[%s (%s)] Evaluated.\n", moduleCall.Name, moduleCall.Module)
 		if evaluatedModuleCall == nil {
@@ -248,10 +252,12 @@ func (config ProjectConfig) Apply(
 			fmt.Printf("[%s (%s)] Applied.\n", moduleCall.Name, moduleCall.Module)
 			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = ret
 		} else {
-			localState := config.Apply(instanceName, evaluatedModuleCall.Module, moduleCall.Argument, map[string]string{}, modules)
-			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = localState["modules"]
+			localState := config.Apply(instanceName+"/"+moduleCall.Name, evaluatedModuleCall.Module, evaluatedModuleCall.Argument, modules, false)
+			instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name] = localState
 		}
-		config.UpsertInstance(instance)
+		if writesInstance {
+			config.UpsertInstance(instance)
+		}
 	}
 	return instance.State
 }

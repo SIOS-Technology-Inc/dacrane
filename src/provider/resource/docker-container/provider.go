@@ -5,10 +5,13 @@ import (
 	"dacrane/utils"
 	"fmt"
 	"strings"
+
+	"github.com/k0kubun/pp"
 )
 
 var DockerContainerResourceModule = pdk.NewResourceModule(pdk.Resource{
 	Create: func(parameter any) (any, error) {
+		pp.Println(parameter)
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		name := params["name"].(string)

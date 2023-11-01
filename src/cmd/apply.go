@@ -37,15 +37,19 @@ var applyCmd = &cobra.Command{
 			panic(err)
 		}
 
-		config.Apply(instanceName, moduleName, argument, dependencies, modules)
+		data := map[string]any{
+			"instances": config.GetStates(),
+		}
+
+		evaluatedArg := core.Evaluate(argument, data)
+
+		config.Apply(instanceName, moduleName, evaluatedArg, modules, true)
 	},
 }
 
 var argumentString = ""
-var dependencies = map[string]string{}
 
 func init() {
 	rootCmd.AddCommand(applyCmd)
 	applyCmd.Flags().StringVarP(&argumentString, "argument", "a", "{}", "Argument")
-	applyCmd.Flags().StringToStringVarP(&dependencies, "dependency", "d", map[string]string{}, "Argument")
 }

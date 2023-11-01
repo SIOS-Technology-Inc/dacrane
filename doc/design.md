@@ -7,7 +7,6 @@
       - [Name section](#name-section)
       - [Import section (not implemented)](#import-section-not-implemented)
       - [Parameter section](#parameter-section)
-      - [Dependencies section](#dependencies-section)
       - [Modules section](#modules-section)
     - [Expression](#expression)
       - [Syntax](#syntax)
@@ -23,7 +22,7 @@
     - [apply](#apply)
     - [destroy](#destroy)
     - [ls](#ls)
-- [Flow](#flow)
+- [Flow (TBD)](#flow-tbd)
 
 # Architecture
 
@@ -98,7 +97,6 @@ The module consists of the following sections
 | name  | Module name. |
 | import | Import external deployment code.　|
 | parameter | Parameter schema. |
-| dependencies | List of dependent modules. |
 | modules | List of module calls. |
 
 ```yaml
@@ -107,8 +105,6 @@ name:
 import:
 
 parameter:
-
-dependencies:
 
 modules:
 ```
@@ -195,38 +191,6 @@ parameter:
   properties:
     a: { type: number }
     b: { type: string, default: latest }
-```
-
-#### Dependencies section
-
-The Dependencies section defines the modules on which this module depends. The instance for a module is determined at runtime.
-
-The restrictions are as follows
-
-* Expression cannot be used.
-
-The format is as follows
-
-| key | type | description |
-| -- | -- | -- |
-| dependencies | list(object) | The module list which it depends on. |
-| dependencies.*.name | string | The name of the module locally. It can be referenced from an expression. |
-| dependencies.*.module | string | The name of the module on which it depends. |
-
-```yaml
-dependencies:
-- name: [string]
-  module: [string]
-```
-
-For example
-
-```yaml
-dependencies:
-- name: a
-  module: foo
-- name: b
-  module: bar
 ```
 
 #### Modules section
@@ -375,16 +339,15 @@ REF
 
 #### Fixture Variables
 
-| name | type |
-| -- | -- |
-| parameter | object |
-| dependencies | object |
-| modules | object |
+| name | type | scope | description |
+| -- | -- | -- |
+| parameter | object | modules section | |
+| modules | object | modules section | |
+| instances | object | command argument flag | |
 
 ```yaml
 ${{ parameter.a }}
 ${{ modules.foo }}
-${{ dependencies.bar }}
 ```
 
 #### Expansion
@@ -491,7 +454,7 @@ $ dacrane init
 Creates or updates the specified instance.
 
 ```bash
-$ dacrane apply -a [argument] -d [dependencies] [module] [instance_name]
+$ dacrane apply -a [argument] [module] [instance_name]
 ```
 
 ### destroy
@@ -516,112 +479,6 @@ instance2 (module2)
 ...
 ```
 
-# Flow
+# Flow (TBD)
 
-```plantuml
-@startuml
-skinparam dpi 72
-skinparam monochrome true
-skinparam shadowing false
-skinparam participantpadding 20
-skinparam boxpadding 5
-
-actor "developer" as developer
-participant "dacrane" as dacrane
-participant "storage" as local<<local>>
-participant "storage" as remote<<cloud>>
-participant "vault" as vault<<cloud>>
-participant "cloud" as cloud<<cloud>>
-
-note right of developer
-$ dacrane init
-end note
-developer -> dacrane++
-  dacrane -> local++: create context.yaml file
-  return
-return
-
-note right of developer
-$ dacrane context create [context_name]
-  [--storage storage_type]
-  [--vault storage_type]
-end note
-developer -> dacrane++
-  dacrane -> local++: write new context info
-  return
-return
-
-opt "when using remote storage"
-  note right of developer
-  $ dacrane login storage [credentials]
-  end note
-  developer -> dacrane++
-    dacrane -> local++: write credential
-    return
-    dacrane -> remote++: check login
-    return
-  return
-end
-
-opt "when using vault"
-  note right of developer
-  $ dacrane login vault [credentials]
-  end note
-  developer -> dacrane++
-    dacrane -> local++: write credential
-    return
-    dacrane -> vault++: check login
-    return
-  return
-end
-
-developer -> local++: write dacrane.yaml
-return
-
-developer -> local++: write .env.yaml
-return
-
-note right of developer
-$ dacrane set -f .env.yaml
-end note
-developer -> dacrane++:
-  alt "use local storage"
-    dacrane -> local++: write env variables and secrets
-    return
-  else "use remote storage"
-    dacrane -> remote++: write env variables
-    return
-    dacrane -> vault++: write secrets
-    return
-  end
-return
-
-note right of developer
-$ dacrane up
-end note
-developer -> dacrane++:
-  alt "use local storage"
-    dacrane -> local++: read state
-    return
-  else
-    dacrane -> remote++: write env variables
-    return
-    dacrane -> vault++: read vault
-    return
-  end
-  dacrane -> local++: acquire lock
-  return
-  dacrane -> dacrane: build
-  dacrane -> cloud++: deploy
-  return
-  alt "use local storage"
-    dacrane -> local++: write state/history
-    return
-  else
-    dacrane -> remote++: write state/history
-    return
-  end
-return
-
-@enduml
-```
+(TBD)

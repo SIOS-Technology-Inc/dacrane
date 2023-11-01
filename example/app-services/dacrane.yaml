@@ -1,33 +1,27 @@
 name: quick-start
 modules:
 - name: image
-  module: resource/docker-local-image
+  module: api-image
   argument:
-    dockerfile: ./Dockerfile
-    image: sample-api
     tag: latest
-- module: resource/docker-container
-  name: container
-  argument:
-    name: api
-    image: ${{ modules.image.image }}
-    tag: ${{ modules.image.tag }}
-    port: 3000:3000
-    env:
-      - name: PORT
-        value: "3000"
+- name: container
+  module: local-docker
+  argument: ${{ modules.image.modules.api-local-image }}
 ---
 name: local-docker
-dependencies:
-- name: api
-  module: api-image
+parameter:
+  type: object
+  required: ["image", "tag"]
+  properties:
+    image: { type: string }
+    tag: { type: string }
 modules:
 - module: resource/docker-container
   name: docker
   argument:
     name: api
-    image: ${{ dependencies.api.modules.api-local-image.image }}
-    tag: ${{ dependencies.api.modules.api-local-image.tag }}
+    image: ${{ parameter.image }}
+    tag: ${{ parameter.tag }}
     port: 3000:3000
     env:
       - name: PORT
@@ -39,6 +33,13 @@ parameter:
   required: ["tag"]
   properties:
     tag: { type: string }
+    remote:
+      type: object
+      required: ["url", "user", "password"]
+      properties:
+        url: { type: string }
+        user: { type: string }
+        password: { type: string }
 dependencies:
 - name: base
   module: base
@@ -50,12 +51,12 @@ modules:
     image: sample-api
     tag: ${{ parameter.tag }}
 - name: api-remote-image
-  if: ${{ dependencies.base != null }}
+  if: ${{ parameter.remote != null }}
   module: resource/docker-remote-image
   argument:
     image: ${{ modules.api-local-image.image }}
     tag: ${{ modules.api-local-image.tag }}
-    remote: ${{ dependencies.base.modules.acr }}
+    remote: ${{ parameter.remote }}
 ---
 name: "app-service"
 argument:

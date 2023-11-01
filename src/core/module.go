@@ -19,11 +19,12 @@ type Dependency struct {
 }
 
 type ModuleCall struct {
-	Name      string   `yaml:"name"`
-	DependsOn []string `yaml:"depends_on"`
-	Module    string   `yaml:"module"`
-	Argument  any      `yaml:"argument"`
-	If        any      `yaml:"if"`
+	Name         string            `yaml:"name"`
+	DependsOn    []string          `yaml:"depends_on"`
+	Module       string            `yaml:"module"`
+	Argument     any               `yaml:"argument"`
+	Dependencies map[string]string `yaml:"dependencies"`
+	If           any               `yaml:"if"`
 }
 
 // Expr represents an expression in the AST.
