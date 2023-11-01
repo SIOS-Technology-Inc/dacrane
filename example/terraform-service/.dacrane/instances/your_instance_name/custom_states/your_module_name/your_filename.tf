@@ -3,6 +3,6 @@ provider "bar" {
   password = "abc123"
 }
 resource "baz" "quz" {
-  b = 2
   a = 1
+  b = 2
 }
