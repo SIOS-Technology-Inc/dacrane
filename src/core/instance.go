@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/k0kubun/pp"
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
 )
@@ -207,7 +206,6 @@ func (config ProjectConfig) Apply(
 	module := utils.Find(modules, func(m ModuleCode) bool {
 		return m.Name == moduleName
 	})
-	pp.Println(instanceName, argument)
 	err := utils.Validate(module.Parameter, argument)
 	if err != nil {
 		panic(err)
@@ -233,7 +231,6 @@ func (config ProjectConfig) Apply(
 	moduleCalls := module.TopologicalSortedModuleCalls()
 	for _, moduleCall := range moduleCalls {
 		fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
-		pp.Println("state = ", instance.State)
 		evaluatedModuleCall := moduleCall.Evaluate(instance.State)
 		fmt.Printf("[%s (%s)] Evaluated.\n", moduleCall.Name, moduleCall.Module)
 		if evaluatedModuleCall == nil {
