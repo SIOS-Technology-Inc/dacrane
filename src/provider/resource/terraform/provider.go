@@ -12,16 +12,6 @@ import (
 
 type TerraformResourceProvider struct{}
 
-type ProviderConfig struct {
-	User     string `hcl:"user"`
-	Password string `hcl:"password"`
-}
-
-type ResourceConfig struct {
-	A int `hcl:"a"`
-	B int `hcl:"b"`
-}
-
 var ctx = context.Background()
 
 func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (map[string]interface{}, error) {
