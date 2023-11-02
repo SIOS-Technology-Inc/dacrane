@@ -1,11 +1,11 @@
 package terraform
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -21,8 +21,6 @@ type DataConfig struct {
 	A int `hcl:"a"`
 	B int `hcl:"b"`
 }
-
-var ctx = context.Background()
 
 func (p TerraformDataProvider) Get(parameters map[string]any) (map[string]any, error) {
 	f := hclwrite.NewEmptyFile()
@@ -114,7 +112,7 @@ func writeHCL(body *hclwrite.Body, key string, value interface{}) {
 func (TerraformDataProvider) ApplyTerraform(filePath string) error {
 	// Terraform init
 	dir := filepath.Dir(filePath)
-	
+
 	initCmd := exec.Command("terraform", "init")
 	initCmd.Dir = dir
 	if output, err := initCmd.CombinedOutput(); err != nil {
