@@ -132,6 +132,11 @@ func (p TerraformResourceProvider) Delete(parameters map[string]interface{}) err
 		return fmt.Errorf("failed to execute terraform destroy: %v, output: %s", err, output)
 	}
 
+	err = os.RemoveAll(dir)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Println("Terraform destroy executed successfully.")
 	return nil
 }
