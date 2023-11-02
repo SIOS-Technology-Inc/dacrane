@@ -3,12 +3,9 @@ modules:
   - name: foo
     module: resource/terraform
     argument:
-      provider: bar
-      resource: baz
-      name: quz
-      configurations:
-        user: Alice
-        password: abc123
+      provider: local
+      resource: local_file
+      name: foo
       argument:
-        a: 1
-        b: 2
+        content: foo
+        filename: example.txt
