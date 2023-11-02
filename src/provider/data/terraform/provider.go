@@ -29,39 +29,37 @@ func (p TerraformDataProvider) Get(parameters map[string]any) (map[string]any, e
 	rootBody := f.Body()
 
 	// Setting Provider
-	providerName, ok := parameters["provider"].(string)
-	if !ok {
-		return nil, fmt.Errorf("provider name is required and must be a string")
-	}
-	providerBlock := rootBody.AppendNewBlock("provider", []string{providerName})
-	providerBody := providerBlock.Body()
-	if configs, ok := parameters["configurations"].(map[string]interface{}); ok {
-		for k, v := range configs {
-			providerBody.SetAttributeValue(k, cty.StringVal(fmt.Sprintf("%v", v)))
+	if provider, ok := parameters["provider"].(string); ok {
+		providerBlock := rootBody.AppendNewBlock("provider", []string{provider})
+		providerBody := providerBlock.Body()
+		if configs, ok := parameters["configurations"].(map[string]interface{}); ok {
+			for k, v := range configs {
+				writeHCL(providerBody, k, v)
+			}
 		}
+	} else {
+		return nil, fmt.Errorf("provider name is required and must be a string")
 	}
 
 	// Setting Resource
-	resourceType, ok := parameters["resource"].(string)
-	if !ok {
+	resourceType, resourceName := "", ""
+	if resType, ok := parameters["resource"].(string); ok {
+		resourceType = resType
+	} else {
 		return nil, fmt.Errorf("resource type is required and must be a string")
 	}
-	resourceName, ok := parameters["name"].(string)
-	if !ok {
+
+	if resName, ok := parameters["name"].(string); ok {
+		resourceName = resName
+	} else {
 		return nil, fmt.Errorf("resource name is required and must be a string")
 	}
+
 	resourceBlock := rootBody.AppendNewBlock("data", []string{resourceType, resourceName})
 	resourceBody := resourceBlock.Body()
 	if args, ok := parameters["argument"].(map[string]interface{}); ok {
 		for k, v := range args {
-			switch v := v.(type) {
-			case string:
-				resourceBody.SetAttributeValue(k, cty.StringVal(v))
-			case int, int64, float64:
-				resourceBody.SetAttributeValue(k, cty.NumberFloatVal(float64(v.(int))))
-			default:
-				return nil, fmt.Errorf("unsupported type for argument: %v", v)
-			}
+			writeHCL(resourceBody, k, v)
 		}
 	}
 
@@ -76,22 +74,42 @@ func (p TerraformDataProvider) Get(parameters map[string]any) (map[string]any, e
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create directories: %w", err)
 	}
-	
+
 	// Write the file
 	if err := os.WriteFile(filePath, f.Bytes(), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write file: %w", err)
 	}
-	
+
 	fmt.Printf("HCL written to %s\n", filePath)
-	
+
 	// Terraform exec
 	if err := p.ApplyTerraform(filePath); err != nil {
 		return nil, fmt.Errorf("failed to apply terraform: %w", err)
 	}
-	
+
 	return nil, nil
 }
 
+func writeHCL(body *hclwrite.Body, key string, value interface{}) {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		block := body.AppendNewBlock(key, nil)
+		blockBody := block.Body()
+		for k, val := range v {
+			writeHCL(blockBody, k, val)
+		}
+	case string:
+		body.SetAttributeValue(key, cty.StringVal(v))
+	case []interface{}:
+		values := make([]cty.Value, len(v))
+		for i, val := range v {
+			values[i] = cty.StringVal(val.(string))
+		}
+		body.SetAttributeValue(key, cty.ListVal(values))
+	default:
+		fmt.Printf("Unsupported type: %T\n", v)
+	}
+}
 
 func (TerraformDataProvider) ApplyTerraform(filePath string) error {
 	// Terraform init
@@ -104,7 +122,8 @@ func (TerraformDataProvider) ApplyTerraform(filePath string) error {
 	}
 
 	// Terraform apply
-	applyCmd := exec.Command("terraform", "apply", "-auto-approve", filePath)
+	applyCmd := exec.Command("terraform", "apply", "-auto-approve")
+	applyCmd.Dir = dir
 	if output, err := applyCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to run terraform apply: %s, %s", err, output)
 	}

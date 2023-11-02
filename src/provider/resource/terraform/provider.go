@@ -27,7 +27,7 @@ func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (ma
 	providerBody := providerBlock.Body()
 	if configs, ok := parameters["configurations"].(map[string]interface{}); ok {
 		for k, v := range configs {
-			providerBody.SetAttributeValue(k, cty.StringVal(fmt.Sprintf("%v", v)))
+			writeHCL(providerBody, k, v)
 		}
 	}
 
@@ -44,14 +44,7 @@ func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (ma
 	resourceBody := resourceBlock.Body()
 	if args, ok := parameters["argument"].(map[string]interface{}); ok {
 		for k, v := range args {
-			switch v := v.(type) {
-			case string:
-				resourceBody.SetAttributeValue(k, cty.StringVal(v))
-			case int, int64, float64:
-				resourceBody.SetAttributeValue(k, cty.NumberFloatVal(float64(v.(int))))
-			default:
-				return nil, fmt.Errorf("unsupported type for argument: %v", v)
-			}
+			writeHCL(resourceBody, k, v)
 		}
 	}
 
@@ -82,6 +75,27 @@ func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (ma
 	return nil, nil
 }
 
+func writeHCL(body *hclwrite.Body, key string, value interface{}) {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		block := body.AppendNewBlock(key, nil)
+		blockBody := block.Body()
+		for k, val := range v {
+			writeHCL(blockBody, k, val)
+		}
+	case string:
+		body.SetAttributeValue(key, cty.StringVal(v))
+	case []interface{}:
+		values := make([]cty.Value, len(v))
+		for i, val := range v {
+			values[i] = cty.StringVal(val.(string))
+		}
+		body.SetAttributeValue(key, cty.ListVal(values))
+	default:
+		fmt.Printf("Unsupported type: %T\n", v)
+	}
+}
+
 func (TerraformResourceProvider) ApplyTerraform(filePath string) error {
 	// Terraform init
 	dir := filepath.Dir(filePath)
@@ -93,7 +107,8 @@ func (TerraformResourceProvider) ApplyTerraform(filePath string) error {
 	}
 
 	// Terraform apply
-	applyCmd := exec.Command("terraform", "apply", "-auto-approve", filePath)
+	applyCmd := exec.Command("terraform", "apply", "-auto-approve")
+	applyCmd.Dir = dir
 	if output, err := applyCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("failed to run terraform apply: %s, %s", err, output)
 	}
@@ -103,8 +118,15 @@ func (TerraformResourceProvider) ApplyTerraform(filePath string) error {
 }
 
 func (p TerraformResourceProvider) Delete(parameters map[string]interface{}) error {
+	instanceName := "your_instance_name"
+	localModuleName := "your_module_name"
+	filename := "your_filename.tf"
+	dird := filepath.Join(".dacrane", "instances", instanceName, "custom_states", localModuleName)
+	filePath := filepath.Join(dird, filename)
+	dir := filepath.Dir(filePath)
 	// terraform destroy
 	cmd := exec.Command("terraform", "destroy", "-auto-approve")
+	cmd.Dir = dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to execute terraform destroy: %v, output: %s", err, output)
