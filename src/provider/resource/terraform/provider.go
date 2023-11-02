@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"dacrane/pdk"
 	"dacrane/utils"
 	"encoding/json"
 	"fmt"
@@ -12,9 +13,38 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-type TerraformResourceProvider struct{}
+var TerraformResourceModule = pdk.NewResourceModule(pdk.Resource{
+	Create: Create,
+	Update: func(current, _ any) (any, error) {
+		return Create(current)
+	},
+	Delete: func(any) error {
+		instanceName := "your_instance_name"
+		localModuleName := "your_module_name"
+		filename := "your_filename.tf"
+		dird := filepath.Join(".dacrane", "instances", instanceName, "custom_states", localModuleName)
+		filePath := filepath.Join(dird, filename)
+		dir := filepath.Dir(filePath)
+		// terraform destroy
+		cmd := exec.Command("terraform", "destroy", "-auto-approve")
+		cmd.Dir = dir
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("failed to execute terraform destroy: %v, output: %s", err, output)
+		}
 
-func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (map[string]interface{}, error) {
+		err = os.RemoveAll(dir)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("Terraform destroy executed successfully.")
+		return nil
+	},
+})
+
+func Create(parameter any) (any, error) {
+	parameters := parameter.(map[string]any)
 	f := hclwrite.NewEmptyFile()
 	rootBody := f.Body()
 
@@ -68,7 +98,7 @@ func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (ma
 	fmt.Printf("HCL written to %s\n", filePath)
 
 	// Terraform exec
-	if err := p.ApplyTerraform(filePath); err != nil {
+	if err := ApplyTerraform(filePath); err != nil {
 		return nil, fmt.Errorf("failed to apply terraform: %w", err)
 	}
 
@@ -117,7 +147,7 @@ func writeHCL(body *hclwrite.Body, key string, value interface{}) {
 	}
 }
 
-func (TerraformResourceProvider) ApplyTerraform(filePath string) error {
+func ApplyTerraform(filePath string) error {
 	// Terraform init
 	dir := filepath.Dir(filePath)
 
@@ -135,29 +165,5 @@ func (TerraformResourceProvider) ApplyTerraform(filePath string) error {
 	}
 
 	fmt.Println("Terraform apply complete")
-	return nil
-}
-
-func (p TerraformResourceProvider) Delete(parameters map[string]interface{}) error {
-	instanceName := "your_instance_name"
-	localModuleName := "your_module_name"
-	filename := "your_filename.tf"
-	dird := filepath.Join(".dacrane", "instances", instanceName, "custom_states", localModuleName)
-	filePath := filepath.Join(dird, filename)
-	dir := filepath.Dir(filePath)
-	// terraform destroy
-	cmd := exec.Command("terraform", "destroy", "-auto-approve")
-	cmd.Dir = dir
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to execute terraform destroy: %v, output: %s", err, output)
-	}
-
-	err = os.RemoveAll(dir)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("Terraform destroy executed successfully.")
 	return nil
 }
