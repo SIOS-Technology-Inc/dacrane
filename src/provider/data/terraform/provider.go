@@ -14,16 +14,6 @@ import (
 
 type TerraformDataProvider struct{}
 
-type ProviderConfig struct {
-	User     string `hcl:"user"`
-	Password string `hcl:"password"`
-}
-
-type DataConfig struct {
-	A int `hcl:"a"`
-	B int `hcl:"b"`
-}
-
 func (p TerraformDataProvider) Get(parameters map[string]any) (map[string]any, error) {
 	f := hclwrite.NewEmptyFile()
 	rootBody := f.Body()
