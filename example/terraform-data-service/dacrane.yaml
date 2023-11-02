@@ -7,5 +7,4 @@ modules:
       resource: local_file
       name: foo
       argument:
-        content: foo
-        filename: example.txt
+        filename: ../../../../../example.txt
