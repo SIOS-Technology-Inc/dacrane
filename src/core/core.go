@@ -9,9 +9,10 @@ import (
 	docker_container "dacrane/provider/resource/docker-container"
 	docker_local_image "dacrane/provider/resource/docker-local-image"
 	docker_remote_image "dacrane/provider/resource/docker-remote-image"
-	file "dacrane/provider/resource/file"
+  file "dacrane/provider/resource/file"
+	terraformResource "dacrane/provider/resource/terraform"
+	terraformData "dacrane/provider/data/terraform"
 )
-
 type ResourceProvider interface {
 	Create(parameters map[string]any) (map[string]any, error)
 	Delete(parameters map[string]any) error
@@ -29,11 +30,13 @@ var resourceProviders = map[string](ResourceProvider){
 	"docker-container":         docker_container.DockerResourceProvider{},
 	"docker-local-image":       docker_local_image.DockerArtifactProvider{},
 	"docker-remote-image":      docker_remote_image.DockerArtifactProvider{},
-	"file":                     file.FileProvider{},
+  "file": 										file.FileProvider{},
+	"terraform": 								terraformResource.TerraformResourceProvider{},
 }
 
 var dataProviders = map[string](DataProvider){
 	"environment": environment.EnvironmentDataProvider{},
+	"terraform"  : terraformData.TerraformDataProvider{},
 }
 
 func FindResourceProvider(providerName string) ResourceProvider {

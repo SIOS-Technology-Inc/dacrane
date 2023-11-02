@@ -1,0 +1,11 @@
+name: quick-start
+modules:
+  - name: foo
+    module: resource/terraform
+    argument:
+      provider: local
+      resource: local_file
+      name: foo
+      argument:
+        content: foo
+        filename: example.txt
