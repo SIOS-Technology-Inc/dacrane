@@ -2,11 +2,14 @@ package utils
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
+
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func Find[T any](array []T, f func(T) bool) (result T) {
@@ -56,4 +59,24 @@ func RequestHttp(req *http.Request) (*http.Response, error) {
 	res, err := http.DefaultClient.Do(req)
 	fmt.Printf("> %s\n", res.Status)
 	return res, err
+}
+
+func Validate(schema any, document any) error {
+	if schema == nil {
+		return nil
+	}
+	schemaLoader := gojsonschema.NewGoLoader(schema)
+	documentLoader := gojsonschema.NewGoLoader(document)
+
+	result, err := gojsonschema.Validate(schemaLoader, documentLoader)
+	if err != nil {
+		panic(err)
+	}
+
+	if result.Valid() {
+		return nil
+	} else {
+		err := result.Errors()[0]
+		return errors.New(err.String())
+	}
 }

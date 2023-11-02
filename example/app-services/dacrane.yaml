@@ -36,8 +36,9 @@ modules:
 name: api-image
 parameter:
   type: object
+  required: ["tag"]
   properties:
-    tag: { type: string, default: "latest" }
+    tag: { type: string }
 dependencies:
 - name: base
   module: base
@@ -60,8 +61,10 @@ name: "app-service"
 argument:
 parameter:
   type: object
+  required: ["env", "spec"]
   properties:
-    spec: { type: string, default: "low", enum: ["low", "high"] }
+    env: { type: string }
+    spec: { type: string, enum: ["low", "high"] }
 dependencies:
 - name: base
   module: base
@@ -73,18 +76,18 @@ modules:
 - name: asp
   module: resource/azure-app-service-plan
   argument:
-    name: ${{ dependencies.base.parameter.prefix }}-sample-asp
+    name: ${{ parameter.env }}-${{ dependencies.base.parameter.prefix }}-sample-asp
     resource_group_name: ${{ dependencies.base.modules.rg.name }}
     location: "Japan East"
     kind: "Linux"
     sku:
-      tier: '${{ {"low": "Basic", "high": "Premium" }[parameter.spec] }}'
-      name: '${{ {"low": "B1", "high": "P1" }[parameter.spec] }}'
+      tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
+      name: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
     credentials: ${{ modules.credentials.credentials }}
 - name: as
   module: resource/azure-app-service
   argument:
-    name: ${{ dependencies.base.parameter.prefix }}-sample-as
+    name: ${{ parameter.env }}-${{ dependencies.base.parameter.prefix }}-sample-as
     resource_group_name: ${{ dependencies.base.modules.rg.name }}
     location: "Japan East"
     app_service_plan_id: ${{ modules.asp.name }}
@@ -100,8 +103,9 @@ modules:
 name: base
 parameter:
   type: object
+  required: ["prefix"]
   properties:
-    prefix: { type: string, default: "dacrane" }
+    prefix: { type: string }
 modules:
 - name: credentials
   module: azure_credentials
