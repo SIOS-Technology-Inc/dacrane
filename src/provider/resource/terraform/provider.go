@@ -85,7 +85,9 @@ func (p TerraformResourceProvider) Create(parameters map[string]interface{}) (ma
 	}
 
 	resource := utils.Find(state["resources"].([]any), func(r any) bool {
-		return r.(map[string]any)["type"] == resourceType && r.(map[string]any)["name"] == resourceName
+		return r.(map[string]any)["mode"] == "managed" &&
+			r.(map[string]any)["type"] == resourceType &&
+			r.(map[string]any)["name"] == resourceName
 	})
 
 	instances := resource.(map[string]any)["instances"]
