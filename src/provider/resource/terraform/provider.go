@@ -126,6 +126,8 @@ func writeHCL(body *hclwrite.Body, key string, value interface{}) {
 		}
 	case string:
 		body.SetAttributeValue(key, cty.StringVal(v))
+	case bool:
+		body.SetAttributeValue(key, cty.BoolVal(v))
 	case []interface{}:
 		values := make([]cty.Value, len(v))
 		for i, val := range v {
