@@ -119,10 +119,20 @@ func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 func writeHCL(body *hclwrite.Body, key string, value interface{}) {
 	switch v := value.(type) {
 	case map[string]interface{}:
-		block := body.AppendNewBlock(key, nil)
-		blockBody := block.Body()
-		for k, val := range v {
-			writeHCL(blockBody, k, val)
+		isMap, ok := v["$is_map"]
+		if ok && isMap.(bool) {
+			delete(v, "$is_map")
+			vs := map[string]cty.Value{}
+			for k, val := range v {
+				vs[k] = cty.StringVal(val.(string))
+			}
+			body.SetAttributeValue(key, cty.MapVal(vs))
+		} else {
+			block := body.AppendNewBlock(key, nil)
+			blockBody := block.Body()
+			for k, val := range v {
+				writeHCL(blockBody, k, val)
+			}
 		}
 	case string:
 		body.SetAttributeValue(key, cty.StringVal(v))
