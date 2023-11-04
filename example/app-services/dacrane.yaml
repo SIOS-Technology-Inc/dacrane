@@ -33,13 +33,7 @@ parameter:
   required: ["tag"]
   properties:
     tag: { type: string }
-    remote:
-      type: object
-      required: ["url", "user", "password"]
-      properties:
-        url: { type: string }
-        user: { type: string }
-        password: { type: string }
+    acr: { type: object }
 dependencies:
 - name: base
   module: base
@@ -51,55 +45,61 @@ modules:
     image: sample-api
     tag: ${{ parameter.tag }}
 - name: api-remote-image
-  if: ${{ parameter.remote != null }}
+  if: ${{ parameter.acr != null }}
   module: resource/docker-remote-image
   argument:
     image: ${{ modules.api-local-image.image }}
     tag: ${{ modules.api-local-image.tag }}
-    remote: ${{ parameter.remote }}
+    remote:
+      url: ${{ parameter.acr.login_server }}
+      user: ${{ parameter.acr.admin_username }}
+      password: ${{ parameter.acr.admin_password }}
 ---
-name: "app-service"
+name: app-service
 argument:
 parameter:
   type: object
-  required: ["env", "spec"]
+  required: ["env", "spec", "base", "api"]
   properties:
     env: { type: string }
     spec: { type: string, enum: ["low", "high"] }
-dependencies:
-- name: base
-  module: base
-- name: api
-  module: api-image
+    base: { type: object }
+    api: { type: object }
 modules:
-- name: credentials
-  module: azure_credentials
 - name: asp
-  module: resource/azure-app-service-plan
+  module: resource/terraform
   argument:
-    name: ${{ parameter.env }}-${{ dependencies.base.parameter.prefix }}-sample-asp
-    resource_group_name: ${{ dependencies.base.modules.rg.name }}
-    location: "Japan East"
-    kind: "Linux"
-    sku:
-      tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
-      name: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
-    credentials: ${{ modules.credentials.credentials }}
+    provider: azurerm
+    resource: azurerm_app_service_plan
+    configurations: { features: {} }
+    argument:
+      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-asp
+      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      location: "Japan East"
+      kind: "Linux"
+      reserved: true
+      sku:
+        tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
+        size: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
 - name: as
-  module: resource/azure-app-service
+  module: resource/terraform
   argument:
-    name: ${{ parameter.env }}-${{ dependencies.base.parameter.prefix }}-sample-as
-    resource_group_name: ${{ dependencies.base.modules.rg.name }}
-    location: "Japan East"
-    app_service_plan_id: ${{ modules.asp.name }}
-    site_config:
-      linux_fx_version: DOCKER|${{ dependencies.base.modules.acr.url }}/sample-api:${{ dependencies.api.modules.api-remote-image.tag }}
-    app_settings:
-      DOCKER_REGISTRY_SERVER_URL: ${{ dependencies.base.modules.acr.url }}
-      DOCKER_REGISTRY_SERVER_USERNAME: ${{ dependencies.base.modules.acr.user }}
-      DOCKER_REGISTRY_SERVER_PASSWORD: ${{ dependencies.base.modules.acr.password }}
-      WEBSITES_PORT: "3000"
-    credentials: ${{ modules.credentials.credentials }}
+    provider: azurerm
+    resource: azurerm_app_service
+    configurations: { features: {} }
+    argument:
+      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-as
+      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      location: "Japan East"
+      app_service_plan_id: ${{ modules.asp.id }}
+      site_config:
+        linux_fx_version: DOCKER|${{ parameter.base.modules.acr.login_server }}/sample-api:${{ parameter.api.modules.api-remote-image.tag }}
+      app_settings:
+        $is_map: true
+        DOCKER_REGISTRY_SERVER_URL: ${{ parameter.base.modules.acr.login_server }}
+        DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.modules.acr.admin_username }}
+        DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.modules.acr.admin_password }}
+        WEBSITES_PORT: "3000"
 ---
 name: base
 parameter:
@@ -108,29 +108,24 @@ parameter:
   properties:
     prefix: { type: string }
 modules:
-- name: credentials
-  module: azure_credentials
 - name: rg
-  module: resource/azure-resource-group
+  module: resource/terraform
   argument:
-    name: ${{ parameter.prefix }}-sample-rg
-    location: "Japan East"
-    credentials: ${{ modules.credentials.credentials }}
+    provider: azurerm
+    resource: azurerm_resource_group
+    configurations: { features: {} }
+    argument:
+      name: ${{ parameter.prefix }}-sample-rg
+      location: "Japan East"
 - name: acr
-  module: resource/azure-container-registry
+  module: resource/terraform
   argument:
-    name: ${{ parameter.prefix }}sampleacr
-    resource_group_name: ${{ modules.rg.name }}
-    location: "Japan East"
-    credentials: ${{ modules.credentials.credentials }}
----
-name: azure_credentials
-modules:
-- name: credentials
-  module: data/environment
-  argument:
-    subscription_id: AZURE_SUBSCRIPTION_ID
-    tenant_id: AZURE_TENANT_ID
-    client_id: AZURE_CLIENT_ID
-    username: AZURE_USERNANE
-    password: AZURE_PASSWORD
+    provider: azurerm
+    resource: azurerm_container_registry
+    configurations: { features: {} }
+    argument:
+      name: ${{ parameter.prefix }}sampleacr
+      resource_group_name: ${{ modules.rg.name }}
+      location: "Japan East"
+      sku: Basic
+      admin_enabled: true
