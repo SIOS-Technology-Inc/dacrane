@@ -9,7 +9,7 @@ import (
 )
 
 var DockerRemoteImageProvider = pdk.NewResourceModule(pdk.Resource{
-	Create: func(parameter any) (any, error) {
+	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		tag := params["tag"].(string)
@@ -33,7 +33,7 @@ var DockerRemoteImageProvider = pdk.NewResourceModule(pdk.Resource{
 
 		return params, nil
 	},
-	Delete: func(parameter any) error {
+	Delete: func(parameter any, _ pdk.ProviderMeta) error {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		tag := params["tag"].(string)

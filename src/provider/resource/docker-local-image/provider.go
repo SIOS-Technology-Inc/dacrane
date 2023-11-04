@@ -7,7 +7,7 @@ import (
 )
 
 var DockerLocalImageResourceModule = pdk.NewResourceModule(pdk.Resource{
-	Create: func(parameter any) (any, error) {
+	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		dockerfile := params["dockerfile"].(string)
 		image := params["image"].(string)
@@ -17,7 +17,7 @@ var DockerLocalImageResourceModule = pdk.NewResourceModule(pdk.Resource{
 		_, err := utils.RunOnBash(dockerCmd)
 		return params, err
 	},
-	Delete: func(parameter any) error {
+	Delete: func(parameter any, _ pdk.ProviderMeta) error {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		tag := params["tag"].(string)

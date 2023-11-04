@@ -11,7 +11,7 @@ import (
 	terraform_resource "dacrane/provider/resource/terraform"
 )
 
-var pluginModules = map[string](pdk.Module){
+var pluginModules = map[string](pdk.Provider){
 	"data/environment":             environment.EnvironmentDataModule,
 	"data/terraform":               terraform_data.TerraformDataModule,
 	"resource/docker-container":    docker_container.DockerContainerResourceModule,

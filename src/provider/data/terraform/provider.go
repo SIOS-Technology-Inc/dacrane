@@ -14,7 +14,7 @@ import (
 )
 
 var TerraformDataModule = pdk.NewDataModule(pdk.Data{
-	Get: func(parameter any) (any, error) {
+	Get: func(parameter any, meta pdk.ProviderMeta) (any, error) {
 		parameters := parameter.(map[string]any)
 		f := hclwrite.NewEmptyFile()
 		rootBody := f.Body()
@@ -33,17 +33,11 @@ var TerraformDataModule = pdk.NewDataModule(pdk.Data{
 		}
 
 		// Setting Resource
-		resourceType, resourceName := "", ""
+		resourceType, resourceName := "", "main"
 		if resType, ok := parameters["resource"].(string); ok {
 			resourceType = resType
 		} else {
 			return nil, fmt.Errorf("resource type is required and must be a string")
-		}
-
-		if resName, ok := parameters["name"].(string); ok {
-			resourceName = resName
-		} else {
-			return nil, fmt.Errorf("resource name is required and must be a string")
 		}
 
 		resourceBlock := rootBody.AppendNewBlock("data", []string{resourceType, resourceName})
@@ -55,10 +49,8 @@ var TerraformDataModule = pdk.NewDataModule(pdk.Data{
 		}
 
 		// write file
-		instanceName := "your_instance_name"
-		localModuleName := "your_module_name"
-		filename := "your_filename.tf"
-		dir := filepath.Join(".dacrane", "instances", instanceName, "custom_states", localModuleName)
+		filename := "main.tf"
+		dir := meta.CustomStateDir
 		filePath := filepath.Join(dir, filename)
 
 		// Ensure the directory exists

@@ -15,16 +15,11 @@ import (
 
 var TerraformResourceModule = pdk.NewResourceModule(pdk.Resource{
 	Create: Create,
-	Update: func(current, _ any) (any, error) {
-		return Create(current)
+	Update: func(current, _ any, meta pdk.ProviderMeta) (any, error) {
+		return Create(current, meta)
 	},
-	Delete: func(any) error {
-		instanceName := "your_instance_name"
-		localModuleName := "your_module_name"
-		filename := "your_filename.tf"
-		dird := filepath.Join(".dacrane", "instances", instanceName, "custom_states", localModuleName)
-		filePath := filepath.Join(dird, filename)
-		dir := filepath.Dir(filePath)
+	Delete: func(_ any, meta pdk.ProviderMeta) error {
+		dir := meta.CustomStateDir
 		// terraform destroy
 		cmd := exec.Command("terraform", "destroy", "-auto-approve")
 		cmd.Dir = dir
@@ -43,7 +38,7 @@ var TerraformResourceModule = pdk.NewResourceModule(pdk.Resource{
 	},
 })
 
-func Create(parameter any) (any, error) {
+func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 	parameters := parameter.(map[string]any)
 	f := hclwrite.NewEmptyFile()
 	rootBody := f.Body()
@@ -66,10 +61,7 @@ func Create(parameter any) (any, error) {
 	if !ok {
 		return nil, fmt.Errorf("resource type is required and must be a string")
 	}
-	resourceName, ok := parameters["name"].(string)
-	if !ok {
-		return nil, fmt.Errorf("resource name is required and must be a string")
-	}
+	resourceName := "main"
 	resourceBlock := rootBody.AppendNewBlock("resource", []string{resourceType, resourceName})
 	resourceBody := resourceBlock.Body()
 	if args, ok := parameters["argument"].(map[string]interface{}); ok {
@@ -79,10 +71,8 @@ func Create(parameter any) (any, error) {
 	}
 
 	// write file
-	instanceName := "your_instance_name"
-	localModuleName := "your_module_name"
-	filename := "your_filename.tf"
-	dir := filepath.Join(".dacrane", "instances", instanceName, "custom_states", localModuleName)
+	filename := "main.tf"
+	dir := meta.CustomStateDir
 	filePath := filepath.Join(dir, filename)
 
 	// Ensure the directory exists

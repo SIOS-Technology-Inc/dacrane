@@ -6,7 +6,7 @@ import (
 )
 
 var EnvironmentDataModule = pdk.NewDataModule(pdk.Data{
-	Get: func(parameter any) (any, error) {
+	Get: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		data := map[string]any{}
 		for key, name := range params {

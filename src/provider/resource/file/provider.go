@@ -6,7 +6,7 @@ import (
 )
 
 var FileProvider = pdk.NewResourceModule(pdk.Resource{
-	Create: func(parameter any) (any, error) {
+	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		contents := params["contents"].(string)
 		filename := params["filename"].(string)
@@ -18,7 +18,7 @@ var FileProvider = pdk.NewResourceModule(pdk.Resource{
 
 		return parameter, nil
 	},
-	Delete: func(parameter any) error {
+	Delete: func(parameter any, _ pdk.ProviderMeta) error {
 		params := parameter.(map[string]any)
 		filename := params["filename"].(string)
 		err := os.Remove(filename)
