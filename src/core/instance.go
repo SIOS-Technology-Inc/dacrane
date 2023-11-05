@@ -1,9 +1,11 @@
 package core
 
 import (
+	"dacrane/pdk"
 	"dacrane/utils"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"golang.org/x/exp/slices"
 	"gopkg.in/yaml.v3"
@@ -241,8 +243,9 @@ func (config ProjectConfig) Apply(
 
 		if isPluginModules {
 			previous := instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name]
+			meta := pdk.ProviderMeta{CustomStateDir: filepath.Join(projectConfigDir, config.InstancesDir, instanceName, moduleCall.Name, "custom_state")}
 			fmt.Printf("[%s (%s)] Applying...\n", moduleCall.Name, moduleCall.Module)
-			ret, err := pluginModule.Apply(evaluatedModuleCall.Argument, previous)
+			ret, err := pluginModule.Apply(evaluatedModuleCall.Argument, previous, meta)
 			if err != nil {
 				panic(err)
 			}
@@ -278,7 +281,9 @@ func (config ProjectConfig) Destroy(
 				fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
 			} else {
 				fmt.Printf("[%s (%s)] Destroying...\n", moduleCall.Name, moduleCall.Module)
-				err := pluginModule.Destroy(state)
+				filepath.Join()
+				meta := pdk.ProviderMeta{CustomStateDir: filepath.Join(projectConfigDir, config.InstancesDir, instanceName, moduleCall.Name, "custom_state")}
+				err := pluginModule.Destroy(state, meta)
 				if err != nil {
 					panic(err)
 				}

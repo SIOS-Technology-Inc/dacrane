@@ -8,7 +8,7 @@ import (
 )
 
 var DockerContainerResourceModule = pdk.NewResourceModule(pdk.Resource{
-	Create: func(parameter any) (any, error) {
+	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		name := params["name"].(string)
@@ -33,7 +33,7 @@ var DockerContainerResourceModule = pdk.NewResourceModule(pdk.Resource{
 
 		return parameter, nil
 	},
-	Delete: func(parameter any) error {
+	Delete: func(parameter any, _ pdk.ProviderMeta) error {
 		params := parameter.(map[string]any)
 		name := params["name"].(string)
 		_, err := utils.RunOnBash(fmt.Sprintf("docker stop %s", name))
