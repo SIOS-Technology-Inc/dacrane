@@ -1,32 +1,30 @@
 package file
 
 import (
-	"context"
+	"dacrane/pdk"
 	"os"
 )
-type FileProvider struct{}
-var ctx = context.Background()
 
-func (FileProvider) Create(parameters map[string]any) (map[string]any, error) {
-	statesYaml := []byte{}
-	contents := parameters["contents"].(string)
-	filename := parameters["filename"].(string)
+var FileProvider = pdk.NewResourceModule(pdk.Resource{
+	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
+		params := parameter.(map[string]any)
+		contents := params["contents"].(string)
+		filename := params["filename"].(string)
 
-	statesYaml = append(statesYaml, []byte(contents)...)
-	e := os.WriteFile(filename, statesYaml, 0644)
-	if e != nil {
-    return nil, e
-	}
+		e := os.WriteFile(filename, []byte(contents), 0644)
+		if e != nil {
+			return nil, e
+		}
 
- return nil, nil
-}
-
-func (fp FileProvider) Delete(parameters map[string]interface{}) error {
-
-	filename := parameters["filename"].(string)
-	err := os.Remove(filename)
-	if err != nil {
+		return parameter, nil
+	},
+	Delete: func(parameter any, _ pdk.ProviderMeta) error {
+		params := parameter.(map[string]any)
+		filename := params["filename"].(string)
+		err := os.Remove(filename)
+		if err != nil {
 			return err
-	}
-	return nil
-}
+		}
+		return nil
+	},
+})
