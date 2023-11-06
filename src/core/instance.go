@@ -264,6 +264,7 @@ func (config ProjectConfig) Apply(
 
 func (config ProjectConfig) Destroy(
 	instanceName string,
+	modules []ModuleCode,
 ) {
 	instance := config.GetInstance(instanceName)
 
@@ -290,10 +291,50 @@ func (config ProjectConfig) Destroy(
 				fmt.Printf("[%s (%s)] Destroyed.\n", moduleCall.Name, moduleCall.Module)
 			}
 		} else {
-			// Not Implemented Inner Module
+			module := utils.Find(modules, func(m ModuleCode) bool {
+				return m.Name == moduleCall.Module
+			})
+			config.destroy(instanceName+"/"+moduleCall.Name, module, state.(map[string]any), modules)
 		}
-		delete(instance.State["modules"].(map[string]any), "")
+		delete(instance.State["modules"].(map[string]any), moduleCall.Name)
 		config.UpsertInstance(instance)
 	}
 	config.DeleteInstance(instanceName)
+}
+
+func (config ProjectConfig) destroy(
+	instanceName string,
+	module ModuleCode,
+	moduleState map[string]any,
+	modules []ModuleCode,
+) {
+	sortedModuleCalls := utils.Reverse(module.TopologicalSortedModuleCalls())
+	for _, moduleCall := range sortedModuleCalls {
+		state := moduleState["modules"].(map[string]any)[moduleCall.Name]
+		if state == nil {
+			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
+			continue
+		}
+		pluginModule, isPluginModules := pluginModules[moduleCall.Module]
+
+		if isPluginModules {
+			if pluginModule.Destroy == nil {
+				fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
+			} else {
+				fmt.Printf("[%s (%s)] Destroying...\n", moduleCall.Name, moduleCall.Module)
+				filepath.Join()
+				meta := pdk.ProviderMeta{CustomStateDir: filepath.Join(projectConfigDir, config.InstancesDir, instanceName, moduleCall.Name, "custom_state")}
+				err := pluginModule.Destroy(state, meta)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Printf("[%s (%s)] Destroyed.\n", moduleCall.Name, moduleCall.Module)
+			}
+		} else {
+			module := utils.Find(modules, func(m ModuleCode) bool {
+				return m.Name == moduleCall.Module
+			})
+			config.destroy(instanceName+"/"+moduleCall.Name, module, state.(map[string]any), modules)
+		}
+	}
 }
