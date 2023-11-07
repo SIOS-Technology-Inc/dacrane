@@ -8,6 +8,25 @@ modules:
   module: local-docker
   argument: ${{ modules.image.modules.api-local-image }}
 ---
+name: quick-start-as
+modules:
+- name: qs-base
+  module: base
+  argument:
+    prefix: dacrane
+- name: qs-api-image
+  module: api-image
+  argument:
+    tag: latest
+    acr: ${{ modules.qs-base.modules.acr }}
+- name: qs-app-service
+  module: app-service
+  argument:
+    env: qs
+    spec: low
+    base: ${{ modules.qs-base }}
+    api: ${{ modules.qs-api-image }}
+---
 name: local-docker
 parameter:
   type: object
