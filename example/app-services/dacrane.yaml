@@ -53,9 +53,6 @@ parameter:
   properties:
     tag: { type: string }
     acr: { type: object }
-dependencies:
-- name: base
-  module: base
 modules:
 - name: api-local-image
   module: resource/docker-local-image
