@@ -13,7 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-var TerraformResourceModule = pdk.NewResourceModule(pdk.Resource{
+var TerraformResourceProvider = pdk.NewResourceProvider(pdk.Resource{
 	Create: Create,
 	Update: func(current, _ any, meta pdk.ProviderMeta) (any, error) {
 		return Create(current, meta)

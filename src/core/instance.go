@@ -18,7 +18,7 @@ type ProjectConfig struct {
 
 type Instance struct {
 	Name   string
-	Module ModuleCode
+	Module Module
 	State  map[string]any
 }
 
@@ -151,12 +151,12 @@ func loadState(instanceDir string) map[string]any {
 	return state
 }
 
-func loadModule(instanceDir string) ModuleCode {
+func loadModule(instanceDir string) Module {
 	data, err := os.ReadFile(ModuleFilePath(instanceDir))
 	if err != nil {
 		panic(err)
 	}
-	var module ModuleCode
+	var module Module
 	err = yaml.Unmarshal(data, &module)
 	if err != nil {
 		panic(err)
@@ -202,10 +202,10 @@ func (config ProjectConfig) Apply(
 	instanceName string,
 	moduleName string,
 	argument any,
-	modules []ModuleCode,
+	modules []Module,
 	writesInstance bool,
 ) map[string]any {
-	module := utils.Find(modules, func(m ModuleCode) bool {
+	module := utils.Find(modules, func(m Module) bool {
 		return m.Name == moduleName
 	})
 	err := utils.Validate(module.Parameter, argument)
@@ -239,7 +239,7 @@ func (config ProjectConfig) Apply(
 			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
 			continue
 		}
-		pluginModule, isPluginModules := pluginModules[evaluatedModuleCall.Module]
+		pluginModule, isPluginModules := providers[evaluatedModuleCall.Module]
 
 		if isPluginModules {
 			previous := instance.State["modules"].(map[string]any)[evaluatedModuleCall.Name]
@@ -264,7 +264,7 @@ func (config ProjectConfig) Apply(
 
 func (config ProjectConfig) Destroy(
 	instanceName string,
-	modules []ModuleCode,
+	modules []Module,
 ) {
 	instance := config.GetInstance(instanceName)
 
@@ -275,7 +275,7 @@ func (config ProjectConfig) Destroy(
 			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
 			continue
 		}
-		pluginModule, isPluginModules := pluginModules[moduleCall.Module]
+		pluginModule, isPluginModules := providers[moduleCall.Module]
 
 		if isPluginModules {
 			if pluginModule.Destroy == nil {
@@ -291,7 +291,7 @@ func (config ProjectConfig) Destroy(
 				fmt.Printf("[%s (%s)] Destroyed.\n", moduleCall.Name, moduleCall.Module)
 			}
 		} else {
-			module := utils.Find(modules, func(m ModuleCode) bool {
+			module := utils.Find(modules, func(m Module) bool {
 				return m.Name == moduleCall.Module
 			})
 			config.destroy(instanceName+"/"+moduleCall.Name, module, state.(map[string]any), modules)
@@ -304,9 +304,9 @@ func (config ProjectConfig) Destroy(
 
 func (config ProjectConfig) destroy(
 	instanceName string,
-	module ModuleCode,
+	module Module,
 	moduleState map[string]any,
-	modules []ModuleCode,
+	modules []Module,
 ) {
 	sortedModuleCalls := utils.Reverse(module.TopologicalSortedModuleCalls())
 	for _, moduleCall := range sortedModuleCalls {
@@ -315,7 +315,7 @@ func (config ProjectConfig) destroy(
 			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
 			continue
 		}
-		pluginModule, isPluginModules := pluginModules[moduleCall.Module]
+		pluginModule, isPluginModules := providers[moduleCall.Module]
 
 		if isPluginModules {
 			if pluginModule.Destroy == nil {
@@ -331,7 +331,7 @@ func (config ProjectConfig) destroy(
 				fmt.Printf("[%s (%s)] Destroyed.\n", moduleCall.Name, moduleCall.Module)
 			}
 		} else {
-			module := utils.Find(modules, func(m ModuleCode) bool {
+			module := utils.Find(modules, func(m Module) bool {
 				return m.Name == moduleCall.Module
 			})
 			config.destroy(instanceName+"/"+moduleCall.Name, module, state.(map[string]any), modules)

@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-var EnvironmentDataModule = pdk.NewDataModule(pdk.Data{
+var EnvironmentDataProvider = pdk.NewDataProvider(pdk.Data{
 	Get: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		data := map[string]any{}

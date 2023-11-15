@@ -9,7 +9,7 @@ type Provider struct {
 	Destroy func(current any, meta ProviderMeta) error
 }
 
-func NewResourceModule(resource Resource) Provider {
+func NewResourceProvider(resource Resource) Provider {
 	if resource.Update == nil {
 		resource.Update = func(current any, previous any, meta ProviderMeta) (any, error) {
 			err := resource.Delete(previous, meta)
@@ -33,7 +33,7 @@ func NewResourceModule(resource Resource) Provider {
 	}
 }
 
-func NewDataModule(data Data) Provider {
+func NewDataProvider(data Data) Provider {
 	return Provider{
 		Apply: func(current any, previous any, meta ProviderMeta) (any, error) {
 			return data.Get(current, meta)

@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var DockerRemoteImageProvider = pdk.NewResourceModule(pdk.Resource{
+var DockerRemoteImageProvider = pdk.NewResourceProvider(pdk.Resource{
 	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)

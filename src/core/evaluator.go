@@ -20,13 +20,13 @@ func ParseExpr(exprStr string) Expr {
 	return lexer.result
 }
 
-func ParseModules(codeBytes []byte) []ModuleCode {
+func ParseModules(codeBytes []byte) []Module {
 	r := bytes.NewReader(codeBytes)
 	dec := yaml.NewDecoder(r)
 
-	modules := []ModuleCode{}
+	modules := []Module{}
 	for {
-		var module ModuleCode
+		var module Module
 		if err := dec.Decode(&module); err != nil {
 			if err.Error() == "EOF" {
 				break
@@ -131,13 +131,13 @@ func EvaluateExprString(expr Expr, data map[string]any) any {
 	panic("Unsupported expression type")
 }
 
-func (module ModuleCode) FindModuleCall(name string) ModuleCall {
+func (module Module) FindModuleCall(name string) ModuleCall {
 	return utils.Find(module.ModuleCalls, func(mc ModuleCall) bool {
 		return mc.Name == name
 	})
 }
 
-func (module ModuleCode) TopologicalSortedModuleCalls() []ModuleCall {
+func (module Module) TopologicalSortedModuleCalls() []ModuleCall {
 	g := simple.NewDirectedGraph()
 
 	idToName := map[int64]string{}

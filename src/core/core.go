@@ -11,12 +11,12 @@ import (
 	terraform_resource "dacrane/provider/resource/terraform"
 )
 
-var pluginModules = map[string](pdk.Provider){
-	"data/environment":             environment.EnvironmentDataModule,
-	"data/terraform":               terraform_data.TerraformDataModule,
-	"resource/docker-container":    docker_container.DockerContainerResourceModule,
-	"resource/docker-local-image":  docker_local_image.DockerLocalImageResourceModule,
+var providers = map[string](pdk.Provider){
+	"data/environment":             environment.EnvironmentDataProvider,
+	"data/terraform":               terraform_data.TerraformDataProvider,
+	"resource/docker-container":    docker_container.DockerContainerResourceProvider,
+	"resource/docker-local-image":  docker_local_image.DockerLocalImageResourceProvider,
 	"resource/docker-remote-image": docker_remote_image.DockerRemoteImageProvider,
-	"resource/file":                file.FileProvider,
-	"resource/terraform":           terraform_resource.TerraformResourceModule,
+	"resource/file":                file.FileResourceProvider,
+	"resource/terraform":           terraform_resource.TerraformResourceProvider,
 }

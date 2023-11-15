@@ -13,7 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-var TerraformDataModule = pdk.NewDataModule(pdk.Data{
+var TerraformDataProvider = pdk.NewDataProvider(pdk.Data{
 	Get: func(parameter any, meta pdk.ProviderMeta) (any, error) {
 		parameters := parameter.(map[string]any)
 		f := hclwrite.NewEmptyFile()
