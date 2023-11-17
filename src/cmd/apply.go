@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"dacrane/core"
-	"dacrane/core/evaluator"
 	"dacrane/core/module"
 	"dacrane/core/repository"
 	"dacrane/utils"
@@ -51,7 +50,7 @@ var applyCmd = &cobra.Command{
 			}
 		}
 
-		evaluatedArg := evaluator.Evaluate(argument, map[string]any{
+		evaluatedArg := module.Evaluate(argument, map[string]any{
 			"instances": states,
 		})
 

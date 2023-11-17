@@ -56,17 +56,17 @@ func (module Module) Apply(
 		document := instances.Find(instanceAddress)
 		instance = NewInstanceFromDocument(document).(moduleInstance)
 	} else {
-		instance = NewModuleInstance(module, argument)
+		instance = NewModuleInstance(module, instanceAddress, argument)
 		instances.Upsert(instanceAddress, instance)
 	}
 
 	moduleCalls := module.TopologicalSortedModuleCalls()
 	for _, moduleCall := range moduleCalls {
-		fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
+		fmt.Printf("[%s (%s)] Evaluating...\n", instanceAddress, moduleCall.Module)
 		evaluatedModuleCall := moduleCall.Evaluate(instance.ToState(*instances).(map[string]any))
-		fmt.Printf("[%s (%s)] Evaluated.\n", moduleCall.Name, moduleCall.Module)
+		fmt.Printf("[%s (%s)] Evaluated.\n", instanceAddress, moduleCall.Module)
 		if evaluatedModuleCall == nil {
-			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
+			fmt.Printf("[%s (%s)] Skipped.\n", instanceAddress, moduleCall.Module)
 			continue
 		}
 

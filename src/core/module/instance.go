@@ -29,10 +29,11 @@ type providerInstance struct {
 	Output         any    `yaml:"output"`
 }
 
-func NewModuleInstance(module Module, argument any) moduleInstance {
+func NewModuleInstance(module Module, address string, argument any) moduleInstance {
 	return moduleInstance{
 		Type:      "module",
 		Module:    module,
+		Address:   address,
 		Argument:  argument,
 		Instances: []string{},
 	}
@@ -78,9 +79,10 @@ func (instance moduleInstance) ToState(instances repository.DocumentRepository) 
 		"modules":   map[string]any{},
 	}
 	for _, address := range instance.Instances {
-		childAbsAddr := instance.Address + address
-		child := instances.Find(childAbsAddr)
-		state["modules"].(map[string]any)[address] = child
+		childAbsAddr := instance.Address + "." + address
+		doc := instances.Find(childAbsAddr)
+		child := NewInstanceFromDocument(doc)
+		state["modules"].(map[string]any)[address] = child.ToState(instances)
 	}
 	return state
 }

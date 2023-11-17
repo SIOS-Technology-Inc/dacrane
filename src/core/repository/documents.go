@@ -46,7 +46,7 @@ func (repository *DocumentRepository) read() {
 		panic(err)
 	}
 	var doc map[string]any
-	err = yaml.Unmarshal(bytes, doc)
+	err = yaml.Unmarshal(bytes, &doc)
 	if err != nil {
 		panic(err)
 	}
@@ -76,11 +76,13 @@ func (repository DocumentRepository) Find(id string) any {
 func (repository *DocumentRepository) Upsert(id string, document any) {
 	repository.document[id] = document
 	repository.write()
+	repository.read()
 }
 
 func (repository *DocumentRepository) Delete(id string) {
 	delete(repository.document, id)
 	repository.write()
+	repository.read()
 }
 
 func (repository DocumentRepository) Ids() []string {
