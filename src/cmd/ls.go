@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	"dacrane/core"
+	"dacrane/core/module"
+	"dacrane/core/repository"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -13,8 +14,8 @@ var lsCmd = &cobra.Command{
 	Short: "show instance list",
 	Long:  "show instance list",
 	Run: func(cmd *cobra.Command, args []string) {
-		config := core.LoadProjectConfig()
-		list := config.PrettyList()
+		instances := repository.LoadDocumentRepository()
+		list := module.PrettyInstanceList(instances)
 		fmt.Print(list)
 	},
 }

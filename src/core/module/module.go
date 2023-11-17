@@ -1,7 +1,9 @@
-package core
+package module
 
 import (
 	"bytes"
+	"dacrane/core/evaluator"
+	"dacrane/core/repository"
 	"dacrane/utils"
 	"fmt"
 	"regexp"
@@ -14,10 +16,86 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func ParseExpr(exprStr string) Expr {
-	lexer := NewLexer(strings.NewReader(exprStr))
-	yyParse(lexer)
-	return lexer.result
+type Module struct {
+	Name         string       `yaml:"name"`
+	Import       []string     `yaml:"import"`
+	Parameter    any          `yaml:"parameter"`
+	Dependencies []Dependency `yaml:"dependencies"`
+	ModuleCalls  []ModuleCall `yaml:"modules"`
+}
+
+type Dependency struct {
+	Name   string `yaml:"name"`
+	Module string `yaml:"module"`
+}
+
+type ModuleCall struct {
+	Name         string            `yaml:"name"`
+	DependsOn    []string          `yaml:"depends_on"`
+	Module       string            `yaml:"module"`
+	Argument     any               `yaml:"argument"`
+	Dependencies map[string]string `yaml:"dependencies"`
+	If           any               `yaml:"if"`
+}
+
+func (module Module) Apply(
+	instanceAddress string,
+	argument any,
+	instances *repository.DocumentRepository,
+	importedModule []Module,
+	importedProvider []Provider,
+) {
+	// Validation Argument
+	err := utils.Validate(module.Parameter, argument)
+	if err != nil {
+		panic(err)
+	}
+
+	var instance moduleInstance
+	if instances.Exists(instanceAddress) {
+		document := instances.Find(instanceAddress)
+		instance = NewInstanceFromDocument(document).(moduleInstance)
+	} else {
+		instance = NewModuleInstance(module, argument)
+		instances.Upsert(instanceAddress, instance)
+	}
+
+	moduleCalls := module.TopologicalSortedModuleCalls()
+	for _, moduleCall := range moduleCalls {
+		fmt.Printf("[%s (%s)] Evaluating...\n", moduleCall.Name, moduleCall.Module)
+		evaluatedModuleCall := moduleCall.Evaluate(instance.ToState(*instances).(map[string]any))
+		fmt.Printf("[%s (%s)] Evaluated.\n", moduleCall.Name, moduleCall.Module)
+		if evaluatedModuleCall == nil {
+			fmt.Printf("[%s (%s)] Skipped.\n", moduleCall.Name, moduleCall.Module)
+			continue
+		}
+
+		childRelAddr := evaluatedModuleCall.Name
+		childAbsAddr := instanceAddress + "." + evaluatedModuleCall.Name
+
+		providerExists := utils.Contains(importedProvider, func(provider Provider) bool {
+			return provider.Name == evaluatedModuleCall.Module
+		})
+		moduleExists := utils.Contains(importedModule, func(module Module) bool {
+			return module.Name == evaluatedModuleCall.Module
+		})
+
+		if providerExists {
+			provider := utils.Find(importedProvider, func(provider Provider) bool {
+				return provider.Name == evaluatedModuleCall.Module
+			})
+			provider.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances)
+		} else if moduleExists {
+			childModule := utils.Find(importedModule, func(module Module) bool {
+				return module.Name == evaluatedModuleCall.Module
+			})
+			childModule.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances, importedModule, importedProvider)
+		} else {
+			panic(fmt.Sprintf("undefined module or provider: %s", evaluatedModuleCall.Module))
+		}
+		instance.Instances = append(instance.Instances, childRelAddr)
+		instances.Upsert(instanceAddress, instance)
+	}
 }
 
 func ParseModules(codeBytes []byte) []Module {
@@ -37,98 +115,6 @@ func ParseModules(codeBytes []byte) []Module {
 	}
 
 	return modules
-}
-
-func EvaluateExprString(expr Expr, data map[string]any) any {
-	switch e := expr.(type) {
-	case *Identifier:
-		keys := strings.Split(e.Name, ".")
-		var val any = data
-		for _, key := range keys {
-			if v, ok := val.(map[string]any)[key]; ok {
-				val = v
-			} else {
-				val = nil
-			}
-		}
-		return val
-	case *Ref:
-		m := EvaluateExprString(e.Expr, data).(map[Expr]any)
-		key := EvaluateExprString(e.Key, data)
-		return m[key]
-	case *BinaryExpr:
-		left := EvaluateExprString(e.Left, data)
-		right := EvaluateExprString(e.Right, data)
-		switch e.Op.Type.GetID() {
-		case PRIORITY:
-			if left != nil {
-				return left
-			} else {
-				return right
-			}
-		case ADD:
-			return left.(float64) + right.(float64)
-		case SUB:
-			return left.(float64) - right.(float64)
-		case MUL:
-			return left.(float64) * right.(float64)
-		case DIV:
-			return left.(float64) / right.(float64)
-		case EQ:
-			return left == right
-		case NEQ:
-			return left != right
-		case LT:
-			return left.(float64) < right.(float64)
-		case LTE:
-			return left.(float64) <= right.(float64)
-		case GT:
-			return left.(float64) > right.(float64)
-		case GTE:
-			return left.(float64) >= right.(float64)
-		case AND:
-			return left.(bool) && right.(bool)
-		case OR:
-			return left.(bool) || right.(bool)
-		}
-	case *UnaryExpr:
-		val := EvaluateExprString(e.Expr, data)
-		switch e.Op.Type.GetID() {
-		case SUB:
-			return -val.(float64)
-		case NOT:
-			return !val.(bool)
-		}
-	case *IfExpr:
-		condition := EvaluateExprString(e.Condition, data)
-		if condition.(bool) {
-			return EvaluateExprString(e.Then, data)
-		}
-		return EvaluateExprString(e.Else, data)
-	case *List:
-		var values []any
-		for _, item := range e.Items {
-			values = append(values, EvaluateExprString(item, data))
-		}
-		return values
-	case *Map:
-		kvMap := make(map[Expr]any)
-		for k, v := range e.KVs {
-			kvMap[EvaluateExprString(k, data)] = EvaluateExprString(v, data)
-		}
-		return kvMap
-	case *App:
-		panic("App node evaluation is not supported in this example.")
-	case *Number:
-		return e.Value
-	case *String:
-		return e.Value
-	case *Boolean:
-		return e.Value
-	case *Null:
-		return nil
-	}
-	panic("Unsupported expression type")
 }
 
 func (module Module) FindModuleCall(name string) ModuleCall {
@@ -234,8 +220,8 @@ func Evaluate(prop any, data map[string]any) any {
 				panic(e)
 			}
 			exprStr := r.FindStringSubmatch(prop)[1]
-			expr := ParseExpr(exprStr)
-			return EvaluateExprString(expr, data)
+			expr := evaluator.Parse(exprStr)
+			return evaluator.Evaluate(expr, data)
 		} else {
 			return expandExpr(prop, data)
 		}
@@ -267,8 +253,8 @@ func expandExpr(prop string, data map[string]any) string {
 	}
 	return r.ReplaceAllStringFunc(prop, func(s string) string {
 		exprStr := r.FindStringSubmatch(s)
-		expr := ParseExpr(exprStr[1])
-		v := EvaluateExprString(expr, data)
+		expr := evaluator.Parse(exprStr[1])
+		v := evaluator.Evaluate(expr, data)
 		return convertToString(v)
 	})
 }
@@ -328,8 +314,8 @@ func references(raw any) []string {
 		res := r.FindAllStringSubmatch(raw, -1)
 		var paths []string
 		for _, exprStr := range res {
-			expr := ParseExpr(exprStr[1])
-			paths = append(paths, localModuleReferences(expr)...)
+			expr := evaluator.Parse(exprStr[1])
+			paths = append(paths, evaluator.GetReferences(expr)...)
 		}
 		return paths
 	default:
@@ -337,46 +323,22 @@ func references(raw any) []string {
 	}
 }
 
-func localModuleReferences(expr Expr) []string {
-	var names []string
+func (module Module) GenerateYaml() []byte {
+	data, err := yaml.Marshal(module)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
 
-	switch e := expr.(type) {
-	case *Ref:
-		if id, ok := e.Expr.(*Identifier); ok {
-			keys := strings.Split(id.Name, ".")
-			if keys[0] == "modules" {
-				names = append(names, keys[1])
-			}
-		}
-		names = append(names, localModuleReferences(e.Expr)...)
-		names = append(names, localModuleReferences(e.Key)...)
-	case *Identifier:
-		keys := strings.Split(e.Name, ".")
-		if keys[0] == "modules" {
-			names = append(names, keys[1])
-		}
-	case *BinaryExpr:
-		names = append(names, localModuleReferences(e.Left)...)
-		names = append(names, localModuleReferences(e.Right)...)
-	case *UnaryExpr:
-		names = append(names, localModuleReferences(e.Expr)...)
-	case *IfExpr:
-		names = append(names, localModuleReferences(e.Condition)...)
-		names = append(names, localModuleReferences(e.Then)...)
-		names = append(names, localModuleReferences(e.Else)...)
-	case *List:
-		for _, item := range e.Items {
-			names = append(names, localModuleReferences(item)...)
-		}
-	case *Map:
-		for _, v := range e.KVs {
-			names = append(names, localModuleReferences(v)...)
-		}
-	case *App:
-		for _, param := range e.Params {
-			names = append(names, localModuleReferences(param)...)
+func PrettyInstanceList(instances repository.DocumentRepository) string {
+	s := ""
+	for _, address := range instances.Ids() {
+		document := instances.Find(address)
+		instance := NewInstanceFromDocument(document)
+		if !strings.Contains(address, ".") {
+			s = s + fmt.Sprintf("%s (%s)\n", address, instance.(moduleInstance).Module.Name)
 		}
 	}
-
-	return names
+	return s
 }

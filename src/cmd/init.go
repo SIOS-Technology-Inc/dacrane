@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"dacrane/core"
+	"dacrane/core/repository"
 
 	"github.com/spf13/cobra"
 )
@@ -12,7 +12,7 @@ var initCmd = &cobra.Command{
 	Short: "initialize dacrane project",
 	Long:  "initialize dacrane project",
 	Run: func(cmd *cobra.Command, args []string) {
-		core.NewProjectConfig().Init()
+		repository.InitDocumentRepositoryFile()
 	},
 }
 

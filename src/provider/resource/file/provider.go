@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-var FileResourceProvider = pdk.NewResourceProvider(pdk.Resource{
+var FileResource = pdk.Resource{
 	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		contents := params["contents"].(string)
@@ -27,4 +27,4 @@ var FileResourceProvider = pdk.NewResourceProvider(pdk.Resource{
 		}
 		return nil
 	},
-})
+}

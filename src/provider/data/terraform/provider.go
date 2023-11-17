@@ -13,7 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-var TerraformDataProvider = pdk.NewDataProvider(pdk.Data{
+var TerraformData = pdk.Data{
 	Get: func(parameter any, meta pdk.ProviderMeta) (any, error) {
 		parameters := parameter.(map[string]any)
 		f := hclwrite.NewEmptyFile()
@@ -93,7 +93,7 @@ var TerraformDataProvider = pdk.NewDataProvider(pdk.Data{
 		attributes := instance.(map[string]any)["attributes"]
 		return attributes.(map[string]any), nil
 	},
-})
+}
 
 func writeHCL(body *hclwrite.Body, key string, value interface{}) {
 	switch v := value.(type) {

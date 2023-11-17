@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"dacrane/core"
+	"dacrane/core/module"
+	"dacrane/core/repository"
 	"errors"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -21,13 +22,10 @@ var destroyCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		instanceName := args[0]
-		config := core.LoadProjectConfig()
-		codeBytes, err := os.ReadFile("dacrane.yaml")
-		if err != nil {
-			panic(err)
-		}
-		modules := core.ParseModules(codeBytes)
-		config.Destroy(instanceName, modules)
+		instances := repository.LoadDocumentRepository()
+		doc := instances.Find(instanceName)
+		instance := module.NewInstanceFromDocument(doc)
+		instance.Destroy(instanceName, &instances, core.Providers)
 	},
 }
 

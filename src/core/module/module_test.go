@@ -1,15 +1,10 @@
-package core
+package module
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestParse(t *testing.T) {
-	assert.Equal(t, &Identifier{Name: "a.b.c"}, ParseExpr("a.b.c"))
-	assert.Equal(t, &Identifier{Name: "a"}, ParseExpr("a"))
-}
 
 func TestDependency(t *testing.T) {
 	codeStr := `
@@ -72,39 +67,3 @@ modules:
 		module.TopologicalSortedModuleCalls())
 }
 
-func TestEvaluate(t *testing.T) {
-	expr := ParseExpr("data.config.foo")
-	v := EvaluateExprString(expr, map[string]any{
-		"data": map[string]any{
-			"config": map[string]any{
-				"foo": "OK",
-			},
-		},
-	})
-	assert.Equal(t, "OK", v)
-
-	expr = ParseExpr("1 + 2 + 4")
-	v = EvaluateExprString(expr, map[string]any{})
-	assert.Equal(t, 7.0, v)
-
-	expr = ParseExpr(`data.config.foo == "OK"`)
-	v = EvaluateExprString(expr, map[string]any{
-		"data": map[string]any{
-			"config": map[string]any{
-				"foo": "OK",
-			},
-		},
-	})
-	assert.Equal(t, true, v)
-
-	expr = ParseExpr(`{"low": "Basic", "high": "Premium" }`)
-	v = EvaluateExprString(expr, map[string]any{})
-	assert.Equal(t, map[Expr]any{
-		"low":  "Basic",
-		"high": "Premium",
-	}, v)
-
-	expr = ParseExpr(`{"low": "Basic", "high": "Premium" }["high"]`)
-	v = EvaluateExprString(expr, map[string]any{})
-	assert.Equal(t, "Premium", v)
-}
