@@ -2,8 +2,13 @@ package cmd
 
 import (
 	"dacrane/core"
+	"dacrane/core/module"
+	"dacrane/core/repository"
+	"dacrane/utils"
 	"errors"
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -23,13 +28,13 @@ var applyCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		moduleName := args[0]
 		instanceName := args[1]
-		config := core.LoadProjectConfig()
+		instances := repository.LoadDocumentRepository()
 		codeBytes, err := os.ReadFile("dacrane.yaml")
 		if err != nil {
 			panic(err)
 		}
 
-		modules := core.ParseModules(codeBytes)
+		modules := module.ParseModules(codeBytes)
 
 		var argument map[string]any
 		err = yaml.Unmarshal([]byte(argumentString), &argument)
@@ -37,13 +42,30 @@ var applyCmd = &cobra.Command{
 			panic(err)
 		}
 
-		data := map[string]any{
-			"instances": config.GetStates(),
+		states := map[string]any{}
+		for address, doc := range instances.Document() {
+			instance := module.NewInstanceFromDocument(doc)
+			if !strings.Contains(address, ".") {
+				states[address] = instance.ToState(instances)
+			}
 		}
 
-		evaluatedArg := core.Evaluate(argument, data)
+		evaluatedArg := module.Evaluate(argument, map[string]any{
+			"instances": states,
+		})
 
-		config.Apply(instanceName, moduleName, evaluatedArg, modules, true)
+		moduleExists := utils.Contains(modules, func(module module.Module) bool {
+			return module.Name == moduleName
+		})
+		if !moduleExists {
+			panic(fmt.Sprintf("undefined module: %s", moduleName))
+		}
+
+		module := utils.Find(modules, func(module module.Module) bool {
+			return module.Name == moduleName
+		})
+
+		module.Apply(instanceName, evaluatedArg, &instances, modules, core.Providers)
 	},
 }
 

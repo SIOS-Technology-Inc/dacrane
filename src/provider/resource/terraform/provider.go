@@ -13,7 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-var TerraformResourceModule = pdk.NewResourceModule(pdk.Resource{
+var TerraformResource = pdk.Resource{
 	Create: Create,
 	Update: func(current, _ any, meta pdk.ProviderMeta) (any, error) {
 		return Create(current, meta)
@@ -36,7 +36,7 @@ var TerraformResourceModule = pdk.NewResourceModule(pdk.Resource{
 		fmt.Println("Terraform destroy executed successfully.")
 		return nil
 	},
-})
+}
 
 func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 	parameters := parameter.(map[string]any)

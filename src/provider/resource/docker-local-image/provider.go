@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-var DockerLocalImageResourceModule = pdk.NewResourceModule(pdk.Resource{
+var DockerLocalImageResource = pdk.Resource{
 	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		dockerfile := params["dockerfile"].(string)
@@ -30,4 +30,4 @@ var DockerLocalImageResourceModule = pdk.NewResourceModule(pdk.Resource{
 		}
 		return nil
 	},
-})
+}

@@ -12,6 +12,15 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
+func Contains[T any](array []T, f func(T) bool) bool {
+	for _, value := range array {
+		if f(value) {
+			return true
+		}
+	}
+	return false
+}
+
 func Find[T any](array []T, f func(T) bool) (result T) {
 	for _, value := range array {
 		if f(value) {
@@ -42,6 +51,20 @@ func Reverse[T any](array []T) []T {
 		array[i], array[len(array)-i-1] = array[len(array)-i-1], array[i]
 	}
 	return array
+}
+
+func Keys[T comparable](array map[T]any) (result []T) {
+	for k := range array {
+		result = append(result, k)
+	}
+	return
+}
+
+func Values[T comparable, T2 any](array map[T]T2) (result []T2) {
+	for _, v := range array {
+		result = append(result, v)
+	}
+	return
 }
 
 func RunOnBash(script string) ([]byte, error) {

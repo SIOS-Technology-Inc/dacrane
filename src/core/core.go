@@ -1,7 +1,7 @@
 package core
 
 import (
-	"dacrane/pdk"
+	"dacrane/core/module"
 	"dacrane/provider/data/environment"
 	terraform_data "dacrane/provider/data/terraform"
 	docker_container "dacrane/provider/resource/docker-container"
@@ -11,12 +11,12 @@ import (
 	terraform_resource "dacrane/provider/resource/terraform"
 )
 
-var pluginModules = map[string](pdk.Provider){
-	"data/environment":             environment.EnvironmentDataModule,
-	"data/terraform":               terraform_data.TerraformDataModule,
-	"resource/docker-container":    docker_container.DockerContainerResourceModule,
-	"resource/docker-local-image":  docker_local_image.DockerLocalImageResourceModule,
-	"resource/docker-remote-image": docker_remote_image.DockerRemoteImageProvider,
-	"resource/file":                file.FileProvider,
-	"resource/terraform":           terraform_resource.TerraformResourceModule,
+var Providers = []module.Provider{
+	module.NewDataProvider("data/environment", environment.EnvironmentData),
+	module.NewDataProvider("data/terraform", terraform_data.TerraformData),
+	module.NewResourceProvider("resource/docker-container", docker_container.DockerContainerResource),
+	module.NewResourceProvider("resource/docker-local-image", docker_local_image.DockerLocalImageResource),
+	module.NewResourceProvider("resource/docker-remote-image", docker_remote_image.DockerRemoteImage),
+	module.NewResourceProvider("resource/file", file.FileResource),
+	module.NewResourceProvider("resource/terraform", terraform_resource.TerraformResource),
 }

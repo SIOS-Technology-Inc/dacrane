@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var DockerContainerResourceModule = pdk.NewResourceModule(pdk.Resource{
+var DockerContainerResource = pdk.Resource{
 	Create: func(parameter any, _ pdk.ProviderMeta) (any, error) {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
@@ -46,4 +46,4 @@ var DockerContainerResourceModule = pdk.NewResourceModule(pdk.Resource{
 		}
 		return nil
 	},
-})
+}
