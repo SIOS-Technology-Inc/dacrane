@@ -6,6 +6,10 @@ import (
 	"dacrane/core/repository"
 	"dacrane/utils"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -51,6 +55,7 @@ func (module Module) Apply(
 		panic(err)
 	}
 
+	// Create or get the instance
 	var instance moduleInstance
 	if instances.Exists(instanceAddress) {
 		document := instances.Find(instanceAddress)
@@ -58,6 +63,12 @@ func (module Module) Apply(
 	} else {
 		instance = NewModuleInstance(module, instanceAddress, argument)
 		instances.Upsert(instanceAddress, instance)
+	}
+
+	// Import external modules
+	// TODO scope handling
+	for _, urlOrFilepath := range module.Import {
+		importedModule = append(importedModule, Import(urlOrFilepath)...)
 	}
 
 	moduleCalls := module.TopologicalSortedModuleCalls()
@@ -96,6 +107,36 @@ func (module Module) Apply(
 		instance.Instances = append(instance.Instances, childRelAddr)
 		instances.Upsert(instanceAddress, instance)
 	}
+}
+
+func Import(urlOrFilepath string) []Module {
+	_, err := url.ParseRequestURI(urlOrFilepath)
+	if err == nil {
+		return ImportFromUrl(urlOrFilepath)
+	} else {
+		return ImportFromFilepath(urlOrFilepath)
+	}
+}
+
+func ImportFromUrl(url string) []Module {
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	return ParseModules(body)
+}
+
+func ImportFromFilepath(filepath string) []Module {
+	codeBytes, err := os.ReadFile(filepath)
+	if err != nil {
+		panic(err)
+	}
+	return ParseModules(codeBytes)
 }
 
 func ParseModules(codeBytes []byte) []Module {

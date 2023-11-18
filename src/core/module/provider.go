@@ -67,7 +67,8 @@ func NewResourceProvider(providerName string, resource pdk.Resource) Provider {
 		},
 		Destroy: func(instanceAddress string, instances *repository.DocumentRepository) {
 			if !instances.Exists(instanceAddress) {
-				return
+				fmt.Printf("[%s (%s)] Skipped. %s is not exist.\n",
+					instanceAddress, providerName, instanceAddress)
 			}
 			fmt.Printf("[%s (%s)] Deleting...\n", instanceAddress, providerName)
 			document := instances.Find(instanceAddress)
