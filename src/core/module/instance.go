@@ -97,10 +97,12 @@ func (instance moduleInstance) Destroy(
 		childAbsAddr := instanceAddress + "." + moduleCall.Name
 		childRelAddr := moduleCall.Name
 		if !instances.Exists(childAbsAddr) {
+			fmt.Printf("[%s (%s)] Skipped. %s is not exist.\n",
+				instanceAddress, moduleCall.Module, childAbsAddr)
 			continue
 		}
 
-		document := instances.Find(instanceAddress)
+		document := instances.Find(childAbsAddr)
 		child := NewInstanceFromDocument(document)
 		child.Destroy(childAbsAddr, instances, importedProvider)
 
@@ -121,7 +123,7 @@ func (instance providerInstance) Destroy(instanceAddress string, instances *repo
 		return provider.Name == instance.Provider
 	})
 	if provider.Destroy == nil {
-		fmt.Printf("[%s (%s)] Skipped.\n", instanceAddress, instance.Provider)
+		fmt.Printf("[%s (%s)] Skipped. Deletion is not needed.\n", instanceAddress, instance.Provider)
 	}
 	provider.Destroy(instanceAddress, instances)
 }
