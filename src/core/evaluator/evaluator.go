@@ -102,7 +102,7 @@ func Evaluate(expr Expr, data map[string]any) any {
 	panic("Unsupported expression type")
 }
 
-func GetReferences(expr Expr) []string {
+func CollectReferences(expr Expr) []string {
 	var names []string
 
 	switch e := expr.(type) {
@@ -113,33 +113,33 @@ func GetReferences(expr Expr) []string {
 				names = append(names, keys[1])
 			}
 		}
-		names = append(names, GetReferences(e.Expr)...)
-		names = append(names, GetReferences(e.Key)...)
+		names = append(names, CollectReferences(e.Expr)...)
+		names = append(names, CollectReferences(e.Key)...)
 	case *Identifier:
 		keys := strings.Split(e.Name, ".")
 		if keys[0] == "modules" {
 			names = append(names, keys[1])
 		}
 	case *BinaryExpr:
-		names = append(names, GetReferences(e.Left)...)
-		names = append(names, GetReferences(e.Right)...)
+		names = append(names, CollectReferences(e.Left)...)
+		names = append(names, CollectReferences(e.Right)...)
 	case *UnaryExpr:
-		names = append(names, GetReferences(e.Expr)...)
+		names = append(names, CollectReferences(e.Expr)...)
 	case *IfExpr:
-		names = append(names, GetReferences(e.Condition)...)
-		names = append(names, GetReferences(e.Then)...)
-		names = append(names, GetReferences(e.Else)...)
+		names = append(names, CollectReferences(e.Condition)...)
+		names = append(names, CollectReferences(e.Then)...)
+		names = append(names, CollectReferences(e.Else)...)
 	case *List:
 		for _, item := range e.Items {
-			names = append(names, GetReferences(item)...)
+			names = append(names, CollectReferences(item)...)
 		}
 	case *Map:
 		for _, v := range e.KVs {
-			names = append(names, GetReferences(v)...)
+			names = append(names, CollectReferences(v)...)
 		}
 	case *App:
 		for _, param := range e.Params {
-			names = append(names, GetReferences(param)...)
+			names = append(names, CollectReferences(param)...)
 		}
 	}
 

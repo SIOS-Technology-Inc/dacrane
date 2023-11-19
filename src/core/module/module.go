@@ -356,7 +356,7 @@ func references(raw any) []string {
 		var paths []string
 		for _, exprStr := range res {
 			expr := evaluator.Parse(exprStr[1])
-			paths = append(paths, evaluator.GetReferences(expr)...)
+			paths = append(paths, evaluator.CollectReferences(expr)...)
 		}
 		return paths
 	default:

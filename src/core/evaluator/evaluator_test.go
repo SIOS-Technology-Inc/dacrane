@@ -47,3 +47,9 @@ func TestEvaluate(t *testing.T) {
 	v = Evaluate(expr, map[string]any{})
 	assert.Equal(t, "Premium", v)
 }
+
+func TestCollectReferences(t *testing.T) {
+	expr := Parse("modules.foo.xyz + modules.bar.xyz")
+	refs := CollectReferences(expr)
+	assert.Equal(t, []string{"foo", "bar"}, refs)
+}
