@@ -1,4 +1,6 @@
-# Dacrane
+# Dacrane: A deployment tool for cloud applications
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Unit Test](https://github.com/SIOS-Technology-Inc/dacrane/actions/workflows/unit-test.yaml/badge.svg?branch=main)](https://github.com/SIOS-Technology-Inc/dacrane/actions/workflows/unit-test.yaml)
 
 Dacrane is an open-source tool for integrating container infrastructure, build, release and deployment.
 
