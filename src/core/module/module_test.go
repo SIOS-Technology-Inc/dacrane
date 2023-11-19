@@ -13,14 +13,14 @@ parameter:
   type: object
   properties:
     a: { type: number }
-    b: { type: string, default: latest }
+    b: { type: string }
 modules:
 - name: foo
   depends_on:
     - bar
   module: resource/baz
   argument:
-    a: ${{ module.baz }}
+    a: ${{ modules.baz }}
     b: abc
 - name: bar
   module: resource/qux
@@ -51,7 +51,7 @@ modules:
 - name: bar
   module: resource/a
   argument:
-    a: ${{ module.baz }}
+    a: ${{ modules.baz }}
 - name: baz
   module: resource/a
 `
@@ -66,4 +66,3 @@ modules:
 	},
 		module.TopologicalSortedModuleCalls())
 }
-
