@@ -37,13 +37,14 @@ var TerraformResource = pdk.Resource{
 
 func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 	parameters := parameter.(map[string]any)
-	resourceName := parameters["resource"].(string)
+	resource := parameters["resource"].(string)
+	name := parameters["name"].(string)
 	argument := parameters["argument"].(map[string]any)
 
 	mainTf := map[string]any{
 		"resource": map[string]any{
-			resourceName: map[string]any{
-				"main": argument,
+			resource: map[string]any{
+				name: argument,
 			},
 		},
 	}
@@ -64,17 +65,19 @@ func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 		return nil, nil
 	}
 
-	if diags.HasErrors() {
-		fmt.Println(diags.Errs())
-		return nil, nil 
-	}
 	if err != nil {
 		fmt.Println("Error saving HCL file:", err)
 	}
 
-	dir := ".dacrane/instances/my-quick-start/"
-	filename := "config.tf.json"
-	filePath := filepath.Join(dir, filename)
+	filename := "main.tf.json"
+		dir := meta.CustomStateDir
+		filePath := filepath.Join(dir, filename)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("Error creating directory: %v", err)
+		}
+	}
+
 	if err := os.WriteFile(filePath, byteData, 0644); err != nil {
 		return nil, fmt.Errorf("Error writing JSON file: %v", err)
 	}
