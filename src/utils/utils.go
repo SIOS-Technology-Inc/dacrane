@@ -112,7 +112,10 @@ func FillDefault(schema any, document any) (any, error) {
 
 	switch schema.(map[string]any)["type"] {
 	case "object":
-		properties := schema.(map[string]any)["properties"].(map[string]any)
+		properties, hasProperties := schema.(map[string]any)["properties"].(map[string]any)
+		if !hasProperties {
+			return document, nil
+		}
 		result := map[string]any{}
 		for key, propSchema := range properties {
 			filledDoc, err := FillDefault(propSchema, document.(map[string]any)[key])
@@ -123,7 +126,10 @@ func FillDefault(schema any, document any) (any, error) {
 		}
 		return result, nil
 	case "array":
-		itemsSchema := schema.(map[string]any)["items"]
+		itemsSchema, hasItems := schema.(map[string]any)["items"]
+		if !hasItems {
+			return document, nil
+		}
 		result := []any{}
 		for _, item := range document.([]any) {
 			filledDoc, err := FillDefault(itemsSchema, item)
