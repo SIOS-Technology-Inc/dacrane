@@ -55,6 +55,9 @@ func (module Module) Apply(
 		panic(err)
 	}
 
+	// Fill the argument with default
+	argument = utils.FillDefault(module.Parameter, argument)
+
 	// Create or get the instance
 	var instance moduleInstance
 	if instances.Exists(instanceAddress) {
