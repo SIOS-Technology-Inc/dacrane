@@ -7,7 +7,7 @@ import (
 )
 
 func TestFillDefault(t *testing.T) {
-	filledDoc, err := FillDefault(
+	filledDoc := FillDefault(
 		map[string]any{
 			"type":    "object",
 			"default": map[string]any{},
@@ -43,7 +43,6 @@ func TestFillDefault(t *testing.T) {
 		},
 	)
 
-	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{
 		"a": 123,
 		"b": "def",
