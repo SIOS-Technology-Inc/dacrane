@@ -45,6 +45,11 @@ parameter:
       description:  The tag of the image to be built.
       type: string
       default: latest
+    dockerfile:
+      title: Dockerfile Path
+      description: The path of Dockerfile
+      type: string
+      default: ./Dockerfile
 modules:
 - name: dockerfile
   module: resource/file
@@ -63,8 +68,7 @@ modules:
       CMD ${{ parameter.start_command }}
 - name: image
   module: resource/docker-local-image
-  depends_on: [ dockerfile ]
   argument:
-    dockerfile: ./Dockerfile
+    dockerfile: ${{ modules.dockerfile.filename }}
     image: ${{ parameter.image }}
     tag: ${{ parameter.tag }}
