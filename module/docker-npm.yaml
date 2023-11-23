@@ -28,7 +28,7 @@ parameter:
       default: "./package-lock.json"
     build_command:
       title: Build Command
-      description:  This command is used to install or transpile dependent modules.
+      description: This command is used to install or transpile dependent modules.
       type: string
       default: npm ci
     start_command:
@@ -38,11 +38,11 @@ parameter:
       default: npm start
     image:
       title: Image Name
-      description:  The name of the image to be built.
+      description: The name of the image to be built.
       type: string
     tag:
       title: Image Tag
-      description:  The tag of the image to be built.
+      description: The tag of the image to be built.
       type: string
       default: latest
     dockerfile:
