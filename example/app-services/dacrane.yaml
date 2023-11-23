@@ -30,10 +30,9 @@ modules:
 name: local-docker
 parameter:
   type: object
-  required: ["image", "tag"]
   properties:
-    image: { type: string }
-    tag: { type: string }
+    image: { type: string, default: sample-api }
+    tag: { type: string, default: latest }
 modules:
 - module: resource/docker-container
   name: docker
@@ -49,9 +48,8 @@ modules:
 name: api-image
 parameter:
   type: object
-  required: ["tag"]
   properties:
-    tag: { type: string }
+    tag: { type: string, default: "latest" }
     acr: { type: object }
 modules:
 - name: api-local-image
@@ -75,10 +73,10 @@ name: app-service
 argument:
 parameter:
   type: object
-  required: ["env", "spec", "base", "api"]
+  required: ["env", "base", "api"]
   properties:
-    env: { type: string }
-    spec: { type: string, enum: ["low", "high"] }
+    env: { type: string, default: "dev" }
+    spec: { type: string, enum: ["low", "high"], default: "low" }
     base: { type: object }
     api: { type: object }
 modules:
