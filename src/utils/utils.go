@@ -105,6 +105,9 @@ func Validate(schema any, document any) error {
 }
 
 func FillDefault(schema any, document any) any {
+	if schema == nil {
+		return nil
+	}
 	defaultValue := schema.(map[string]any)["default"]
 	if document == nil {
 		return defaultValue
