@@ -51,7 +51,9 @@ parameter:
   properties:
     tag: { type: string, default: "latest" }
     acr: { type: object }
-import: [../../module/docker-npm.yaml]
+import:
+  - ../../module/docker-npm.yaml
+  # - import: https://raw.githubusercontent.com/SIOS-Technology-Inc/dacrane/main/module/docker-npm.yaml
 modules:
 - name: api-local-image
   module: docker-npm
