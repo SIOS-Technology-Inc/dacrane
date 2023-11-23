@@ -62,8 +62,8 @@ modules:
   if: ${{ parameter.acr != null }}
   module: resource/docker-remote-image
   argument:
-    image: ${{ modules.api-local-image.image.image }}
-    tag: ${{ modules.api-local-image.image.tag }}
+    image: ${{ modules.api-local-image.modules.image.image }}
+    tag: ${{ modules.api-local-image.modules.image.tag }}
     remote:
       url: ${{ parameter.acr.login_server }}
       user: ${{ parameter.acr.admin_username }}
