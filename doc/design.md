@@ -340,8 +340,9 @@ REF
 #### Fixture Variables
 
 | name | type | scope | description |
-| -- | -- | -- |
+| -- | -- | -- | -- |
 | parameter | object | modules section | |
+| self | object | module section | |
 | modules | object | modules section | |
 | instances | object | command argument flag | |
 
