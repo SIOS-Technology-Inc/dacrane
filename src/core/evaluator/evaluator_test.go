@@ -50,6 +50,6 @@ func TestEvaluate(t *testing.T) {
 
 func TestCollectReferences(t *testing.T) {
 	expr := Parse("modules.foo.xyz + modules.bar.xyz")
-	refs := CollectReferences(expr)
-	assert.Equal(t, []string{"foo", "bar"}, refs)
+	refs := CollectReferences(expr, "^modules\\..*")
+	assert.Equal(t, []string{"modules.foo.xyz", "modules.bar.xyz"}, refs)
 }
