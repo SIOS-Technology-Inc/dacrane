@@ -8,66 +8,50 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/zclconf/go-cty/cty"
 )
 
 var TerraformData = pdk.Data{
 	Get: func(parameter any, meta pdk.ProviderMeta) (any, error) {
 		parameters := parameter.(map[string]any)
-		f := hclwrite.NewEmptyFile()
-		rootBody := f.Body()
+		providerName := parameters["provider"].(string)
+		resourceType := parameters["resource"].(string)
+		resourceName := "main"
+		argument := parameters["argument"].(map[string]any)
+		configurations := parameters["configurations"].(map[string]any)
 
-		// Setting Provider
-		if provider, ok := parameters["provider"].(string); ok {
-			providerBlock := rootBody.AppendNewBlock("provider", []string{provider})
-			providerBody := providerBlock.Body()
-			if configs, ok := parameters["configurations"].(map[string]interface{}); ok {
-				for k, v := range configs {
-					writeHCL(providerBody, k, v)
-				}
-			}
-		} else {
-			return nil, fmt.Errorf("provider name is required and must be a string")
+		mainTf := map[string]any{
+			"provider": map[string]any{
+				providerName: configurations,
+			},
+			"data": map[string]any{
+				resourceType: map[string]any{
+					resourceName: argument,
+				},
+			},
 		}
 
-		// Setting Resource
-		resourceType, resourceName := "", "main"
-		if resType, ok := parameters["resource"].(string); ok {
-			resourceType = resType
-		} else {
-			return nil, fmt.Errorf("resource type is required and must be a string")
+		byteData, err := json.MarshalIndent(mainTf, "", "  ")
+		if err != nil {
+			fmt.Println("Error marshalling to JSON:", err)
+			return nil, nil
 		}
 
-		resourceBlock := rootBody.AppendNewBlock("data", []string{resourceType, resourceName})
-		resourceBody := resourceBlock.Body()
-		if args, ok := parameters["argument"].(map[string]interface{}); ok {
-			for k, v := range args {
-				writeHCL(resourceBody, k, v)
-			}
-		}
-
-		// write file
-		filename := "main.tf"
+		// Write Terraform File (JSON)
+		filename := "main.tf.json"
 		dir := meta.CustomStateDir
 		filePath := filepath.Join(dir, filename)
-
-		// Ensure the directory exists
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return nil, fmt.Errorf("failed to create directories: %w", err)
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, fmt.Errorf("error creating directory: %v", err)
+			}
 		}
 
-		// Write the file
-		if err := os.WriteFile(filePath, f.Bytes(), 0644); err != nil {
-			return nil, fmt.Errorf("failed to write file: %w", err)
+		if err := os.WriteFile(filePath, byteData, 0644); err != nil {
+			return nil, fmt.Errorf("error writing JSON file: %v", err)
 		}
 
-		fmt.Printf("HCL written to %s\n", filePath)
-
-		// Terraform exec
 		if err := ApplyTerraform(filePath); err != nil {
-			return nil, fmt.Errorf("failed to apply terraform: %w", err)
+			return nil, err
 		}
 
 		// Get Terraform State
@@ -83,7 +67,7 @@ var TerraformData = pdk.Data{
 		}
 
 		resource := utils.Find(state["resources"].([]any), func(r any) bool {
-			return r.(map[string]any)["mode"] == "data" &&
+			return r.(map[string]any)["mode"] == "managed" &&
 				r.(map[string]any)["type"] == resourceType &&
 				r.(map[string]any)["name"] == resourceName
 		})
@@ -93,27 +77,6 @@ var TerraformData = pdk.Data{
 		attributes := instance.(map[string]any)["attributes"]
 		return attributes.(map[string]any), nil
 	},
-}
-
-func writeHCL(body *hclwrite.Body, key string, value interface{}) {
-	switch v := value.(type) {
-	case map[string]interface{}:
-		block := body.AppendNewBlock(key, nil)
-		blockBody := block.Body()
-		for k, val := range v {
-			writeHCL(blockBody, k, val)
-		}
-	case string:
-		body.SetAttributeValue(key, cty.StringVal(v))
-	case []interface{}:
-		values := make([]cty.Value, len(v))
-		for i, val := range v {
-			values[i] = cty.StringVal(val.(string))
-		}
-		body.SetAttributeValue(key, cty.ListVal(values))
-	default:
-		fmt.Printf("Unsupported type: %T\n", v)
-	}
 }
 
 func ApplyTerraform(filePath string) error {

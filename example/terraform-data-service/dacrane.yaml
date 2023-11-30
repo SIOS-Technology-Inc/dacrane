@@ -7,4 +7,4 @@ modules:
       resource: local_file
       name: foo
       argument:
-        filename: ../../../../../example.txt
+        filename: example/terraform-data-service/.dacrane/custom_state/my-quick-start.foo/example.txt

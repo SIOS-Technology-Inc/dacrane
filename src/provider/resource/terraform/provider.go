@@ -8,9 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/zclconf/go-cty/cty"
 )
 
 var TerraformResource = pdk.Resource{
@@ -40,56 +37,45 @@ var TerraformResource = pdk.Resource{
 
 func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 	parameters := parameter.(map[string]any)
-	f := hclwrite.NewEmptyFile()
-	rootBody := f.Body()
-
-	// Setting Provider
-	providerName, ok := parameters["provider"].(string)
-	if !ok {
-		return nil, fmt.Errorf("provider name is required and must be a string")
-	}
-	providerBlock := rootBody.AppendNewBlock("provider", []string{providerName})
-	providerBody := providerBlock.Body()
-	if configs, ok := parameters["configurations"].(map[string]interface{}); ok {
-		for k, v := range configs {
-			writeHCL(providerBody, k, v)
-		}
-	}
-
-	// Setting Resource
-	resourceType, ok := parameters["resource"].(string)
-	if !ok {
-		return nil, fmt.Errorf("resource type is required and must be a string")
-	}
+	providerName := parameters["provider"].(string)
+	resourceType := parameters["resource"].(string)
 	resourceName := "main"
-	resourceBlock := rootBody.AppendNewBlock("resource", []string{resourceType, resourceName})
-	resourceBody := resourceBlock.Body()
-	if args, ok := parameters["argument"].(map[string]interface{}); ok {
-		for k, v := range args {
-			writeHCL(resourceBody, k, v)
-		}
+	argument := parameters["argument"].(map[string]any)
+	configurations := parameters["configurations"].(map[string]any)
+
+	mainTf := map[string]any{
+		"provider": map[string]any{
+			providerName: configurations,
+		},
+		"resource": map[string]any{
+			resourceType: map[string]any{
+				resourceName: argument,
+			},
+		},
 	}
 
-	// write file
-	filename := "main.tf"
+	byteData, err := json.MarshalIndent(mainTf, "", "  ")
+	if err != nil {
+		fmt.Println("Error marshalling to JSON:", err)
+		return nil, nil
+	}
+
+	// Write Terraform File (JSON)
+	filename := "main.tf.json"
 	dir := meta.CustomStateDir
 	filePath := filepath.Join(dir, filename)
-
-	// Ensure the directory exists
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create directories: %w", err)
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("error creating directory: %v", err)
+		}
 	}
 
-	// Write the file
-	if err := os.WriteFile(filePath, f.Bytes(), 0644); err != nil {
-		return nil, fmt.Errorf("failed to write file: %w", err)
+	if err := os.WriteFile(filePath, byteData, 0644); err != nil {
+		return nil, fmt.Errorf("error writing JSON file: %v", err)
 	}
 
-	fmt.Printf("HCL written to %s\n", filePath)
-
-	// Terraform exec
 	if err := ApplyTerraform(filePath); err != nil {
-		return nil, fmt.Errorf("failed to apply terraform: %w", err)
+		return nil, err
 	}
 
 	// Get Terraform State
@@ -114,39 +100,6 @@ func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 	instance := instances.([]any)[0]
 	attributes := instance.(map[string]any)["attributes"]
 	return attributes.(map[string]any), nil
-}
-
-func writeHCL(body *hclwrite.Body, key string, value interface{}) {
-	switch v := value.(type) {
-	case map[string]interface{}:
-		isMap, ok := v["$is_map"]
-		if ok && isMap.(bool) {
-			delete(v, "$is_map")
-			vs := map[string]cty.Value{}
-			for k, val := range v {
-				vs[k] = cty.StringVal(val.(string))
-			}
-			body.SetAttributeValue(key, cty.MapVal(vs))
-		} else {
-			block := body.AppendNewBlock(key, nil)
-			blockBody := block.Body()
-			for k, val := range v {
-				writeHCL(blockBody, k, val)
-			}
-		}
-	case string:
-		body.SetAttributeValue(key, cty.StringVal(v))
-	case bool:
-		body.SetAttributeValue(key, cty.BoolVal(v))
-	case []interface{}:
-		values := make([]cty.Value, len(v))
-		for i, val := range v {
-			values[i] = cty.StringVal(val.(string))
-		}
-		body.SetAttributeValue(key, cty.ListVal(values))
-	default:
-		fmt.Printf("Unsupported type: %T\n", v)
-	}
 }
 
 func ApplyTerraform(filePath string) error {
