@@ -30,10 +30,9 @@ modules:
 name: local-docker
 parameter:
   type: object
-  required: ["image", "tag"]
   properties:
-    image: { type: string }
-    tag: { type: string }
+    image: { type: string, default: sample-api }
+    tag: { type: string, default: latest }
 modules:
 - module: resource/docker-container
   name: docker
@@ -49,23 +48,24 @@ modules:
 name: api-image
 parameter:
   type: object
-  required: ["tag"]
   properties:
-    tag: { type: string }
+    tag: { type: string, default: "latest" }
     acr: { type: object }
+import:
+  - ../../module/docker-npm.yaml
+  # - import: https://raw.githubusercontent.com/SIOS-Technology-Inc/dacrane/main/module/docker-npm.yaml
 modules:
 - name: api-local-image
-  module: resource/docker-local-image
+  module: docker-npm
   argument:
-    dockerfile: ./Dockerfile
     image: sample-api
     tag: ${{ parameter.tag }}
 - name: api-remote-image
   if: ${{ parameter.acr != null }}
   module: resource/docker-remote-image
   argument:
-    image: ${{ modules.api-local-image.image }}
-    tag: ${{ modules.api-local-image.tag }}
+    image: ${{ modules.api-local-image.modules.image.image }}
+    tag: ${{ modules.api-local-image.modules.image.tag }}
     remote:
       url: ${{ parameter.acr.login_server }}
       user: ${{ parameter.acr.admin_username }}
@@ -75,10 +75,10 @@ name: app-service
 argument:
 parameter:
   type: object
-  required: ["env", "spec", "base", "api"]
+  required: ["env", "base", "api"]
   properties:
-    env: { type: string }
-    spec: { type: string, enum: ["low", "high"] }
+    env: { type: string, default: "dev" }
+    spec: { type: string, enum: ["low", "high"], default: "low" }
     base: { type: object }
     api: { type: object }
 modules:

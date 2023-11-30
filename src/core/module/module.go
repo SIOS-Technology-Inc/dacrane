@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -55,6 +56,9 @@ func (module Module) Apply(
 		panic(err)
 	}
 
+	// Fill the argument with default
+	argument = utils.FillDefault(module.Parameter, argument)
+
 	// Create or get the instance
 	var instance moduleInstance
 	if instances.Exists(instanceAddress) {
@@ -73,16 +77,31 @@ func (module Module) Apply(
 
 	moduleCalls := module.TopologicalSortedModuleCalls()
 	for _, moduleCall := range moduleCalls {
+		childRelAddr := moduleCall.Name
+		childAbsAddr := instanceAddress + "." + moduleCall.Name
+
 		fmt.Printf("[%s (%s)] Evaluating...\n", instanceAddress, moduleCall.Module)
-		evaluatedModuleCall := moduleCall.Evaluate(instance.ToState(*instances).(map[string]any))
+		data := instance.ToState(*instances).(map[string]any)
+		customStatePath := filepath.Join(".dacrane/custom_state", childAbsAddr)
+		data["self"] = map[string]any{
+			"name":              moduleCall.Name,
+			"module":            moduleCall.Module,
+			"address":           childAbsAddr,
+			"custom_state_path": customStatePath,
+		}
+		if moduleCall.HasReferences("^self.custom_state_path$") {
+			err := os.MkdirAll(customStatePath, 0755)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		evaluatedModuleCall := moduleCall.Evaluate(data)
 		fmt.Printf("[%s (%s)] Evaluated.\n", instanceAddress, moduleCall.Module)
 		if evaluatedModuleCall == nil {
 			fmt.Printf("[%s (%s)] Skipped.\n", instanceAddress, moduleCall.Module)
 			continue
 		}
-
-		childRelAddr := evaluatedModuleCall.Name
-		childAbsAddr := instanceAddress + "." + evaluatedModuleCall.Name
 
 		providerExists := utils.Contains(importedProvider, func(provider Provider) bool {
 			return provider.Name == evaluatedModuleCall.Module
@@ -202,10 +221,11 @@ func (mc ModuleCall) ExplicitDependency() []string {
 }
 
 func (mc ModuleCall) ImplicitDependency() []string {
-	var paths []string
-	paths = append(paths, references(mc.Name)...)
-	paths = append(paths, references(mc.Module)...)
-	paths = append(paths, references(mc.Argument)...)
+	paths := []string{}
+	for _, path := range references(mc.Argument, "^modules\\..*") {
+		keys := strings.Split(path, ".")
+		paths = append(paths, keys[1])
+	}
 	return paths
 }
 
@@ -220,6 +240,10 @@ func (mc ModuleCall) Evaluate(data map[string]any) *ModuleCall {
 	}
 
 	return toModuleCall(evaluated.(map[string]any))
+}
+
+func (mc ModuleCall) HasReferences(pattern string) bool {
+	return len(references(mc.Argument, pattern)) > 0
 }
 
 func (mc ModuleCall) toMap() map[string]any {
@@ -333,18 +357,18 @@ func convertToString(value interface{}) string {
 	}
 }
 
-func references(raw any) []string {
+func references(raw any, pattern string) []string {
 	switch raw := raw.(type) {
 	case map[string]any:
 		var paths []string
 		for _, v := range raw {
-			paths = append(paths, references(v)...)
+			paths = append(paths, references(v, pattern)...)
 		}
 		return paths
 	case []any:
 		var paths []string
 		for _, v := range raw {
-			paths = append(paths, references(v)...)
+			paths = append(paths, references(v, pattern)...)
 		}
 		return paths
 	case string:
@@ -356,7 +380,7 @@ func references(raw any) []string {
 		var paths []string
 		for _, exprStr := range res {
 			expr := evaluator.Parse(exprStr[1])
-			paths = append(paths, evaluator.CollectReferences(expr)...)
+			paths = append(paths, evaluator.CollectReferences(expr, pattern)...)
 		}
 		return paths
 	default:

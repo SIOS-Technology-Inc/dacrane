@@ -103,3 +103,40 @@ func Validate(schema any, document any) error {
 		return errors.New(err.String())
 	}
 }
+
+func FillDefault(schema any, document any) any {
+	if schema == nil {
+		return nil
+	}
+	defaultValue := schema.(map[string]any)["default"]
+	if document == nil {
+		return defaultValue
+	}
+
+	switch schema.(map[string]any)["type"] {
+	case "object":
+		properties, hasProperties := schema.(map[string]any)["properties"].(map[string]any)
+		if !hasProperties {
+			return document
+		}
+		result := map[string]any{}
+		for key, propSchema := range properties {
+			filledDoc := FillDefault(propSchema, document.(map[string]any)[key])
+			result[key] = filledDoc
+		}
+		return result
+	case "array":
+		itemsSchema, hasItems := schema.(map[string]any)["items"]
+		if !hasItems {
+			return document
+		}
+		result := []any{}
+		for _, item := range document.([]any) {
+			filledDoc := FillDefault(itemsSchema, item)
+			result = append(result, filledDoc)
+		}
+		return result
+	default:
+		return document
+	}
+}

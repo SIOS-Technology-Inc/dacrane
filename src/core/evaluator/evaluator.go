@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"regexp"
 	"strings"
 )
 
@@ -102,44 +103,51 @@ func Evaluate(expr Expr, data map[string]any) any {
 	panic("Unsupported expression type")
 }
 
-func CollectReferences(expr Expr) []string {
+func HasReferences(expr Expr, pattern string) bool {
+	refs := CollectReferences(expr, pattern)
+	return len(refs) > 0
+}
+
+func CollectReferences(expr Expr, pattern string) []string {
 	var names []string
+	r, err := regexp.Compile(pattern)
+	if err != nil {
+		panic(err)
+	}
 
 	switch e := expr.(type) {
 	case *Ref:
 		if id, ok := e.Expr.(*Identifier); ok {
-			keys := strings.Split(id.Name, ".")
-			if keys[0] == "modules" {
-				names = append(names, keys[1])
+			if r.MatchString(id.Name) {
+				names = append(names, id.Name)
 			}
 		}
-		names = append(names, CollectReferences(e.Expr)...)
-		names = append(names, CollectReferences(e.Key)...)
+		names = append(names, CollectReferences(e.Expr, pattern)...)
+		names = append(names, CollectReferences(e.Key, pattern)...)
 	case *Identifier:
-		keys := strings.Split(e.Name, ".")
-		if keys[0] == "modules" {
-			names = append(names, keys[1])
+		if r.MatchString(e.Name) {
+			names = append(names, e.Name)
 		}
 	case *BinaryExpr:
-		names = append(names, CollectReferences(e.Left)...)
-		names = append(names, CollectReferences(e.Right)...)
+		names = append(names, CollectReferences(e.Left, pattern)...)
+		names = append(names, CollectReferences(e.Right, pattern)...)
 	case *UnaryExpr:
-		names = append(names, CollectReferences(e.Expr)...)
+		names = append(names, CollectReferences(e.Expr, pattern)...)
 	case *IfExpr:
-		names = append(names, CollectReferences(e.Condition)...)
-		names = append(names, CollectReferences(e.Then)...)
-		names = append(names, CollectReferences(e.Else)...)
+		names = append(names, CollectReferences(e.Condition, pattern)...)
+		names = append(names, CollectReferences(e.Then, pattern)...)
+		names = append(names, CollectReferences(e.Else, pattern)...)
 	case *List:
 		for _, item := range e.Items {
-			names = append(names, CollectReferences(item)...)
+			names = append(names, CollectReferences(item, pattern)...)
 		}
 	case *Map:
 		for _, v := range e.KVs {
-			names = append(names, CollectReferences(v)...)
+			names = append(names, CollectReferences(v, pattern)...)
 		}
 	case *App:
 		for _, param := range e.Params {
-			names = append(names, CollectReferences(param)...)
+			names = append(names, CollectReferences(param, pattern)...)
 		}
 	}
 

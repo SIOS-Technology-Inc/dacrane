@@ -4,6 +4,8 @@ import (
 	"dacrane/core/repository"
 	"dacrane/utils"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -105,6 +107,11 @@ func (instance moduleInstance) Destroy(
 		document := instances.Find(childAbsAddr)
 		child := NewInstanceFromDocument(document)
 		child.Destroy(childAbsAddr, instances, importedProvider)
+		customStatePath := filepath.Join(".dacrane/custom_state", childAbsAddr)
+		err := os.RemoveAll(customStatePath)
+		if err != nil {
+			panic(err)
+		}
 
 		instance.Instances = utils.Filter(instance.Instances, func(instance string) bool {
 			return instance != childRelAddr

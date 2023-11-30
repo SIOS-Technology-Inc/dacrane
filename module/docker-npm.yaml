@@ -1,0 +1,69 @@
+name: docker-npm
+parameter:
+  type: object
+  required: ["image"]
+  properties:
+    # TODO Add full docker build options.
+    node_base_image_tag:
+      title: Docker Image Tag
+      description: >
+        This is docker image tag name. https://hub.docker.com/_/node/
+      type: string
+      default: latest
+    src_files:
+      title: Source Code File Path
+      description: Source code file path
+      type: string
+      # TODO  Fix copy glob expression recursively.
+      default: "*.js"
+    package_json:
+      title: package.json File Path
+      description: package.json File Path
+      type: string
+      default: "./package.json"
+    package_json_lock:
+      title: package-lock.json File Path
+      description: package-lock.json File Path
+      type: string
+      default: "./package-lock.json"
+    build_command:
+      title: Build Command
+      description: This command is used to install or transpile dependent modules.
+      type: string
+      default: npm ci
+    start_command:
+      title: Start Command
+      description: This command is used to start the Node.js program.
+      type: string
+      default: npm start
+    image:
+      title: Image Name
+      description: The name of the image to be built.
+      type: string
+    tag:
+      title: Image Tag
+      description: The tag of the image to be built.
+      type: string
+      default: latest
+modules:
+- name: dockerfile
+  module: resource/file
+  argument:
+    filename: ${{ self.custom_state_path }}/Dockerfile
+    contents: |-
+      # auto generated from dacrane
+      FROM node:${{ parameter.node_base_image_tag }}
+
+      COPY ${{ parameter.src_files }} ./
+      COPY ${{ parameter.package_json }} ./package.json
+      COPY ${{ parameter.package_json_lock }} ./package-lock.json
+
+      RUN ${{ parameter.build_command }}
+
+      CMD ${{ parameter.start_command }}
+- name: image
+  module: resource/docker-local-image
+  argument:
+    dockerfile: ${{ modules.dockerfile.filename }}
+    image: ${{ parameter.image }}
+    tag: ${{ parameter.tag }}
