@@ -2,11 +2,13 @@ package terraform
 
 import (
 	"dacrane/pdk"
+	"dacrane/utils"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+
 	"github.com/hashicorp/hcl/v2/hclparse"
 )
 
@@ -86,7 +88,28 @@ func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 		return nil, err
 	}
 
-	return nil, nil
+	// Get Terraform State
+	bytes, err := os.ReadFile(dir + "/terraform.tfstate")
+	if err != nil {
+		return nil, err
+	}
+
+	var state map[string]any
+	err = json.Unmarshal(bytes, &state)
+	if err != nil {
+		return nil, err
+	}
+
+	resource := utils.Find(state["resources"].([]any), func(r any) bool {
+		return r.(map[string]any)["mode"] == "managed" &&
+			r.(map[string]any)["type"] == resourceType &&
+			r.(map[string]any)["name"] == resourceName
+	})
+
+	instances := resource.(map[string]any)["instances"]
+	instance := instances.([]any)[0]
+	attributes := instance.(map[string]any)["attributes"]
+	return attributes.(map[string]any), nil
 }
 
 func ApplyTerraform(filePath string) error {
