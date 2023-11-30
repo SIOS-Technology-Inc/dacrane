@@ -15,14 +15,19 @@ import (
 var TerraformData = pdk.Data{
 	Get: func(parameter any, meta pdk.ProviderMeta) (any, error) {
 		parameters := parameter.(map[string]any)
-		resource := parameters["resource"].(string)
-		name := parameters["name"].(string)
+		providerName := parameters["provider"].(string)
+		resourceType := parameters["resource"].(string)
+		resourceName := "main"
 		argument := parameters["argument"].(map[string]any)
+		configurations := parameters["configurations"].(map[string]any)
 
 		mainTf := map[string]any{
+			"provider": map[string]any{
+				providerName: configurations,
+			},
 			"data": map[string]any{
-				resource: map[string]any{
-					name: argument,
+				resourceType: map[string]any{
+					resourceName: argument,
 				},
 			},
 		}
@@ -48,8 +53,8 @@ var TerraformData = pdk.Data{
 		}
 
 		filename := "main.tf.json"
-			dir := meta.CustomStateDir
-			filePath := filepath.Join(dir, filename)
+		dir := meta.CustomStateDir
+		filePath := filepath.Join(dir, filename)
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return nil, fmt.Errorf("error creating directory: %v", err)
