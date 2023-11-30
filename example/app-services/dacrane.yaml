@@ -111,7 +111,6 @@ modules:
       site_config:
         linux_fx_version: DOCKER|${{ parameter.base.modules.acr.login_server }}/sample-api:${{ parameter.api.modules.api-remote-image.tag }}
       app_settings:
-        $is_map: true
         DOCKER_REGISTRY_SERVER_URL: ${{ parameter.base.modules.acr.login_server }}
         DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.modules.acr.admin_username }}
         DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.modules.acr.admin_password }}
