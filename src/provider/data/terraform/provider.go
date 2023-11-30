@@ -52,12 +52,12 @@ var TerraformData = pdk.Data{
 			filePath := filepath.Join(dir, filename)
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			if err := os.MkdirAll(dir, 0755); err != nil {
-				return nil, fmt.Errorf("Error creating directory: %v", err)
+				return nil, fmt.Errorf("error creating directory: %v", err)
 			}
 		}
 
 		if err := os.WriteFile(filePath, byteData, 0644); err != nil {
-			return nil, fmt.Errorf("Error writing JSON file: %v", err)
+			return nil, fmt.Errorf("error writing JSON file: %v", err)
 		}
 
 		if err := ApplyTerraform(filePath); err != nil {
