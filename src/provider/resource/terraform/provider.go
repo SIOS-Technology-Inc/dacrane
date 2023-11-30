@@ -54,7 +54,7 @@ func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 		},
 	}
 
-	byteData, err := json.Marshal(mainTf)
+	byteData, err := json.MarshalIndent(mainTf, "", "  ")
 	if err != nil {
 		fmt.Println("Error marshalling to JSON:", err)
 		return nil, nil

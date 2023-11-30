@@ -30,7 +30,7 @@ var TerraformData = pdk.Data{
 			},
 		}
 
-		byteData, err := json.Marshal(mainTf)
+		byteData, err := json.MarshalIndent(mainTf, "", "  ")
 		if err != nil {
 			fmt.Println("Error marshalling to JSON:", err)
 			return nil, nil
