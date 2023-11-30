@@ -8,8 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	"github.com/hashicorp/hcl/v2/hclparse"
 )
 
 var TerraformResource = pdk.Resource{
@@ -62,20 +60,7 @@ func Create(parameter any, meta pdk.ProviderMeta) (any, error) {
 		return nil, nil
 	}
 
-	parser := hclparse.NewParser()
-
-	// Parse the JSON string to obtain an HCL file object.
-	_, diags := parser.ParseJSON(byteData, "config0.json")
-
-	if diags.HasErrors() {
-		diags.Errs()
-		return nil, nil
-	}
-
-	if err != nil {
-		fmt.Println("Error saving HCL file:", err)
-	}
-
+	// Write Terraform File (JSON)
 	filename := "main.tf.json"
 	dir := meta.CustomStateDir
 	filePath := filepath.Join(dir, filename)
