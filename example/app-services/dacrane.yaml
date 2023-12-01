@@ -6,7 +6,8 @@ modules:
     tag: latest
 - name: container
   module: local-docker
-  argument: ${{ modules.image.modules.api-local-image }}
+  argument: 
+    image: ${{ modules.image.modules.api-local-image.modules.image }}
 ---
 name: quick-start-as
 modules:
@@ -30,16 +31,20 @@ modules:
 name: local-docker
 parameter:
   type: object
+  default: { image: sample-api, tag: latest }
   properties:
-    image: { type: string, default: sample-api }
-    tag: { type: string, default: latest }
+    image: 
+      type: object
+      properties:
+        image: { type: string, default: sample-api }
+        tag: { type: string, default: latest }
 modules:
 - module: resource/docker-container
   name: docker
   argument:
     name: api
-    image: ${{ parameter.image }}
-    tag: ${{ parameter.tag }}
+    image: ${{ parameter.image.image }}
+    tag: ${{ parameter.image.tag }}
     port: 3000:3000
     env:
       - name: PORT
