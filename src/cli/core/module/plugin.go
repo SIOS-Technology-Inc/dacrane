@@ -174,6 +174,9 @@ func runPlugin(image string, input any) (any, error) {
 func appPlugin(image string, input any, output any, setting map[string]any) error {
 	inputJson, err := json.Marshal(input)
 	script := fmt.Sprintf(`docker run --rm`)
+	if err != nil {
+		return err
+	}
 	if setting != nil && setting["working_dir"] != nil {
 		dir, err := os.Getwd()
 		if err != nil {
