@@ -182,8 +182,8 @@ func appPlugin(image string, input any, output any, setting map[string]any) erro
 		script = fmt.Sprintf("%s -v %s:%s", script, dir, setting["working_dir"])
 	}
 	if setting != nil && setting["docker_host"] != nil {
-		// TODO fix docker host
-		script = fmt.Sprintf("%s -v /Users/ikedatooru/.rd/docker.sock:%s", script, setting["docker_host"])
+		// TODO get docker host from environment
+		script = fmt.Sprintf("%s -v /var/run/docker.sock:%s", script, setting["docker_host"])
 	}
 	script = fmt.Sprintf("%s %s", script, input)
 	script = fmt.Sprintf("%s '%s'", script, base64.StdEncoding.EncodeToString(inputJson))
