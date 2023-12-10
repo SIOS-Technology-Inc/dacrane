@@ -90,8 +90,8 @@ modules:
 - name: asp
   module: terraform/resource/azurerm_app_service_plan
   argument:
-    configurations: { features: {} }
-    argument:
+    provider: { features: {} }
+    resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-asp
       resource_group_name: ${{ parameter.base.modules.rg.name }}
       location: "Japan East"
@@ -103,8 +103,8 @@ modules:
 - name: as
   module: terraform/resource/azurerm_app_service
   argument:
-    configurations: { features: {} }
-    argument:
+    provider: { features: {} }
+    resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-as
       resource_group_name: ${{ parameter.base.modules.rg.name }}
       location: "Japan East"
@@ -127,15 +127,15 @@ modules:
 - name: rg
   module: terraform/resource/azurerm_resource_group
   argument:
-    configurations: { features: {} }
-    argument:
+    provider: { features: {} }
+    resource:
       name: ${{ parameter.prefix }}-sample-rg
       location: "Japan East"
 - name: acr
   module: terraform/resource/azurerm_container_registry
   argument:
-    configurations: { features: {} }
-    argument:
+    provider: { features: {} }
+    resource:
       name: ${{ parameter.prefix }}sampleacr
       resource_group_name: ${{ modules.rg.name }}
       location: "Japan East"

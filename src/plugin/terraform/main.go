@@ -26,12 +26,12 @@ func buildTerraformResource(name string) (pdk.Resource, bool) {
 		parameters := parameter.(map[string]any)
 
 		resourceName := "main"
-		argument := parameters["argument"].(map[string]any)
-		configurations := parameters["configurations"].(map[string]any)
+		argument := parameters["resource"].(map[string]any)
+		provider := parameters["provider"].(map[string]any)
 
 		mainTf := map[string]any{
 			"provider": map[string]any{
-				providerName: configurations,
+				providerName: provider,
 			},
 			"resource": map[string]any{
 				resourceType: map[string]any{
@@ -122,12 +122,12 @@ func buildTerraformData(name string) (pdk.Data, bool) {
 		Get: func(parameter any, meta pdk.PluginMeta) (any, error) {
 			parameters := parameter.(map[string]any)
 			resourceName := "main"
-			argument := parameters["argument"].(map[string]any)
-			configurations := parameters["configurations"].(map[string]any)
+			argument := parameters["data"].(map[string]any)
+			provider := parameters["provider"].(map[string]any)
 
 			mainTf := map[string]any{
 				"provider": map[string]any{
-					providerName: configurations,
+					providerName: provider,
 				},
 				"data": map[string]any{
 					resourceType: map[string]any{
