@@ -2,3 +2,6 @@ go 1.20
 
 use ./src/cli
 use ./src/pdk
+use ./src/plugin/docker
+use ./src/plugin/local
+use ./src/plugin/terraform
