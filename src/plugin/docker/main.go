@@ -26,7 +26,7 @@ func main() {
 }
 
 var DockerContainerResource = pdk.Resource{
-	Create: func(parameter any, _ pdk.PluginMeta) (any, error) {
+	Create: func(parameter any, meta pdk.PluginMeta) (any, error) {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		name := params["name"].(string)
@@ -44,21 +44,21 @@ var DockerContainerResource = pdk.Resource{
 
 		cmd := fmt.Sprintf("docker run -d --name %s -p %s %s %s:%s", name, port, strings.Join(envOpts, " "), image, tag)
 
-		_, err := RunOnBash(cmd)
+		_, err := RunOnSh(cmd, meta)
 		if err != nil {
 			panic(err)
 		}
 
 		return parameter, nil
 	},
-	Delete: func(parameter any, _ pdk.PluginMeta) error {
+	Delete: func(parameter any, meta pdk.PluginMeta) error {
 		params := parameter.(map[string]any)
 		name := params["name"].(string)
-		_, err := RunOnBash(fmt.Sprintf("docker stop %s", name))
+		_, err := RunOnSh(fmt.Sprintf("docker stop %s", name), meta)
 		if err != nil {
 			panic(err)
 		}
-		_, err = RunOnBash(fmt.Sprintf("docker rm %s", name))
+		_, err = RunOnSh(fmt.Sprintf("docker rm %s", name), meta)
 		if err != nil {
 			panic(err)
 		}
@@ -67,24 +67,24 @@ var DockerContainerResource = pdk.Resource{
 }
 
 var DockerLocalImageResource = pdk.Resource{
-	Create: func(parameter any, _ pdk.PluginMeta) (any, error) {
+	Create: func(parameter any, meta pdk.PluginMeta) (any, error) {
 		params := parameter.(map[string]any)
 		dockerfile := params["dockerfile"].(string)
 		image := params["image"].(string)
 		tag := params["tag"].(string)
 
 		dockerCmd := fmt.Sprintf("docker build -t %s:%s -f %s .", image, tag, dockerfile)
-		_, err := RunOnBash(dockerCmd)
+		_, err := RunOnSh(dockerCmd, meta)
 		return params, err
 	},
-	Delete: func(parameter any, _ pdk.PluginMeta) error {
+	Delete: func(parameter any, meta pdk.PluginMeta) error {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		tag := params["tag"].(string)
 
 		// remove local image
 		dockerRmiCmd := fmt.Sprintf("docker rmi %s:%s", image, tag)
-		_, err := RunOnBash(dockerRmiCmd)
+		_, err := RunOnSh(dockerRmiCmd, meta)
 		if err != nil {
 			return err
 		}
@@ -93,7 +93,7 @@ var DockerLocalImageResource = pdk.Resource{
 }
 
 var DockerRemoteImage = pdk.Resource{
-	Create: func(parameter any, _ pdk.PluginMeta) (any, error) {
+	Create: func(parameter any, meta pdk.PluginMeta) (any, error) {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		tag := params["tag"].(string)
@@ -109,7 +109,7 @@ var DockerRemoteImage = pdk.Resource{
 		cmds := []string{dockerLoginCmd, dockerImageTagCmd, dockerPushCmd}
 
 		for _, cmd := range cmds {
-			_, err := RunOnBash(cmd)
+			_, err := RunOnSh(cmd, meta)
 			if err != nil {
 				return nil, err
 			}
@@ -117,7 +117,7 @@ var DockerRemoteImage = pdk.Resource{
 
 		return params, nil
 	},
-	Delete: func(parameter any, _ pdk.PluginMeta) error {
+	Delete: func(parameter any, meta pdk.PluginMeta) error {
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		tag := params["tag"].(string)
@@ -129,7 +129,7 @@ var DockerRemoteImage = pdk.Resource{
 
 		// remove registry image
 		dockerDigestCmd := fmt.Sprintf("docker images %s/%s --format {{.Digest}}", url, image)
-		out, err := RunOnBash(dockerDigestCmd)
+		out, err := RunOnSh(dockerDigestCmd, meta)
 		if err != nil {
 			return err
 		}
@@ -142,14 +142,14 @@ var DockerRemoteImage = pdk.Resource{
 			return err
 		}
 		req.SetBasicAuth(user, password)
-		res, err := RequestHttp(req)
+		res, err := RequestHttp(req, meta)
 		if err != nil {
 			return err
 		}
 		defer res.Body.Close()
 
 		dockerRmiCmd := fmt.Sprintf("docker rmi %s/%s:%s", url, image, tag)
-		_, err = RunOnBash(dockerRmiCmd)
+		_, err = RunOnSh(dockerRmiCmd, meta)
 		if err != nil {
 			return err
 		}
@@ -158,19 +158,19 @@ var DockerRemoteImage = pdk.Resource{
 	},
 }
 
-func RunOnBash(script string) ([]byte, error) {
-	fmt.Printf("> %s\n", script)
-	cmd := exec.Command("bash", "-c", script)
+func RunOnSh(script string, m pdk.PluginMeta) ([]byte, error) {
+	m.Log(fmt.Sprintf("> %s\n", script))
+	cmd := exec.Command("sh", "-c", script)
 	writer := new(bytes.Buffer)
-	cmd.Stdout = io.MultiWriter(os.Stdout, writer)
+	cmd.Stdout = io.MultiWriter(os.Stderr, writer)
 	cmd.Stderr = io.MultiWriter(os.Stderr, writer)
 	err := cmd.Run()
 	return writer.Bytes(), err
 }
 
-func RequestHttp(req *http.Request) (*http.Response, error) {
-	fmt.Printf("> %s %s\n", req.Method, req.URL)
+func RequestHttp(req *http.Request, m pdk.PluginMeta) (*http.Response, error) {
+	m.Log(fmt.Sprintf("> %s %s\n", req.Method, req.URL))
 	res, err := http.DefaultClient.Do(req)
-	fmt.Printf("> %s\n", res.Status)
+	m.Log(fmt.Sprintf("> %s\n", res.Status))
 	return res, err
 }
