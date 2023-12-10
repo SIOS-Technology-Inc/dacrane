@@ -2,9 +2,9 @@ package module
 
 import (
 	"bytes"
-	"dacrane/core/evaluator"
-	"dacrane/core/repository"
-	"dacrane/utils"
+	"dacrane/cli/core/evaluator"
+	"dacrane/cli/core/repository"
+	"dacrane/cli/utils"
 	"fmt"
 	"io"
 	"net/http"
@@ -48,7 +48,6 @@ func (module Module) Apply(
 	argument any,
 	instances *repository.DocumentRepository,
 	importedModule []Module,
-	importedProvider []Provider,
 ) {
 	// Validation Argument
 	err := utils.Validate(module.Parameter, argument)
@@ -103,25 +102,22 @@ func (module Module) Apply(
 			continue
 		}
 
-		providerExists := utils.Contains(importedProvider, func(provider Provider) bool {
-			return provider.Name == evaluatedModuleCall.Module
-		})
-		moduleExists := utils.Contains(importedModule, func(module Module) bool {
-			return module.Name == evaluatedModuleCall.Module
-		})
+		isProvider := IsProviderPathString(evaluatedModuleCall.Module)
 
-		if providerExists {
-			provider := utils.Find(importedProvider, func(provider Provider) bool {
-				return provider.Name == evaluatedModuleCall.Module
+		if isProvider {
+			plugin := NewPlugin(evaluatedModuleCall.Module)
+			plugin.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances)
+		} else {
+			exists := utils.Contains(importedModule, func(module Module) bool {
+				return module.Name == evaluatedModuleCall.Module
 			})
-			provider.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances)
-		} else if moduleExists {
+			if !exists {
+				panic(fmt.Sprintf("undefined module: %s", evaluatedModuleCall.Module))
+			}
 			childModule := utils.Find(importedModule, func(module Module) bool {
 				return module.Name == evaluatedModuleCall.Module
 			})
-			childModule.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances, importedModule, importedProvider)
-		} else {
-			panic(fmt.Sprintf("undefined module or provider: %s", evaluatedModuleCall.Module))
+			childModule.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances, importedModule)
 		}
 		instance.Instances = append(instance.Instances, childRelAddr)
 		instances.Upsert(instanceAddress, instance)

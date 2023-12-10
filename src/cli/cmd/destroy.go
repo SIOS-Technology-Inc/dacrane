@@ -1,9 +1,8 @@
 package cmd
 
 import (
-	"dacrane/core"
-	"dacrane/core/module"
-	"dacrane/core/repository"
+	"dacrane/cli/core/module"
+	"dacrane/cli/core/repository"
 	"errors"
 
 	"github.com/spf13/cobra"
@@ -25,7 +24,7 @@ var destroyCmd = &cobra.Command{
 		instances := repository.LoadDocumentRepository()
 		doc := instances.Find(instanceName)
 		instance := module.NewInstanceFromDocument(doc)
-		instance.Destroy(instanceName, &instances, core.Providers)
+		instance.Destroy(instanceName, &instances)
 	},
 }
 

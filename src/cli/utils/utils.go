@@ -1,13 +1,7 @@
 package utils
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"os/exec"
 
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -65,23 +59,6 @@ func Values[T comparable, T2 any](array map[T]T2) (result []T2) {
 		result = append(result, v)
 	}
 	return
-}
-
-func RunOnBash(script string) ([]byte, error) {
-	fmt.Printf("> %s\n", script)
-	cmd := exec.Command("bash", "-c", script)
-	writer := new(bytes.Buffer)
-	cmd.Stdout = io.MultiWriter(os.Stdout, writer)
-	cmd.Stderr = io.MultiWriter(os.Stderr, writer)
-	err := cmd.Run()
-	return writer.Bytes(), err
-}
-
-func RequestHttp(req *http.Request) (*http.Response, error) {
-	fmt.Printf("> %s %s\n", req.Method, req.URL)
-	res, err := http.DefaultClient.Do(req)
-	fmt.Printf("> %s\n", res.Status)
-	return res, err
 }
 
 func Validate(schema any, document any) error {

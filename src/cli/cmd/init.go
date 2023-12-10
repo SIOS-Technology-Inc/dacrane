@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"dacrane/core/repository"
+	"dacrane/cli/core/repository"
 
 	"github.com/spf13/cobra"
 )

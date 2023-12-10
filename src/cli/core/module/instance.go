@@ -1,8 +1,8 @@
 package module
 
 import (
-	"dacrane/core/repository"
-	"dacrane/utils"
+	"dacrane/cli/core/repository"
+	"dacrane/cli/utils"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,7 +12,7 @@ import (
 
 type Instance interface {
 	ToState(instances repository.DocumentRepository) any
-	Destroy(instanceAddress string, instances *repository.DocumentRepository, importedProvider []Provider)
+	Destroy(instanceAddress string, instances *repository.DocumentRepository)
 }
 
 type moduleInstance struct {
@@ -41,7 +41,7 @@ func NewModuleInstance(module Module, address string, argument any) moduleInstan
 	}
 }
 
-func NewProviderInstance(provider string, customStateDir string, argument any, output any) providerInstance {
+func NewPluginInstance(provider string, customStateDir string, argument any, output any) providerInstance {
 	return providerInstance{
 		Type:           "provider",
 		Provider:       provider,
@@ -92,7 +92,6 @@ func (instance moduleInstance) ToState(instances repository.DocumentRepository) 
 func (instance moduleInstance) Destroy(
 	instanceAddress string,
 	instances *repository.DocumentRepository,
-	importedProvider []Provider,
 ) {
 	sortedModuleCalls := utils.Reverse(instance.Module.TopologicalSortedModuleCalls())
 	for _, moduleCall := range sortedModuleCalls {
@@ -106,7 +105,7 @@ func (instance moduleInstance) Destroy(
 
 		document := instances.Find(childAbsAddr)
 		child := NewInstanceFromDocument(document)
-		child.Destroy(childAbsAddr, instances, importedProvider)
+		child.Destroy(childAbsAddr, instances)
 		customStatePath := filepath.Join(".dacrane/custom_state", childAbsAddr)
 		err := os.RemoveAll(customStatePath)
 		if err != nil {
@@ -125,12 +124,10 @@ func (instance providerInstance) ToState(_ repository.DocumentRepository) any {
 	return instance.Output
 }
 
-func (instance providerInstance) Destroy(instanceAddress string, instances *repository.DocumentRepository, importedProvider []Provider) {
-	provider := utils.Find(importedProvider, func(provider Provider) bool {
-		return provider.Name == instance.Provider
-	})
-	if provider.Destroy == nil {
+func (instance providerInstance) Destroy(instanceAddress string, instances *repository.DocumentRepository) {
+	plugin := NewPlugin(instance.Provider)
+	if plugin.Destroy == nil {
 		fmt.Printf("[%s (%s)] Skipped. Deletion is not needed.\n", instanceAddress, instance.Provider)
 	}
-	provider.Destroy(instanceAddress, instances)
+	plugin.Destroy(instanceAddress, instances)
 }

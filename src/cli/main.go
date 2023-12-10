@@ -1,6 +1,6 @@
 package main
 
-import "dacrane/cmd"
+import "dacrane/cli/cmd"
 
 func main() {
 	cmd.Execute()

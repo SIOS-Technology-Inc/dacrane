@@ -1,4 +1,4 @@
-module dacrane
+module dacrane/cli
 
 go 1.20
 

@@ -1,10 +1,9 @@
 package cmd
 
 import (
-	"dacrane/core"
-	"dacrane/core/module"
-	"dacrane/core/repository"
-	"dacrane/utils"
+	"dacrane/cli/core/module"
+	"dacrane/cli/core/repository"
+	"dacrane/cli/utils"
 	"errors"
 	"fmt"
 	"os"
@@ -65,7 +64,7 @@ var applyCmd = &cobra.Command{
 			return module.Name == moduleName
 		})
 
-		module.Apply(instanceName, evaluatedArg, &instances, modules, core.Providers)
+		module.Apply(instanceName, evaluatedArg, &instances, modules)
 	},
 }
 
