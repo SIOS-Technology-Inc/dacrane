@@ -6,7 +6,7 @@ modules:
     tag: latest
 - name: container
   module: local-docker
-  argument: 
+  argument:
     image: ${{ modules.image.modules.api-local-image.modules.image }}
 ---
 name: quick-start-as
@@ -33,7 +33,7 @@ parameter:
   type: object
   default: { image: sample-api, tag: latest }
   properties:
-    image: 
+    image:
       type: object
       properties:
         image: { type: string, default: sample-api }
