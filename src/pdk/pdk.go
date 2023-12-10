@@ -1,6 +1,7 @@
 package pdk
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -64,8 +65,12 @@ func MapToFunc[T any](m map[string]T) func(string) (T, bool) {
 
 func ExecPluginJob(plugin Plugin) {
 	rawArg := os.Args[1]
+	decodeArg, err := base64.StdEncoding.DecodeString(rawArg)
+	if err != nil {
+		panic(err)
+	}
 	var arg map[string]any
-	err := json.Unmarshal([]byte(rawArg), &arg)
+	err = json.Unmarshal([]byte(decodeArg), &arg)
 	if err != nil {
 		panic(err)
 	}

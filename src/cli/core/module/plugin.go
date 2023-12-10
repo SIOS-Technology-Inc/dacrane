@@ -3,6 +3,7 @@ package module
 import (
 	"bytes"
 	"dacrane/cli/core/repository"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -185,7 +186,7 @@ func appPlugin(image string, input any, output any, setting map[string]any) erro
 		script = fmt.Sprintf("%s -v /Users/ikedatooru/.rd/docker.sock:%s", script, setting["docker_host"])
 	}
 	script = fmt.Sprintf("%s %s", script, input)
-	script = fmt.Sprintf("%s '%s'", script, inputJson)
+	script = fmt.Sprintf("%s '%s'", script, base64.StdEncoding.EncodeToString(inputJson))
 	cmd := exec.Command("bash", "-c", script)
 	writer := new(bytes.Buffer)
 	cmd.Stdout = writer
