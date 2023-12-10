@@ -188,7 +188,7 @@ func appPlugin(image string, input any, output any, setting map[string]any) erro
 		// TODO get docker host from environment
 		script = fmt.Sprintf("%s -v /var/run/docker.sock:%s", script, setting["docker_host"])
 	}
-	script = fmt.Sprintf("%s %s", script, input)
+	script = fmt.Sprintf("%s %s", script, image)
 	script = fmt.Sprintf("%s '%s'", script, base64.StdEncoding.EncodeToString(inputJson))
 	cmd := exec.Command("bash", "-c", script)
 	writer := new(bytes.Buffer)
