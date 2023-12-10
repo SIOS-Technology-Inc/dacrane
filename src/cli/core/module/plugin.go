@@ -190,6 +190,7 @@ func appPlugin(image string, input any, output any, setting map[string]any) erro
 	}
 	script = fmt.Sprintf("%s %s", script, image)
 	script = fmt.Sprintf("%s '%s'", script, base64.StdEncoding.EncodeToString(inputJson))
+	fmt.Printf("> %s\n", script)
 	cmd := exec.Command("bash", "-c", script)
 	writer := new(bytes.Buffer)
 	cmd.Stdout = writer
