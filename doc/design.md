@@ -208,7 +208,7 @@ The format is as follows
 | modules | list(object) | The module list that it manages. |
 | modules.*.name | string | The name of the module locally. It can be referenced from an expression. |
 | modules.*.depends_on | list(string) | The name of the local module on which it depends. When referenced by an expression, it is considered dependent even if it is not listed here. |
-| modules.*.module | string | The module name that it calls. You can specify the imported module or provider name: `data/[provider_name]` for a data provider or `resource/[provider_name]` for a resource provider. |
+| modules.*.module | string | The module name that it calls. You can specify the imported module or plugin name: `[docker_image]/[resource|data]/[resource_or_data_name]`. |
 | modules.*.argument | string | Actual arguments to be passed to the calling module. |
 
 ```yaml
@@ -226,12 +226,12 @@ modules:
 - name: foo
   depends_on:
     - bar
-  module: resource/baz
+  module: plugin1/resource/baz
   argument:
     a: 123
     b: abc
 - name: bar
-  module: resource/qux
+  module: plugin2:v1.2.3/resource/qux
   argument:
     a: 123
     b: abc
