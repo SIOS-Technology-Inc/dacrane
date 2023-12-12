@@ -25,7 +25,7 @@ type moduleInstance struct {
 
 type pluginInstance struct {
 	Type           string `yaml:"type"`
-	plugin         string `yaml:"plugin"`
+	Plugin         string `yaml:"plugin"`
 	CustomStateDir string `yaml:"custom_state_dir"`
 	Argument       any    `yaml:"argument"`
 	Output         any    `yaml:"output"`
@@ -44,7 +44,7 @@ func NewModuleInstance(module Module, address string, argument any) moduleInstan
 func NewPluginInstance(plugin string, customStateDir string, argument any, output any) pluginInstance {
 	return pluginInstance{
 		Type:           "plugin",
-		plugin:         plugin,
+		Plugin:         plugin,
 		CustomStateDir: customStateDir,
 		Argument:       argument,
 		Output:         output,
@@ -125,9 +125,9 @@ func (instance pluginInstance) ToState(_ repository.DocumentRepository) any {
 }
 
 func (instance pluginInstance) Destroy(instanceAddress string, instances *repository.DocumentRepository) {
-	plugin := NewPlugin(instance.plugin)
+	plugin := NewPlugin(instance.Plugin)
 	if plugin.Destroy == nil {
-		fmt.Printf("[%s (%s)] Skipped. Deletion is not needed.\n", instanceAddress, instance.plugin)
+		fmt.Printf("[%s (%s)] Skipped. Deletion is not needed.\n", instanceAddress, instance.Plugin)
 	}
 	plugin.Destroy(instanceAddress, instances)
 }
