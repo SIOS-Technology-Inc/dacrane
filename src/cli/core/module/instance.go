@@ -23,9 +23,9 @@ type moduleInstance struct {
 	Instances []string `yaml:"instances"`
 }
 
-type providerInstance struct {
+type pluginInstance struct {
 	Type           string `yaml:"type"`
-	Provider       string `yaml:"provider"`
+	plugin         string `yaml:"plugin"`
 	CustomStateDir string `yaml:"custom_state_dir"`
 	Argument       any    `yaml:"argument"`
 	Output         any    `yaml:"output"`
@@ -41,10 +41,10 @@ func NewModuleInstance(module Module, address string, argument any) moduleInstan
 	}
 }
 
-func NewPluginInstance(provider string, customStateDir string, argument any, output any) providerInstance {
-	return providerInstance{
-		Type:           "provider",
-		Provider:       provider,
+func NewPluginInstance(plugin string, customStateDir string, argument any, output any) pluginInstance {
+	return pluginInstance{
+		Type:           "plugin",
+		plugin:         plugin,
 		CustomStateDir: customStateDir,
 		Argument:       argument,
 		Output:         output,
@@ -62,12 +62,12 @@ func NewInstanceFromDocument(document any) Instance {
 		var instance moduleInstance
 		yaml.Unmarshal(bytes, &instance)
 		return instance
-	case "provider":
+	case "plugin":
 		bytes, err := yaml.Marshal(document)
 		if err != nil {
 			panic(err)
 		}
-		var instance providerInstance
+		var instance pluginInstance
 		yaml.Unmarshal(bytes, &instance)
 		return instance
 	default:
@@ -120,14 +120,14 @@ func (instance moduleInstance) Destroy(
 	instances.Delete(instanceAddress)
 }
 
-func (instance providerInstance) ToState(_ repository.DocumentRepository) any {
+func (instance pluginInstance) ToState(_ repository.DocumentRepository) any {
 	return instance.Output
 }
 
-func (instance providerInstance) Destroy(instanceAddress string, instances *repository.DocumentRepository) {
-	plugin := NewPlugin(instance.Provider)
+func (instance pluginInstance) Destroy(instanceAddress string, instances *repository.DocumentRepository) {
+	plugin := NewPlugin(instance.plugin)
 	if plugin.Destroy == nil {
-		fmt.Printf("[%s (%s)] Skipped. Deletion is not needed.\n", instanceAddress, instance.Provider)
+		fmt.Printf("[%s (%s)] Skipped. Deletion is not needed.\n", instanceAddress, instance.plugin)
 	}
 	plugin.Destroy(instanceAddress, instances)
 }

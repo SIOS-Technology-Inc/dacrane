@@ -103,9 +103,9 @@ func (module Module) Apply(
 			continue
 		}
 
-		isProvider := IsProviderPathString(evaluatedModuleCall.Module)
+		isPlugin := IsPluginPathString(evaluatedModuleCall.Module)
 
-		if isProvider {
+		if isPlugin {
 			plugin := NewPlugin(evaluatedModuleCall.Module)
 			plugin.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances)
 		} else {

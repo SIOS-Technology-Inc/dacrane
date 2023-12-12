@@ -24,7 +24,7 @@ type Plugin struct {
 	)
 }
 
-func IsProviderPathString(module string) bool {
+func IsPluginPathString(module string) bool {
 	keys := strings.Split(module, "/")
 	return len(keys) == 3
 }
@@ -65,7 +65,7 @@ func NewResourcePlugin(module string) Plugin {
 				fmt.Printf("[%s (%s)] Updating...\n", instanceAddress, module)
 
 				document := instances.Find(instanceAddress)
-				instance := NewInstanceFromDocument(document).(providerInstance)
+				instance := NewInstanceFromDocument(document).(pluginInstance)
 
 				arguments := []any{argument, instance.ToState(*instances)}
 				input := buildPluginInput(kind, name, "update", instance.CustomStateDir, arguments)
@@ -98,7 +98,7 @@ func NewResourcePlugin(module string) Plugin {
 			}
 			fmt.Printf("[%s (%s)] Deleting...\n", instanceAddress, module)
 			document := instances.Find(instanceAddress)
-			instance := NewInstanceFromDocument(document).(providerInstance)
+			instance := NewInstanceFromDocument(document).(pluginInstance)
 
 			arguments := []any{instance.ToState(*instances)}
 			input := buildPluginInput(kind, name, "delete", instance.CustomStateDir, arguments)
