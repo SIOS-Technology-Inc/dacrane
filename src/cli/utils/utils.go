@@ -2,6 +2,8 @@ package utils
 
 import (
 	"errors"
+	"os"
+	"strings"
 
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -116,4 +118,21 @@ func FillDefault(schema any, document any) any {
 	default:
 		return document
 	}
+}
+
+func GetEnvMap() map[string]any {
+	getenvironment := func(data []string, getkeyval func(item string) (key, val string)) map[string]any {
+		items := make(map[string]any)
+		for _, item := range data {
+			key, val := getkeyval(item)
+			items[key] = val
+		}
+		return items
+	}
+	return getenvironment(os.Environ(), func(item string) (key string, val string) {
+		splits := strings.Split(item, "=")
+		key = splits[0]
+		val = splits[1]
+		return
+	})
 }

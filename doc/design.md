@@ -343,6 +343,7 @@ REF
 | -- | -- | -- | -- |
 | parameter | object | modules section | |
 | self | object | module section | |
+| env | object | module section | |
 | modules | object | modules section | |
 | instances | object | command argument flag | |
 

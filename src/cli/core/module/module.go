@@ -88,6 +88,7 @@ func (module Module) Apply(
 			"address":           childAbsAddr,
 			"custom_state_path": customStatePath,
 		}
+		data["env"] = utils.GetEnvMap()
 		if moduleCall.HasReferences("^self.custom_state_path$") {
 			err := os.MkdirAll(customStatePath, 0755)
 			if err != nil {
