@@ -42,8 +42,8 @@ func buildTerraformResource(name string) (pdk.Resource, bool) {
 
 		byteData, err := json.MarshalIndent(mainTf, "", "  ")
 		if err != nil {
-			fmt.Println("Error marshalling to JSON:", err)
-			return nil, nil
+			meta.Log("Error marshalling to JSON")
+			return nil, err
 		}
 
 		// Write Terraform File (JSON)
@@ -60,7 +60,7 @@ func buildTerraformResource(name string) (pdk.Resource, bool) {
 			return nil, fmt.Errorf("error writing JSON file: %v", err)
 		}
 
-		if err := ApplyTerraform(filePath); err != nil {
+		if err := ApplyTerraform(filePath, meta); err != nil {
 			return nil, err
 		}
 
@@ -108,7 +108,7 @@ func buildTerraformResource(name string) (pdk.Resource, bool) {
 				return err
 			}
 
-			fmt.Println("Terraform destroy executed successfully.")
+			meta.Log("Terraform destroy executed successfully.")
 			return nil
 		},
 	}, true
@@ -138,8 +138,8 @@ func buildTerraformData(name string) (pdk.Data, bool) {
 
 			byteData, err := json.MarshalIndent(mainTf, "", "  ")
 			if err != nil {
-				fmt.Println("Error marshalling to JSON:", err)
-				return nil, nil
+				meta.Log("Error marshalling to JSON")
+				return nil, err
 			}
 
 			// Write Terraform File (JSON)
@@ -156,7 +156,7 @@ func buildTerraformData(name string) (pdk.Data, bool) {
 				return nil, fmt.Errorf("error writing JSON file: %v", err)
 			}
 
-			if err := ApplyTerraform(filePath); err != nil {
+			if err := ApplyTerraform(filePath, meta); err != nil {
 				return nil, err
 			}
 
@@ -186,7 +186,7 @@ func buildTerraformData(name string) (pdk.Data, bool) {
 	}, true
 }
 
-func ApplyTerraform(filePath string) error {
+func ApplyTerraform(filePath string, meta pdk.PluginMeta) error {
 	// Terraform init
 	dir := filepath.Dir(filePath)
 
@@ -203,7 +203,7 @@ func ApplyTerraform(filePath string) error {
 		return fmt.Errorf("failed to run terraform apply: %s, %s", err, output)
 	}
 
-	fmt.Println("Terraform apply complete")
+	meta.Log("Terraform apply complete")
 	return nil
 }
 
