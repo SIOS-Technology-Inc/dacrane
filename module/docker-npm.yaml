@@ -47,7 +47,7 @@ parameter:
       default: latest
 modules:
 - name: dockerfile
-  module: resource/file
+  module: local/resource/file
   argument:
     filename: ${{ self.custom_state_path }}/Dockerfile
     contents: |-
@@ -62,7 +62,7 @@ modules:
 
       CMD ${{ parameter.start_command }}
 - name: image
-  module: resource/docker-local-image
+  module: docker/resource/local-image
   argument:
     dockerfile: ${{ modules.dockerfile.filename }}
     image: ${{ parameter.image }}

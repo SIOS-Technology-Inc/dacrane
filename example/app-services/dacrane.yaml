@@ -6,7 +6,7 @@ modules:
     tag: latest
 - name: container
   module: local-docker
-  argument: 
+  argument:
     image: ${{ modules.image.modules.api-local-image.modules.image }}
 ---
 name: quick-start-as
@@ -33,13 +33,13 @@ parameter:
   type: object
   default: { image: sample-api, tag: latest }
   properties:
-    image: 
+    image:
       type: object
       properties:
         image: { type: string, default: sample-api }
         tag: { type: string, default: latest }
 modules:
-- module: resource/docker-container
+- module: docker/resource/container
   name: docker
   argument:
     name: api
@@ -67,7 +67,7 @@ modules:
     tag: ${{ parameter.tag }}
 - name: api-remote-image
   if: ${{ parameter.acr != null }}
-  module: resource/docker-remote-image
+  module: docker/resource/remote-image
   argument:
     image: ${{ modules.api-local-image.modules.image.image }}
     tag: ${{ modules.api-local-image.modules.image.tag }}
@@ -88,12 +88,15 @@ parameter:
     api: { type: object }
 modules:
 - name: asp
-  module: resource/terraform
+  module: terraform/resource/azurerm_app_service_plan
   argument:
-    provider: azurerm
-    resource: azurerm_app_service_plan
-    configurations: { features: {} }
-    argument:
+    provider:
+      features: {}
+      client_id: ${{ env.ARM_CLIENT_ID }}
+      client_secret: ${{ env.ARM_CLIENT_SECRET }}
+      tenant_id: ${{ env.ARM_TENANT_ID }}
+      subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+    resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-asp
       resource_group_name: ${{ parameter.base.modules.rg.name }}
       location: "Japan East"
@@ -103,12 +106,15 @@ modules:
         tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
         size: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
 - name: as
-  module: resource/terraform
+  module: terraform/resource/azurerm_app_service
   argument:
-    provider: azurerm
-    resource: azurerm_app_service
-    configurations: { features: {} }
-    argument:
+    provider:
+      features: {}
+      client_id: ${{ env.ARM_CLIENT_ID }}
+      client_secret: ${{ env.ARM_CLIENT_SECRET }}
+      tenant_id: ${{ env.ARM_TENANT_ID }}
+      subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+    resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-as
       resource_group_name: ${{ parameter.base.modules.rg.name }}
       location: "Japan East"
@@ -129,21 +135,27 @@ parameter:
     prefix: { type: string }
 modules:
 - name: rg
-  module: resource/terraform
+  module: terraform/resource/azurerm_resource_group
   argument:
-    provider: azurerm
-    resource: azurerm_resource_group
-    configurations: { features: {} }
-    argument:
+    provider:
+      features: {}
+      client_id: ${{ env.ARM_CLIENT_ID }}
+      client_secret: ${{ env.ARM_CLIENT_SECRET }}
+      tenant_id: ${{ env.ARM_TENANT_ID }}
+      subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+    resource:
       name: ${{ parameter.prefix }}-sample-rg
       location: "Japan East"
 - name: acr
-  module: resource/terraform
+  module: terraform/resource/azurerm_container_registry
   argument:
-    provider: azurerm
-    resource: azurerm_container_registry
-    configurations: { features: {} }
-    argument:
+    provider:
+      features: {}
+      client_id: ${{ env.ARM_CLIENT_ID }}
+      client_secret: ${{ env.ARM_CLIENT_SECRET }}
+      tenant_id: ${{ env.ARM_TENANT_ID }}
+      subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+    resource:
       name: ${{ parameter.prefix }}sampleacr
       resource_group_name: ${{ modules.rg.name }}
       location: "Japan East"
