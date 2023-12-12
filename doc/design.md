@@ -5,7 +5,7 @@
   - [Deployment Code](#deployment-code)
     - [Module](#module)
       - [Name section](#name-section)
-      - [Import section (not implemented)](#import-section-not-implemented)
+      - [Import section](#import-section)
       - [Parameter section](#parameter-section)
       - [Modules section](#modules-section)
     - [Expression](#expression)
@@ -134,7 +134,7 @@ For example
 name: foo
 ```
 
-#### Import section (not implemented)
+#### Import section
 
 The import section is used to load external deployment code.
 Import of local files or external files via HTTP is possible.
