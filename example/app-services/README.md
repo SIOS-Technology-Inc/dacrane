@@ -1,15 +1,32 @@
+This document explains that Dacrane deploys a Node.js API service into Docker and App Service.
+
 ## Prepare
 
-```bash
-$ terraform --version
-$ az --version
-```
+(If you don’t have a service principal) Create a service principal for Dacrane, for example:
 
 ```bash
-$ az login
+$ az ad sp create-for-rbac --name "dacrane-${your_name}" --role="Contributor" --scopes="/subscriptions/${your_subscription_id}"
+
+{
+  "appId": "00000000-0000-0000-0000-000000000000",
+  "displayName": "dacrane-your-name",
+  "password": "12345678-0000-0000-0000-000000000000",
+  "tenant": "10000000-0000-0000-0000-000000000000"
+}
+```
+
+Store the credentials as Environment Variables, for example:
+
+```bash
+export ARM_CLIENT_ID="00000000-0000-0000-0000-000000000000"
+export ARM_CLIENT_SECRET="12345678-0000-0000-0000-000000000000"
+export ARM_TENANT_ID="10000000-0000-0000-0000-000000000000"
+export ARM_SUBSCRIPTION_ID="20000000-0000-0000-0000-000000000000"
 ```
 
 ## Quick Start (Local Docker)
+
+This section explains the way deploys API service into Docker with one command.
 
 ```bash
 $ dacrane apply quick-start qs
@@ -27,6 +44,8 @@ $ dacrane destroy qs
 
 ## Quick Start (App Service)
 
+This section explains the way deploys API service into App Service with one command.
+
 ```bash
 $ dacrane apply quick-start-as qs-as
 ```
@@ -42,6 +61,8 @@ $ dacrane destroy qs-as
 ```
 
 ## Deploy Practically
+
+This section explains the more practical way to deploy.
 
 ```bash
 $ dacrane apply base base -a '{ prefix: dacrane }'
@@ -80,6 +101,10 @@ hello world
 
 ```bash
 $ dacrane destroy dev
+```
+
+```bash
+$ dacrane destroy local
 ```
 
 ```bash
