@@ -6,3 +6,5 @@ install-plugin:
 	docker build -t terraform:latest -f src/plugin/terraform/Dockerfile .
 uninstall:
 	rm /usr/local/bin/dacrane
+uninstall-plugin:
+	docker rmi docker local terraform
