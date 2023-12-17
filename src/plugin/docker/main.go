@@ -30,19 +30,25 @@ var DockerContainerResource = pdk.Resource{
 		params := parameter.(map[string]any)
 		image := params["image"].(string)
 		name := params["name"].(string)
-		env := params["env"].([]any)
-		port := params["port"].(string)
 		tag := params["tag"].(string)
 
-		envOpts := []string{}
-		for _, e := range env {
-			name := e.(map[string]any)["name"].(string)
-			value := e.(map[string]any)["value"].(string)
-			opt := fmt.Sprintf(`-e "%s=%s"`, name, value)
-			envOpts = append(envOpts, opt)
+		cmd := fmt.Sprintf("docker run -d --name %s", name)
+
+		env, ok := params["env"].([]any)
+		if ok {
+			for _, e := range env {
+				name := e.(map[string]any)["name"].(string)
+				value := e.(map[string]any)["value"].(string)
+				cmd = fmt.Sprintf(`%s -e "%s=%s"`, cmd, name, value)
+			}
 		}
 
-		cmd := fmt.Sprintf("docker run -d --name %s -p %s %s %s:%s", name, port, strings.Join(envOpts, " "), image, tag)
+		port, ok := params["port"].(string)
+		if ok {
+			cmd = fmt.Sprintf("%s -p %s", cmd, port)
+		}
+
+		cmd = fmt.Sprintf("%s %s:%s", cmd, image, tag)
 
 		_, err := RunOnSh(cmd, meta)
 		if err != nil {
