@@ -39,16 +39,41 @@ parameter:
         image: { type: string, default: sample-api }
         tag: { type: string, default: latest }
 modules:
+- module: docker/resource/network
+  name: net
+  argument:
+    name: api-net
 - module: docker/resource/container
-  name: docker
+  name: db
+  argument:
+    name: db
+    image: mysql
+    tag: 8.2.0
+    network: ${{ modules.net.name }}
+    env:
+      - name: MYSQL_ROOT_PASSWORD
+        value: &password my-secret-pw
+      - name: MYSQL_DATABASE
+        value: &database api
+- module: docker/resource/container
+  name: api
   argument:
     name: api
     image: ${{ parameter.image.image }}
+    network: ${{ modules.net.name }}
     tag: ${{ parameter.image.tag }}
     port: 3000:3000
     env:
       - name: PORT
         value: "3000"
+      - name: MYSQL_HOST
+        value: ${{ modules.db.name }}
+      - name: MYSQL_USER
+        value: root
+      - name: MYSQL_PASSWORD
+        value: *password
+      - name: MYSQL_DATABASE
+        value: *database
 ---
 name: api-image
 parameter:
