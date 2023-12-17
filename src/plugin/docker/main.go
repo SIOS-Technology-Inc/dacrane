@@ -19,6 +19,7 @@ func main() {
 		Config: config,
 		Resources: pdk.MapToFunc(map[string]pdk.Resource{
 			"container":    DockerContainerResource,
+			"network":      DockerNetworkResource,
 			"local-image":  DockerLocalImageResource,
 			"remote-image": DockerRemoteImage,
 		}),
@@ -48,6 +49,11 @@ var DockerContainerResource = pdk.Resource{
 			cmd = fmt.Sprintf("%s -p %s", cmd, port)
 		}
 
+		network, ok := params["network"].(string)
+		if ok {
+			cmd = fmt.Sprintf("%s --net %s", cmd, network)
+		}
+
 		cmd = fmt.Sprintf("%s %s:%s", cmd, image, tag)
 
 		_, err := RunOnSh(cmd, meta)
@@ -68,6 +74,35 @@ var DockerContainerResource = pdk.Resource{
 		if err != nil {
 			panic(err)
 		}
+		return nil
+	},
+}
+
+var DockerNetworkResource = pdk.Resource{
+	Create: func(parameter any, meta pdk.PluginMeta) (any, error) {
+		params := parameter.(map[string]any)
+		name := params["name"].(string)
+
+		cmd := fmt.Sprintf("docker network create %s", name)
+
+		_, err := RunOnSh(cmd, meta)
+		if err != nil {
+			panic(err)
+		}
+
+		return parameter, nil
+	},
+	Delete: func(parameter any, meta pdk.PluginMeta) error {
+		params := parameter.(map[string]any)
+		name := params["name"].(string)
+
+		cmd := fmt.Sprintf("docker network rm %s", name)
+
+		_, err := RunOnSh(cmd, meta)
+		if err != nil {
+			panic(err)
+		}
+
 		return nil
 	},
 }
