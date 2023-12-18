@@ -11,9 +11,7 @@ func main() {
 		Resources: pdk.MapToFunc(map[string]pdk.Resource{
 			"file": FileResource,
 		}),
-		Data: pdk.MapToFunc(map[string]pdk.Data{
-			"environment": EnvironmentData,
-		}),
+		Data: pdk.MapToFunc(map[string]pdk.Data{}),
 	})
 }
 
@@ -38,22 +36,5 @@ var FileResource = pdk.Resource{
 			return err
 		}
 		return nil
-	},
-}
-
-var EnvironmentData = pdk.Data{
-	Get: func(parameter any, _ pdk.PluginMeta) (any, error) {
-		params := parameter.(map[string]any)
-		data := map[string]any{}
-		for key, name := range params {
-			name := name.(string)
-			value, exists := os.LookupEnv(name)
-			if exists {
-				data[key] = value
-			} else {
-				data[key] = nil
-			}
-		}
-		return data, nil
 	},
 }
