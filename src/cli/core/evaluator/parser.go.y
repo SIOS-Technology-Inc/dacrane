@@ -1,5 +1,5 @@
 %{
-package expr
+package evaluator
 
 import "github.com/macrat/simplexer"
 import "strconv"
@@ -89,9 +89,8 @@ Expr
 
 Ref
 	: Expr LSBRACKET Expr RSBRACKET { $$ = &Ref{Expr: $1, Key: $3} }
-	| IDENTIFIER { $$ = &Identifier{Name: $1.Literal} }
-	| Ref DOT IDENTIFIER { $$ = &Identifier{Name: $1.(*Identifier).Name + "." + $3.Literal} }
-
+	| Ref DOT IDENTIFIER { $$ = &Ref{Expr: $1,      Key: &String{Value: $3.Literal} } }
+	| IDENTIFIER         { $$ = &Ref{Expr: &Null{}, Key: &String{Value: $1.Literal} } }
 
 App: IDENTIFIER LBRACKET Params RBRACKET { $$ = &App{Name: $1.Literal, Params: $3} }
 Params
