@@ -89,5 +89,5 @@ func TestDataArrayReference(t *testing.T) {
 			},
 		},
 	})
-	assert.Equal(t, 1.0, v)
+	assert.Equal(t, "foo", v)
 }
