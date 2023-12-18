@@ -66,8 +66,3 @@ type Ref struct {
 	Expr Expr
 	Key  Expr
 }
-
-// Identifier represents an identifier.
-type Identifier struct {
-	Name string
-}

@@ -7,8 +7,20 @@ import (
 )
 
 func TestParse(t *testing.T) {
-	assert.Equal(t, &Identifier{Name: "a.b.c"}, Parse("a.b.c"))
-	assert.Equal(t, &Identifier{Name: "a"}, Parse("a"))
+	assert.Equal(t, &Ref{Expr: &Null{}, Key: &String{Value: "a"}}, Parse("a"))
+	assert.Equal(t,
+		&Ref{
+			Expr: &Ref{
+				Expr: &Ref{
+					Expr: &Null{},
+					Key:  &String{Value: "a"},
+				},
+				Key: &String{Value: "b"},
+			},
+			Key: &String{Value: "c"},
+		},
+		Parse("a.b.c"))
+
 }
 
 func TestEvaluate(t *testing.T) {
@@ -52,4 +64,30 @@ func TestCollectReferences(t *testing.T) {
 	expr := Parse("modules.foo.xyz + modules.bar.xyz")
 	refs := CollectReferences(expr, "^modules\\..*")
 	assert.Equal(t, []string{"modules.foo.xyz", "modules.bar.xyz"}, refs)
+}
+
+func TestExprArrayReference(t *testing.T) {
+	expr := Parse("[1, 2, 3][1]")
+	v := Evaluate(expr, map[string]any{})
+	assert.Equal(t, 2.0, v)
+}
+
+func TestDataArrayReference(t *testing.T) {
+	expr := Parse(`list[0].a`)
+	v := Evaluate(expr, map[string]any{
+		"list": []any{
+			map[string]any{
+				"a": "foo",
+				"b": "bar",
+				"c": map[string]any{
+					"b": 1.0,
+				},
+			},
+			map[string]any{
+				"c": 1.0,
+				"d": 2.0,
+			},
+		},
+	})
+	assert.Equal(t, 1.0, v)
 }

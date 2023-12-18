@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -13,21 +14,24 @@ func Parse(exprStr string) Expr {
 
 func Evaluate(expr Expr, data map[string]any) any {
 	switch e := expr.(type) {
-	case *Identifier:
-		keys := strings.Split(e.Name, ".")
-		var val any = data
-		for _, key := range keys {
-			if v, ok := val.(map[string]any)[key]; ok {
-				val = v
-			} else {
-				val = nil
-			}
-		}
-		return val
 	case *Ref:
-		m := Evaluate(e.Expr, data).(map[Expr]any)
-		key := Evaluate(e.Key, data)
-		return m[key]
+		m := Evaluate(e.Expr, data)
+		switch m := m.(type) {
+		case map[Expr]any:
+			key := Evaluate(e.Key, data)
+			return m[key]
+		case map[string]any:
+			key := Evaluate(e.Key, data).(string)
+			return m[key]
+		case []any:
+			key := Evaluate(e.Key, data).(float64)
+			return m[int(key)]
+		case nil:
+			key := Evaluate(e.Key, data).(string)
+			return data[key]
+		default:
+			panic(fmt.Sprintf("Unsupported expression type: %T", m))
+		}
 	case *BinaryExpr:
 		left := Evaluate(e.Left, data)
 		right := Evaluate(e.Right, data)
@@ -62,6 +66,8 @@ func Evaluate(expr Expr, data map[string]any) any {
 			return left.(bool) && right.(bool)
 		case OR:
 			return left.(bool) || right.(bool)
+		default:
+			panic("Unsupported binary operator type")
 		}
 	case *UnaryExpr:
 		val := Evaluate(e.Expr, data)
@@ -70,6 +76,8 @@ func Evaluate(expr Expr, data map[string]any) any {
 			return -val.(float64)
 		case NOT:
 			return !val.(bool)
+		default:
+			panic("Unsupported unary operator type")
 		}
 	case *IfExpr:
 		condition := Evaluate(e.Condition, data)
@@ -99,13 +107,44 @@ func Evaluate(expr Expr, data map[string]any) any {
 		return e.Value
 	case *Null:
 		return nil
+	default:
+		panic(fmt.Sprintf("Unsupported expression type: %T", e))
 	}
-	panic("Unsupported expression type")
 }
 
 func HasReferences(expr Expr, pattern string) bool {
 	refs := CollectReferences(expr, pattern)
 	return len(refs) > 0
+}
+
+func isStaticRef(ref *Ref) bool {
+	switch ref.Key.(type) {
+	case *String:
+		switch ref.Expr.(type) {
+		case *Ref:
+			return isStaticRef(ref.Expr.(*Ref))
+		default:
+			return true
+		}
+	default:
+		return false
+	}
+}
+
+func collectRefKey(ref *Ref) string {
+	switch ref.Key.(type) {
+	case *String:
+		switch ref.Expr.(type) {
+		case *Ref:
+			parent := collectRefKey(ref.Expr.(*Ref))
+			key := ref.Key.(*String).Value
+			return parent + "." + key
+		default:
+			return ref.Key.(*String).Value
+		}
+	default:
+		panic("it is not static reference.")
+	}
 }
 
 func CollectReferences(expr Expr, pattern string) []string {
@@ -117,16 +156,14 @@ func CollectReferences(expr Expr, pattern string) []string {
 
 	switch e := expr.(type) {
 	case *Ref:
-		if id, ok := e.Expr.(*Identifier); ok {
-			if r.MatchString(id.Name) {
-				names = append(names, id.Name)
+		if isStaticRef(e) {
+			id := collectRefKey(e)
+			if r.MatchString(id) {
+				names = append(names, id)
 			}
-		}
-		names = append(names, CollectReferences(e.Expr, pattern)...)
-		names = append(names, CollectReferences(e.Key, pattern)...)
-	case *Identifier:
-		if r.MatchString(e.Name) {
-			names = append(names, e.Name)
+		} else {
+			names = append(names, CollectReferences(e.Expr, pattern)...)
+			names = append(names, CollectReferences(e.Key, pattern)...)
 		}
 	case *BinaryExpr:
 		names = append(names, CollectReferences(e.Left, pattern)...)
