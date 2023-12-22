@@ -47,14 +47,36 @@ Dacrane has the following features
 
 ## Install
 
+Install [Docker Engine](https://docs.docker.com/engine/install/).
+
+```bash
+$ docker version
+```
+
+Make sure that DOCKER ENDPOINT is `unix:///var/run/docker.sock`.
+(If not, create a symbolic link from `/var/run/docker.sock` to `/your/path/to/docker.sock`.)
+
+```bash
+$ docker context ls
+NAME        DESCRIPTION                               DOCKER ENDPOINT               ERROR
+default *   Current DOCKER_HOST based configuration   unix:///var/run/docker.sock
+```
+
+Clone Dacrane repository.
+
 ```bash
 $ git clone https://github.com/SIOS-Technology-Inc/dacrane.git
 $ cd dacrane
 ```
 
+Install Dacrane.
+
 ```bash
 $ make install
+$ make install-plugins
 ```
+
+Make sure Dacrane CLI.
 
 ```bash
 $ dacrane
@@ -64,37 +86,16 @@ Usage:
 ...
 ```
 
+Uninstall Dacrane.
+
 ```bash
+$ make uninstall-plugins
 $ make uninstall
 ```
 
-## Try Dacrane on Local Docker
+## Try Dacrane Samples!
 
-```bash
-$ cd ./example/app-services
-```
-
-```bash
-$ dacrane init
-```
-
-```bash
-$ dacrane apply quick-start my-quick-start
-```
-
-```bash
-$ dacrane ls
-my-quick-start (quick-start)
-```
-
-```bash
-$ curl http://localhost:3000
-hello world
-```
-
-```bash
-$ dacrane destroy my-quick-start
-```
+* [Azure App Service Example](./example/app-services/README.md)
 
 ## License
 
