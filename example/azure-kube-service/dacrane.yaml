@@ -67,7 +67,7 @@ modules:
       tag: ${{ parameter.tag }}
   - name: api-remote-image
     if: ${{ parameter.acr != null }}
-    module: resource/docker-remote-image
+    module: docker/resource/remote-image
     argument:
       image: ${{ modules.api-local-image.modules.image.image }}
       tag: ${{ modules.api-local-image.modules.image.tag }}
@@ -86,14 +86,18 @@ parameter:
     spec: { type: string, enum: ["low", "high"], default: "low" }
     base: { type: object }
     api: { type: object }
+
 modules:
   - name: aks-cluster
-    module: resource/terraform
+    module: terraform/resource/azurerm_kubernetes_cluster
     argument:
-      provider: azurerm
-      resource: azurerm_kubernetes_cluster
-      configurations: { features: {} }
-      argument:
+      provider: &azurerm
+        features: {}
+        client_id: ${{ env.ARM_CLIENT_ID }}
+        client_secret: ${{ env.ARM_CLIENT_SECRET }}
+        tenant_id: ${{ env.ARM_TENANT_ID }}
+        subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+      resource:
         name: test-aks-cluster
         location: "Japan East"
         resource_group_name: ${{ parameter.base.modules.rg.name }}
@@ -104,57 +108,46 @@ modules:
           vm_size: Standard_D2_v2
         identity:
           type: SystemAssigned
-  - name: aks-development
-    module: resource/terraform
+  - name: role-assignment
+    module: terraform/resource/azurerm_role_assignment
     argument:
-      provider: kubernetes
-      resource: kubernetes_deployment_v1
-      configurations:
-        host: ${{ modules.aks-cluster.kube_config[0].host }}
-        client_certificate: base64decode(${{ modules.aks-cluster.kube_config[0].client_certificate }})
-        client_key: base64decode(${{ modules.aks-cluster.kube_config[0].client_key }})
-        cluster_ca_certificate: base64decode(${{ modules.aks-cluster.kube_config[0].cluster_ca_certificate }})
-      argument:
-        metadata:
-          name: terraform-example
-          labels:
-            test: MyExampleApp
-        spec:
-          replicas: 3
-          selector:
-            match_labels:
-              test: MyExampleApp
-          template:
-            metadata:
-              labels:
-                test: MyExampleApp
-            spec:
-              containers:
-                - image: ${{ parameter.base.modules.acr.login_server }}/sample-api:${{ parameter.api.modules.api-remote-image.tag }}
-                  name: example
-                  resources:
-                    limits:
-                      cpu: 0.5
-                      memory: 512Mi
-                    requests:
-                      cpu: 250m
-                      memory: 50Mi
-              liveness_probe:
-                http_get:
-                  path: /
-                  port: 80
-                  http_headers:
-                    - name: X-Custom-Header
-                      value: Awesome
-                initial_delay_seconds: 3
-                period_seconds: 3
-
-  # - name: aks-service
-  #   module: resource/terraform
+      provider: *azurerm
+      resource:
+        principal_id: ${{ modules.aks-cluster.kubelet_identity[0].object_id }}
+        role_definition_name: "AcrPull"
+        scope: ${{ parameter.base.modules.acr.id }}
+        skip_service_principal_aad_check: true
+  # - name: aks-development
+  #   module: terraform/resource/kubernetes_deployment_v1
   #   argument:
-  #     provider: kubernetes
-  #     resource: kubernetes_deployment_v1
-  #     argument:
+  #     provider:
+  #       host: ${{ modules.aks-cluster.kube_config[0].host }}
+  #       client_certificate: ${base64decode("${{ modules.aks-cluster.kube_config[0].client_certificate }}")}
+  #       client_key: ${base64decode("${{ modules.aks-cluster.kube_config[0].client_key }}")}
+  #       cluster_ca_certificate: ${base64decode("${{ modules.aks-cluster.kube_config[0].cluster_ca_certificate }}")}
+  #     resource:
+  #       metadata:
+  #         name: terraform-example
+  #         labels:
+  #           test: MyExampleApp
+  #       spec:
+  #         replicas: 3
+  #         selector:
+  #           match_labels:
+  #             test: MyExampleApp
+  #         template:
+  #           metadata:
+  #             labels:
+  #               test: MyExampleApp
+  #           spec:
+  #             container:
+  #               # TODO fix core
+  #               - image: dacranesampleacr.azurecr.io/sample-api:v1
+  #                 name: example
+  # - name: aks-service
+  #   module: terraform/resource/kubernetes_deployment_v1
+  #   argument:
+  #     resource:
   #       metadata:
   #         name: example-service
   #       spec:
@@ -173,21 +166,22 @@ parameter:
     prefix: { type: string }
 modules:
   - name: rg
-    module: resource/terraform
+    module: terraform/resource/azurerm_resource_group
     argument:
-      provider: azurerm
-      resource: azurerm_resource_group
-      configurations: { features: {} }
-      argument:
+      provider: &azurerm
+        features: {}
+        client_id: ${{ env.ARM_CLIENT_ID }}
+        client_secret: ${{ env.ARM_CLIENT_SECRET }}
+        tenant_id: ${{ env.ARM_TENANT_ID }}
+        subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+      resource:
         name: ${{ parameter.prefix }}-sample-rg
         location: "Japan East"
   - name: acr
-    module: resource/terraform
+    module: terraform/resource/azurerm_container_registry
     argument:
-      provider: azurerm
-      resource: azurerm_container_registry
-      configurations: { features: {} }
-      argument:
+      provider: *azurerm
+      resource:
         name: ${{ parameter.prefix }}sampleacr
         resource_group_name: ${{ modules.rg.name }}
         location: "Japan East"
