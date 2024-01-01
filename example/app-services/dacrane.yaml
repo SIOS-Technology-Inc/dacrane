@@ -1,32 +1,32 @@
 name: quick-start
 modules:
-  - name: image
-    module: api-image
-    argument:
-      tag: latest
-  - name: container
-    module: local-docker
-    argument:
-      image: ${{ modules.image.modules.api-local-image.modules.image }}
+- name: image
+  module: api-image
+  argument:
+    tag: latest
+- name: container
+  module: local-docker
+  argument:
+    image: ${{ modules.image.modules.api-local-image.modules.image }}
 ---
 name: quick-start-as
 modules:
-  - name: qs-base
-    module: base
-    argument:
-      prefix: dacrane
-  - name: qs-api-image
-    module: api-image
-    argument:
-      tag: latest
-      acr: ${{ modules.qs-base.modules.acr }}
-  - name: qs-app-service
-    module: app-service
-    argument:
-      env: qs
-      spec: low
-      base: ${{ modules.qs-base }}
-      api: ${{ modules.qs-api-image }}
+- name: qs-base
+  module: base
+  argument:
+    prefix: dacrane
+- name: qs-api-image
+  module: api-image
+  argument:
+    tag: latest
+    acr: ${{ modules.qs-base.modules.acr }}
+- name: qs-app-service
+  module: app-service
+  argument:
+    env: qs
+    spec: low
+    base: ${{ modules.qs-base }}
+    api: ${{ modules.qs-api-image }}
 ---
 name: local-docker
 parameter:
@@ -39,16 +39,16 @@ parameter:
         image: { type: string, default: sample-api }
         tag: { type: string, default: latest }
 modules:
-  - module: docker/resource/container
-    name: docker
-    argument:
-      name: api
-      image: ${{ parameter.image.image }}
-      tag: ${{ parameter.image.tag }}
-      port: 3000:3000
-      env:
-        - name: PORT
-          value: "3000"
+- module: docker/resource/container
+  name: docker
+  argument:
+    name: api
+    image: ${{ parameter.image.image }}
+    tag: ${{ parameter.image.tag }}
+    port: 3000:3000
+    env:
+      - name: PORT
+        value: "3000"
 ---
 name: api-image
 parameter:
@@ -60,21 +60,21 @@ import:
   - ../../module/docker-npm.yaml
   # - import: https://raw.githubusercontent.com/SIOS-Technology-Inc/dacrane/main/module/docker-npm.yaml
 modules:
-  - name: api-local-image
-    module: docker-npm
-    argument:
-      image: sample-api
-      tag: ${{ parameter.tag }}
-  - name: api-remote-image
-    if: ${{ parameter.acr != null }}
-    module: docker/resource/remote-image
-    argument:
-      image: ${{ modules.api-local-image.modules.image.image }}
-      tag: ${{ modules.api-local-image.modules.image.tag }}
-      remote:
-        url: ${{ parameter.acr.login_server }}
-        user: ${{ parameter.acr.admin_username }}
-        password: ${{ parameter.acr.admin_password }}
+- name: api-local-image
+  module: docker-npm
+  argument:
+    image: sample-api
+    tag: ${{ parameter.tag }}
+- name: api-remote-image
+  if: ${{ parameter.acr != null }}
+  module: docker/resource/remote-image
+  argument:
+    image: ${{ modules.api-local-image.modules.image.image }}
+    tag: ${{ modules.api-local-image.modules.image.tag }}
+    remote:
+      url: ${{ parameter.acr.login_server }}
+      user: ${{ parameter.acr.admin_username }}
+      password: ${{ parameter.acr.admin_password }}
 ---
 name: app-service
 argument:
@@ -87,40 +87,40 @@ parameter:
     base: { type: object }
     api: { type: object }
 modules:
-  - name: asp
-    module: terraform/resource/azurerm_app_service_plan
-    argument:
-      provider: &azurerm
-        features: {}
-        client_id: ${{ env.ARM_CLIENT_ID }}
-        client_secret: ${{ env.ARM_CLIENT_SECRET }}
-        tenant_id: ${{ env.ARM_TENANT_ID }}
-        subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
-      resource:
-        name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-asp
-        resource_group_name: ${{ parameter.base.modules.rg.name }}
-        location: "Japan East"
-        kind: "Linux"
-        reserved: true
-        sku:
-          tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
-          size: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
-  - name: as
-    module: terraform/resource/azurerm_app_service
-    argument:
-      provider: *azurerm
-      resource:
-        name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-as
-        resource_group_name: ${{ parameter.base.modules.rg.name }}
-        location: "Japan East"
-        app_service_plan_id: ${{ modules.asp.id }}
-        site_config:
-          linux_fx_version: DOCKER|${{ parameter.base.modules.acr.login_server }}/sample-api:${{ parameter.api.modules.api-remote-image.tag }}
-        app_settings:
-          DOCKER_REGISTRY_SERVER_URL: ${{ parameter.base.modules.acr.login_server }}
-          DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.modules.acr.admin_username }}
-          DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.modules.acr.admin_password }}
-          WEBSITES_PORT: "3000"
+- name: asp
+  module: terraform/resource/azurerm_app_service_plan
+  argument:
+    provider: &azurerm
+      features: {}
+      client_id: ${{ env.ARM_CLIENT_ID }}
+      client_secret: ${{ env.ARM_CLIENT_SECRET }}
+      tenant_id: ${{ env.ARM_TENANT_ID }}
+      subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+    resource:
+      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-asp
+      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      location: "Japan East"
+      kind: "Linux"
+      reserved: true
+      sku:
+        tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
+        size: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
+- name: as
+  module: terraform/resource/azurerm_app_service
+  argument:
+    provider: *azurerm
+    resource:
+      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-as
+      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      location: "Japan East"
+      app_service_plan_id: ${{ modules.asp.id }}
+      site_config:
+        linux_fx_version: DOCKER|${{ parameter.base.modules.acr.login_server }}/sample-api:${{ parameter.api.modules.api-remote-image.tag }}
+      app_settings:
+        DOCKER_REGISTRY_SERVER_URL: ${{ parameter.base.modules.acr.login_server }}
+        DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.modules.acr.admin_username }}
+        DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.modules.acr.admin_password }}
+        WEBSITES_PORT: "3000"
 ---
 name: base
 parameter:
@@ -129,25 +129,25 @@ parameter:
   properties:
     prefix: { type: string }
 modules:
-  - name: rg
-    module: terraform/resource/azurerm_resource_group
-    argument:
-      provider: &azurerm
-        features: {}
-        client_id: ${{ env.ARM_CLIENT_ID }}
-        client_secret: ${{ env.ARM_CLIENT_SECRET }}
-        tenant_id: ${{ env.ARM_TENANT_ID }}
-        subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
-      resource:
-        name: ${{ parameter.prefix }}-sample-rg
-        location: "Japan East"
-  - name: acr
-    module: terraform/resource/azurerm_container_registry
-    argument:
-      provider: *azurerm
-      resource:
-        name: ${{ parameter.prefix }}sampleacr
-        resource_group_name: ${{ modules.rg.name }}
-        location: "Japan East"
-        sku: Basic
-        admin_enabled: true
+- name: rg
+  module: terraform/resource/azurerm_resource_group
+  argument:
+    provider: &azurerm
+      features: {}
+      client_id: ${{ env.ARM_CLIENT_ID }}
+      client_secret: ${{ env.ARM_CLIENT_SECRET }}
+      tenant_id: ${{ env.ARM_TENANT_ID }}
+      subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+    resource:
+      name: ${{ parameter.prefix }}-sample-rg
+      location: "Japan East"
+- name: acr
+  module: terraform/resource/azurerm_container_registry
+  argument:
+    provider: *azurerm
+    resource:
+      name: ${{ parameter.prefix }}sampleacr
+      resource_group_name: ${{ modules.rg.name }}
+      location: "Japan East"
+      sku: Basic
+      admin_enabled: true
