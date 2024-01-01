@@ -332,11 +332,15 @@ func evalIfProp(prop map[string]any, data map[string]any) (map[string]any, bool)
 }
 
 func isSingleExprString(s string) bool {
-	r, e := regexp.Compile(`^\$\{\{.*?\}\}$`)
+	r1, e := regexp.Compile(`\$\{\{.*?\}\}`)
 	if e != nil {
 		panic(e)
 	}
-	return r.MatchString(s)
+	r2, e := regexp.Compile(`^\$\{\{.*?\}\}$`)
+	if e != nil {
+		panic(e)
+	}
+	return r2.MatchString(s) && len(r1.FindAllStringSubmatch(s, -1)) == 1
 }
 
 func convertToString(value interface{}) string {
