@@ -9,7 +9,7 @@ modules:
     argument:
       image: ${{ modules.image.modules.api-local-image.modules.image }}
 ---
-name: quick-start-as
+name: quick-start-aks
 modules:
   - name: qs-base
     module: base
@@ -20,8 +20,8 @@ modules:
     argument:
       tag: latest
       acr: ${{ modules.qs-base.modules.acr }}
-  - name: qs-app-service
-    module: app-service
+  - name: qs-aks
+    module: aks
     argument:
       env: qs
       spec: low
@@ -39,7 +39,7 @@ parameter:
         image: { type: string, default: sample-api }
         tag: { type: string, default: latest }
 modules:
-  - module: resource/docker-container
+  - module: docker/resource/container
     name: docker
     argument:
       name: api
@@ -83,10 +83,8 @@ parameter:
   required: ["base"]
   properties:
     env: { type: string, default: "dev" }
-    spec: { type: string, enum: ["low", "high"], default: "low" }
     base: { type: object }
     api: { type: object }
-
 modules:
   - name: aks-cluster
     module: terraform/resource/azurerm_kubernetes_cluster
@@ -98,7 +96,7 @@ modules:
         tenant_id: ${{ env.ARM_TENANT_ID }}
         subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
       resource:
-        name: test-aks-cluster
+        name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-aks
         location: "Japan East"
         resource_group_name: ${{ parameter.base.modules.rg.name }}
         dns_prefix: exampleaks1
@@ -117,46 +115,51 @@ modules:
         role_definition_name: "AcrPull"
         scope: ${{ parameter.base.modules.acr.id }}
         skip_service_principal_aad_check: true
-  # - name: aks-development
-  #   module: terraform/resource/kubernetes_deployment_v1
-  #   argument:
-  #     provider:
-  #       host: ${{ modules.aks-cluster.kube_config[0].host }}
-  #       client_certificate: ${base64decode("${{ modules.aks-cluster.kube_config[0].client_certificate }}")}
-  #       client_key: ${base64decode("${{ modules.aks-cluster.kube_config[0].client_key }}")}
-  #       cluster_ca_certificate: ${base64decode("${{ modules.aks-cluster.kube_config[0].cluster_ca_certificate }}")}
-  #     resource:
-  #       metadata:
-  #         name: terraform-example
-  #         labels:
-  #           test: MyExampleApp
-  #       spec:
-  #         replicas: 3
-  #         selector:
-  #           match_labels:
-  #             test: MyExampleApp
-  #         template:
-  #           metadata:
-  #             labels:
-  #               test: MyExampleApp
-  #           spec:
-  #             container:
-  #               # TODO fix core
-  #               - image: dacranesampleacr.azurecr.io/sample-api:v1
-  #                 name: example
-  # - name: aks-service
-  #   module: terraform/resource/kubernetes_deployment_v1
-  #   argument:
-  #     resource:
-  #       metadata:
-  #         name: example-service
-  #       spec:
-  #         selector:
-  #           App: MyApp
-  #         port:
-  #           port: 80
-  #           target_port: 80
-  #         type: LoadBalancer
+  - name: aks-development
+    module: terraform/resource/kubernetes_deployment_v1
+    depends_on: [role-assignment]
+    argument:
+      provider: &kubernetes
+        host: ${{ modules.aks-cluster.kube_config[0].host }}
+        client_certificate: ${base64decode("${{ modules.aks-cluster.kube_config[0].client_certificate }}")}
+        client_key: ${base64decode("${{ modules.aks-cluster.kube_config[0].client_key }}")}
+        cluster_ca_certificate: ${base64decode("${{ modules.aks-cluster.kube_config[0].cluster_ca_certificate }}")}
+      resource:
+        metadata:
+          name: sample-api
+        spec:
+          replicas: 2
+          selector:
+            match_labels:
+              run: sample-api
+          template:
+            metadata:
+              labels:
+                run: sample-api
+            spec:
+              container:
+                - name: sample-api
+                  image: ${{ parameter.base.modules.acr.login_server }}/sample-api:${{ parameter.api.modules.api-remote-image.tag }}
+                  port:
+                    - container_port: 3000
+  - name: aks-service
+    module: terraform/resource/kubernetes_service_v1
+    argument:
+      provider: *kubernetes
+      resource:
+        metadata:
+          name: public-svc
+          annotations:
+            service.beta.kubernetes.io/azure-dns-label-name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}
+        spec:
+          type: LoadBalancer
+          port:
+          - protocol: TCP
+            port: 80
+            target_port: 3000
+          selector:
+            run: sample-api
+        wait_for_load_balancer: true
 ---
 name: base
 parameter:
