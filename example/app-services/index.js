@@ -10,21 +10,24 @@ const connection = mysql.createConnection({
 })
 
 // respond with "hello world" when a GET request is made to the homepage
-app.get('/', (req, res) => {
-  res.send('hello world')
+app.get('/status', (req, res) => {
+  connection.query('SELECT 1 + 1', function (error, results, fields) {
+    if (error) {
+      res.json({ db: { reachable: false } })
+    } else {
+      res.json({ db: { reachable: true } })
+    }
+  })
 })
 
 app.get('/users', (req, res) => {
   connection.query('SELECT * FROM users', function (error, results, fields) {
-    if (error) throw error
-    res.send(results)
-  })
-})
-
-app.post('/users', (req, res) => {
-  connection.query('SELECT * FROM users', function (error, results, fields) {
-    if (error) throw error
-    res.send(results)
+    if (error) {
+      res.json({ error: error.message })
+      console.error(error)
+      return
+    }
+    res.json(results)
   })
 })
 
