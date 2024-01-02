@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"dacrane/pdk"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -54,11 +56,35 @@ var DockerContainerResource = pdk.Resource{
 			cmd = fmt.Sprintf("%s --net %s", cmd, network)
 		}
 
+		if healthcheck, ok := params["healthcheck"].(map[string]any); ok {
+			cmd = fmt.Sprintf(`%s --health-cmd "%s¥"`, cmd, healthcheck["cmd"])
+			cmd = fmt.Sprintf("%s --health-interval %s", cmd, healthcheck["interval"])
+			cmd = fmt.Sprintf("%s --health-retries %s", cmd, healthcheck["retries"])
+			cmd = fmt.Sprintf("%s --health-start-period %s", cmd, healthcheck["start_period"])
+			cmd = fmt.Sprintf("%s --health-timeout %s", cmd, healthcheck["timeout"])
+		}
+
 		cmd = fmt.Sprintf("%s %s:%s", cmd, image, tag)
 
 		_, err := RunOnSh(cmd, meta)
 		if err != nil {
 			panic(err)
+		}
+
+		// TODO Design for waiting
+		if _, ok := params["healthcheck"].(map[string]any); ok {
+			for i := 0; i <= 60; i++ {
+				output, err := RunOnSh(fmt.Sprintf("docker inspect --format='{{json .State.Health}}' %s", name), meta)
+				if err != nil {
+					panic(err)
+				}
+				var res map[string]any
+				json.Unmarshal(output, &res)
+				if res["Status"] == "healthy" {
+					break
+				}
+				time.Sleep(1 * time.Second)
+			}
 		}
 
 		return parameter, nil
