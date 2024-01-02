@@ -97,7 +97,7 @@ parameter:
   required: ["version"]
   properties:
     version: { type: string }
-    network: { type: string}
+    network: { type: string }
     mysql:
       type: object
       required: ["username", "password", "host"]
