@@ -8,3 +8,5 @@ uninstall:
 	rm /usr/local/bin/dacrane
 uninstall-plugin:
 	docker rmi docker local terraform
+build-parser:
+	goyacc -o src/cli/core/evaluator/parser.go src/cli/core/evaluator/parser.go.y

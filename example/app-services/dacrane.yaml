@@ -115,7 +115,7 @@ modules:
 - name: asp
   module: terraform/resource/azurerm_app_service_plan
   argument:
-    provider:
+    provider: &azurerm
       features: {}
       client_id: ${{ env.ARM_CLIENT_ID }}
       client_secret: ${{ env.ARM_CLIENT_SECRET }}
@@ -133,12 +133,7 @@ modules:
 - name: as
   module: terraform/resource/azurerm_app_service
   argument:
-    provider:
-      features: {}
-      client_id: ${{ env.ARM_CLIENT_ID }}
-      client_secret: ${{ env.ARM_CLIENT_SECRET }}
-      tenant_id: ${{ env.ARM_TENANT_ID }}
-      subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+    provider: *azurerm
     resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-as
       resource_group_name: ${{ parameter.base.modules.rg.name }}
@@ -162,7 +157,7 @@ modules:
 - name: rg
   module: terraform/resource/azurerm_resource_group
   argument:
-    provider:
+    provider: &azurerm
       features: {}
       client_id: ${{ env.ARM_CLIENT_ID }}
       client_secret: ${{ env.ARM_CLIENT_SECRET }}
@@ -174,12 +169,7 @@ modules:
 - name: acr
   module: terraform/resource/azurerm_container_registry
   argument:
-    provider:
-      features: {}
-      client_id: ${{ env.ARM_CLIENT_ID }}
-      client_secret: ${{ env.ARM_CLIENT_SECRET }}
-      tenant_id: ${{ env.ARM_TENANT_ID }}
-      subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
+    provider: *azurerm
     resource:
       name: ${{ parameter.prefix }}sampleacr
       resource_group_name: ${{ modules.rg.name }}
