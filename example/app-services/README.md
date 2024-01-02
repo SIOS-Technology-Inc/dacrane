@@ -24,6 +24,12 @@ export ARM_TENANT_ID="10000000-0000-0000-0000-000000000000"
 export ARM_SUBSCRIPTION_ID="20000000-0000-0000-0000-000000000000"
 ```
 
+Set a password for any MySQL, for example:
+
+```bash
+export MYSQL_PASSWORD="your_password"
+```
+
 ## Quick Start (Local Docker)
 
 This section explains the way deploys API service into Docker with one command.
@@ -33,9 +39,15 @@ $ dacrane apply quick-start qs
 ```
 
 ```bash
-$ curl http://localhost:3000
+$ curl http://localhost:3000/status
 
-hello world
+{"db":{"reachable":true}}
+```
+
+```bash
+$ curl http://localhost:3000/users
+
+[{"id":1,"name":"alice"},{"id":2,"name":"bob"}]
 ```
 
 ```bash
@@ -51,9 +63,15 @@ $ dacrane apply quick-start-as qs-as
 ```
 
 ```bash
-$ curl https://qs-dacrane-sample-as.azurewebsites.net
+$ curl https://qs-dacrane-sample-as.azurewebsites.net/status
 
-hello world
+{"db":{"reachable":true}}
+```
+
+```bash
+$ curl https://qs-dacrane-sample-as.azurewebsites.net/users
+
+[{"id":1,"name":"alice"},{"id":2,"name":"bob"}]
 ```
 
 ```bash
@@ -79,9 +97,27 @@ $ dacrane apply local-docker local \
 ```
 
 ```bash
-$ curl http://localhost:3000
+$ dacrane apply db-migration schema-v1-local -a '
+version: v1
+network: ${{ instances.local.modules.net.name }}
+mysql:
+  username: root
+  password: my-secret-pw
+  host: ${{ instances.local.modules.db.name }}
+  database: api
+'
+```
 
-hello world
+```bash
+$ curl http://localhost:3000/status
+
+{"db":{"reachable":true}}
+```
+
+```bash
+$ curl http://localhost:3000/users
+
+[{"id":1,"name":"alice"},{"id":2,"name":"bob"}]
 ```
 
 ```bash
@@ -94,13 +130,38 @@ api: ${{ instances.api-v1 }}
 ```
 
 ```bash
-$ curl https://dev-dacrane-sample-as.azurewebsites.net/
+$ dacrane apply db-migration schema-v1-dev -a '
+version: v1
+mysql:
+  username: ${{ instances.dev.modules.mysql.administrator_login }}@${{ instances.dev.modules.mysql.name }}
+  password: ${{ instances.dev.modules.mysql.administrator_login_password }}
+  host: ${{ instances.dev.modules.mysql.fqdn }}
+  database: ${{ instances.dev.modules.mysql-database.parameter.database }}
+'
+```
 
-hello world
+```bash
+$ curl https://dev-dacrane-sample-as.azurewebsites.net/status
+
+{"db":{"reachable":true}}
+```
+
+```bash
+$ curl https://dev-dacrane-sample-as.azurewebsites.net/users
+
+[{"id":1,"name":"alice"},{"id":2,"name":"bob"}]
+```
+
+```bash
+$ dacrane destroy schema-v1-dev
 ```
 
 ```bash
 $ dacrane destroy dev
+```
+
+```bash
+$ dacrane destroy schema-v1-local
 ```
 
 ```bash

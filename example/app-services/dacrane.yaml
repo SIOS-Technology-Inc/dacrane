@@ -37,6 +37,15 @@ modules:
     spec: low
     base: ${{ modules.qs-base }}
     api: ${{ modules.qs-api-image }}
+- name: qs-migration
+  module: db-migration
+  argument:
+    version: v1
+    mysql:
+      username: ${{ modules.qs-app-service.modules.mysql.administrator_login }}@${{ modules.qs-app-service.modules.mysql.name }}
+      password: ${{ modules.qs-app-service.modules.mysql.administrator_login_password }}
+      host: ${{ modules.qs-app-service.modules.mysql.fqdn }}
+      database: ${{ modules.qs-app-service.modules.mysql-database.parameter.database }}
 ---
 name: local-docker
 parameter:
@@ -130,6 +139,38 @@ modules:
       ${{ parameter.mysql.database }}
       < /work/schemas/${{ parameter.version }}-down.sql
 ---
+name: mysql-database
+parameter:
+  type: object
+  properties:
+    database: { type: string }
+    mysql:
+      type: object
+      required: ["username", "password", "host"]
+      properties:
+        username: { type: string }
+        password: { type: string }
+        host: { type: string }
+modules:
+- name: mysql-database
+  module: custom/resource/shell
+  argument:
+    image: mysql
+    tag: 8.2.0
+    network: ${{ parameter.network }}
+    env: []
+    shell: /bin/bash
+    create:
+      echo 'CREATE DATABASE IF NOT EXISTS ${{ parameter.database }};' | mysql
+      -h ${{ parameter.mysql.host }}
+      -u ${{ parameter.mysql.username }}
+      -p${{ parameter.mysql.password }}
+    delete:
+      echo 'DROP DATABASE IF EXISTS ${{ parameter.database }};' | mysql
+      -h ${{ parameter.mysql.host }}
+      -u ${{ parameter.mysql.username }}
+      -p${{ parameter.mysql.password }}
+---
 name: api-image
 parameter:
   type: object
@@ -185,6 +226,39 @@ modules:
       sku:
         tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
         size: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
+- name: mysql
+  module: terraform/resource/azurerm_mysql_server
+  argument:
+    provider: *azurerm
+    resource:
+      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-mysql
+      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      location: "Japan East"
+      sku_name: "B_Gen5_2"
+      version: "8.0"
+      administrator_login: mysqladminun
+      administrator_login_password: ${{ env.MYSQL_PASSWORD }}
+      ssl_enforcement_enabled: false
+      ssl_minimal_tls_version_enforced: TLSEnforcementDisabled
+- name: mysql-firewall-role
+  module: terraform/resource/azurerm_mysql_firewall_rule
+  argument:
+    provider: *azurerm
+    resource:
+      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-mysql-firewall-allow-all-ip-address
+      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      server_name: ${{ modules.mysql.name }}
+      start_ip_address: 0.0.0.0
+      end_ip_address: 255.255.255.255
+- name: mysql-database
+  module: mysql-database
+  depends_on: [mysql-firewall-role]
+  argument:
+    database: api
+    mysql:
+      host: ${{ modules.mysql.fqdn }}
+      username: mysqladminun@${{ modules.mysql.name }}
+      password: ${{ env.MYSQL_PASSWORD }}
 - name: as
   module: terraform/resource/azurerm_app_service
   argument:
@@ -201,6 +275,10 @@ modules:
         DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.modules.acr.admin_username }}
         DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.modules.acr.admin_password }}
         WEBSITES_PORT: "3000"
+        MYSQL_HOST: ${{ modules.mysql.fqdn }}
+        MYSQL_DATABASE: api
+        MYSQL_USER: mysqladminun@${{ modules.mysql.name }}
+        MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
 ---
 name: base
 parameter:
