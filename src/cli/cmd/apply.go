@@ -49,9 +49,7 @@ var applyCmd = &cobra.Command{
 			}
 		}
 
-		evaluatedArg := module.Evaluate(argument, map[string]any{
-			"instances": states,
-		})
+		evaluatedArg := module.Evaluate(argument, states)
 
 		moduleExists := utils.Contains(modules, func(module module.Module) bool {
 			return module.Name == moduleName

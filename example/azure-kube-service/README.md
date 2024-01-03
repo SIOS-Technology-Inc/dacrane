@@ -70,12 +70,12 @@ $ dacrane apply base base -a '{ prefix: dacrane }'
 
 ```bash
 $ dacrane apply api-image api-v1 \
-  -a '{ tag: v1, acr: "${{ instances.base.acr }}" }'
+  -a '{ tag: v1, acr: "${{ base.acr }}" }'
 ```
 
 ```bash
 $ dacrane apply local-docker local \
-  -a '{ image: "${{ instances.api-v1.api-local-image.image }}" }'
+  -a '{ image: "${{ api-v1.api-local-image.image }}" }'
 ```
 
 ```bash
@@ -87,8 +87,8 @@ hello world
 ```bash
 $ dacrane apply aks dev -a '
 env: dev
-base: ${{ instances.base }}
-api: ${{ instances.api-v1 }}
+base: ${{ base }}
+api: ${{ api-v1 }}
 '
 ```
 

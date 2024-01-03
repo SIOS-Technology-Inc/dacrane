@@ -258,7 +258,7 @@ modules:
     mysql:
       host: ${{ mysql.fqdn }}
       username: mysqladminun@${{ mysql.name }}
-      password: ${{ env.MYSQL_PASSWORD }}
+      password: ${{ $env.MYSQL_PASSWORD }}
 - name: as
   module: terraform/resource/azurerm_app_service
   argument:
