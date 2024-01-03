@@ -70,12 +70,12 @@ $ dacrane apply base base -a '{ prefix: dacrane }'
 
 ```bash
 $ dacrane apply api-image api-v1 \
-  -a '{ tag: v1, acr: "${{ instances.base.modules.acr }}" }'
+  -a '{ tag: v1, acr: "${{ instances.base.acr }}" }'
 ```
 
 ```bash
 $ dacrane apply local-docker local \
-  -a '{ image: "${{ instances.api-v1.modules.api-local-image.modules.image }}" }'
+  -a '{ image: "${{ instances.api-v1.api-local-image.image }}" }'
 ```
 
 ```bash

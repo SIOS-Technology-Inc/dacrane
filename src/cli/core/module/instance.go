@@ -78,13 +78,12 @@ func NewInstanceFromDocument(document any) Instance {
 func (instance moduleInstance) ToState(instances repository.DocumentRepository) any {
 	state := map[string]any{
 		"parameter": instance.Argument,
-		"modules":   map[string]any{},
 	}
 	for _, address := range instance.Instances {
 		childAbsAddr := instance.Address + "." + address
 		doc := instances.Find(childAbsAddr)
 		child := NewInstanceFromDocument(doc)
-		state["modules"].(map[string]any)[address] = child.ToState(instances)
+		state[address] = child.ToState(instances)
 	}
 	return state
 }

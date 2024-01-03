@@ -7,17 +7,17 @@ modules:
 - name: container
   module: local-docker
   argument:
-    image: ${{ modules.image.modules.api-local-image.modules.image }}
+    image: ${{ image.api-local-image.image }}
 - name: migrate
   module: db-migration
   argument:
     version: v1
-    network: ${{ modules.container.modules.net.name }}
+    network: ${{ container.net.name }}
     mysql:
       username: root
       password: my-secret-pw
       database: api
-      host: ${{ modules.container.modules.db.name }}
+      host: ${{ container.db.name }}
 ---
 name: quick-start-as
 modules:
@@ -29,23 +29,23 @@ modules:
   module: api-image
   argument:
     tag: latest
-    acr: ${{ modules.qs-base.modules.acr }}
+    acr: ${{ qs-base.acr }}
 - name: qs-app-service
   module: app-service
   argument:
     env: qs
     spec: low
-    base: ${{ modules.qs-base }}
-    api: ${{ modules.qs-api-image }}
+    base: ${{ qs-base }}
+    api: ${{ qs-api-image }}
 - name: qs-migration
   module: db-migration
   argument:
     version: v1
     mysql:
-      username: ${{ modules.qs-app-service.modules.mysql.administrator_login }}@${{ modules.qs-app-service.modules.mysql.name }}
-      password: ${{ modules.qs-app-service.modules.mysql.administrator_login_password }}
-      host: ${{ modules.qs-app-service.modules.mysql.fqdn }}
-      database: ${{ modules.qs-app-service.modules.mysql-database.parameter.database }}
+      username: ${{ qs-app-service.mysql.administrator_login }}@${{ qs-app-service.mysql.name }}
+      password: ${{ qs-app-service.mysql.administrator_login_password }}
+      host: ${{ qs-app-service.mysql.fqdn }}
+      database: ${{ qs-app-service.mysql-database.parameter.database }}
 ---
 name: local-docker
 parameter:
@@ -68,7 +68,7 @@ modules:
     name: db
     image: mysql
     tag: 8.2.0
-    network: ${{ modules.net.name }}
+    network: ${{ net.name }}
     env:
       - name: MYSQL_ROOT_PASSWORD
         value: &password my-secret-pw
@@ -85,14 +85,14 @@ modules:
   argument:
     name: api
     image: ${{ parameter.image.image }}
-    network: ${{ modules.net.name }}
+    network: ${{ net.name }}
     tag: ${{ parameter.image.tag }}
     port: 3000:3000
     env:
       - name: PORT
         value: "3000"
       - name: MYSQL_HOST
-        value: ${{ modules.db.name }}
+        value: ${{ db.name }}
       - name: MYSQL_USER
         value: root
       - name: MYSQL_PASSWORD
@@ -190,8 +190,8 @@ modules:
   if: ${{ parameter.acr != null }}
   module: docker/resource/remote-image
   argument:
-    image: ${{ modules.api-local-image.modules.image.image }}
-    tag: ${{ modules.api-local-image.modules.image.tag }}
+    image: ${{ api-local-image.image.image }}
+    tag: ${{ api-local-image.image.tag }}
     remote:
       url: ${{ parameter.acr.login_server }}
       user: ${{ parameter.acr.admin_username }}
@@ -219,7 +219,7 @@ modules:
       subscription_id: ${{ env.ARM_SUBSCRIPTION_ID }}
     resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-asp
-      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      resource_group_name: ${{ parameter.base.rg.name }}
       location: "Japan East"
       kind: "Linux"
       reserved: true
@@ -232,7 +232,7 @@ modules:
     provider: *azurerm
     resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-mysql
-      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      resource_group_name: ${{ parameter.base.rg.name }}
       location: "Japan East"
       sku_name: "B_Gen5_2"
       version: "8.0"
@@ -246,8 +246,8 @@ modules:
     provider: *azurerm
     resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-mysql-firewall-allow-all-ip-address
-      resource_group_name: ${{ parameter.base.modules.rg.name }}
-      server_name: ${{ modules.mysql.name }}
+      resource_group_name: ${{ parameter.base.rg.name }}
+      server_name: ${{ mysql.name }}
       start_ip_address: 0.0.0.0
       end_ip_address: 255.255.255.255
 - name: mysql-database
@@ -256,8 +256,8 @@ modules:
   argument:
     database: api
     mysql:
-      host: ${{ modules.mysql.fqdn }}
-      username: mysqladminun@${{ modules.mysql.name }}
+      host: ${{ mysql.fqdn }}
+      username: mysqladminun@${{ mysql.name }}
       password: ${{ env.MYSQL_PASSWORD }}
 - name: as
   module: terraform/resource/azurerm_app_service
@@ -265,19 +265,19 @@ modules:
     provider: *azurerm
     resource:
       name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-as
-      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      resource_group_name: ${{ parameter.base.rg.name }}
       location: "Japan East"
-      app_service_plan_id: ${{ modules.asp.id }}
+      app_service_plan_id: ${{ asp.id }}
       site_config:
-        linux_fx_version: DOCKER|${{ parameter.base.modules.acr.login_server }}/sample-api:${{ parameter.api.modules.api-remote-image.tag }}
+        linux_fx_version: DOCKER|${{ parameter.base.acr.login_server }}/sample-api:${{ parameter.api.api-remote-image.tag }}
       app_settings:
-        DOCKER_REGISTRY_SERVER_URL: ${{ parameter.base.modules.acr.login_server }}
-        DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.modules.acr.admin_username }}
-        DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.modules.acr.admin_password }}
+        DOCKER_REGISTRY_SERVER_URL: ${{ parameter.base.acr.login_server }}
+        DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.acr.admin_username }}
+        DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.acr.admin_password }}
         WEBSITES_PORT: "3000"
-        MYSQL_HOST: ${{ modules.mysql.fqdn }}
+        MYSQL_HOST: ${{ mysql.fqdn }}
         MYSQL_DATABASE: api
-        MYSQL_USER: mysqladminun@${{ modules.mysql.name }}
+        MYSQL_USER: mysqladminun@${{ mysql.name }}
         MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
 ---
 name: base
@@ -305,7 +305,7 @@ modules:
     provider: *azurerm
     resource:
       name: ${{ parameter.prefix }}sampleacr
-      resource_group_name: ${{ modules.rg.name }}
+      resource_group_name: ${{ rg.name }}
       location: "Japan East"
       sku: Basic
       admin_enabled: true

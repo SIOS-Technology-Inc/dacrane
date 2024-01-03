@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -180,6 +181,13 @@ func (module Module) FindModuleCall(name string) ModuleCall {
 	})
 }
 
+func (module Module) ModuleNames() (names []string) {
+	for _, mc := range module.ModuleCalls {
+		names = append(names, mc.Name)
+	}
+	return
+}
+
 func (module Module) TopologicalSortedModuleCalls() []ModuleCall {
 	g := simple.NewDirectedGraph()
 
@@ -193,7 +201,7 @@ func (module Module) TopologicalSortedModuleCalls() []ModuleCall {
 	}
 
 	for _, mc := range module.ModuleCalls {
-		ds := mc.Dependency()
+		ds := mc.Dependency(module.ModuleNames())
 		for _, d := range ds {
 			g.SetEdge(g.NewEdge(nodes[d], nodes[mc.Name]))
 		}
@@ -209,19 +217,22 @@ func (module Module) TopologicalSortedModuleCalls() []ModuleCall {
 }
 
 // returns dependency module name
-func (mc ModuleCall) Dependency() []string {
-	return append(mc.ExplicitDependency(), mc.ImplicitDependency()...)
+func (mc ModuleCall) Dependency(modules []string) []string {
+	return append(mc.ExplicitDependency(), mc.ImplicitDependency(modules)...)
 }
 
 func (mc ModuleCall) ExplicitDependency() []string {
 	return mc.DependsOn
 }
 
-func (mc ModuleCall) ImplicitDependency() []string {
+func (mc ModuleCall) ImplicitDependency(modules []string) []string {
 	paths := []string{}
-	for _, path := range references(mc.Argument, "^modules\\..*") {
+	for _, path := range references(mc.Argument, ".+") {
 		keys := strings.Split(path, ".")
-		paths = append(paths, keys[1])
+
+		if slices.Contains(modules, keys[0]) {
+			paths = append(paths, keys[0])
+		}
 	}
 	return paths
 }

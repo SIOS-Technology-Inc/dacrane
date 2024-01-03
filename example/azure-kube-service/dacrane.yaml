@@ -7,7 +7,7 @@ modules:
   - name: container
     module: local-docker
     argument:
-      image: ${{ modules.image.modules.api-local-image.modules.image }}
+      image: ${{ image.api-local-image.image }}
 ---
 name: quick-start-aks
 modules:
@@ -19,14 +19,14 @@ modules:
     module: api-image
     argument:
       tag: latest
-      acr: ${{ modules.qs-base.modules.acr }}
+      acr: ${{ qs-base.acr }}
   - name: qs-aks
     module: aks
     argument:
       env: qs
       spec: low
-      base: ${{ modules.qs-base }}
-      api: ${{ modules.qs-api-image }}
+      base: ${{ qs-base }}
+      api: ${{ qs-api-image }}
 ---
 name: local-docker
 parameter:
@@ -69,8 +69,8 @@ modules:
     if: ${{ parameter.acr != null }}
     module: docker/resource/remote-image
     argument:
-      image: ${{ modules.api-local-image.modules.image.image }}
-      tag: ${{ modules.api-local-image.modules.image.tag }}
+      image: ${{ api-local-image.image.image }}
+      tag: ${{ api-local-image.image.tag }}
       remote:
         url: ${{ parameter.acr.login_server }}
         user: ${{ parameter.acr.admin_username }}
@@ -98,7 +98,7 @@ modules:
       resource:
         name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-aks
         location: "Japan East"
-        resource_group_name: ${{ parameter.base.modules.rg.name }}
+        resource_group_name: ${{ parameter.base.rg.name }}
         dns_prefix: exampleaks1
         default_node_pool:
           name: default
@@ -111,19 +111,19 @@ modules:
     argument:
       provider: *azurerm
       resource:
-        principal_id: ${{ modules.aks-cluster.kubelet_identity[0].object_id }}
+        principal_id: ${{ aks-cluster.kubelet_identity[0].object_id }}
         role_definition_name: "AcrPull"
-        scope: ${{ parameter.base.modules.acr.id }}
+        scope: ${{ parameter.base.acr.id }}
         skip_service_principal_aad_check: true
   - name: aks-development
     module: terraform/resource/kubernetes_deployment_v1
     depends_on: [role-assignment]
     argument:
       provider: &kubernetes
-        host: ${{ modules.aks-cluster.kube_config[0].host }}
-        client_certificate: ${base64decode("${{ modules.aks-cluster.kube_config[0].client_certificate }}")}
-        client_key: ${base64decode("${{ modules.aks-cluster.kube_config[0].client_key }}")}
-        cluster_ca_certificate: ${base64decode("${{ modules.aks-cluster.kube_config[0].cluster_ca_certificate }}")}
+        host: ${{ aks-cluster.kube_config[0].host }}
+        client_certificate: ${base64decode("${{ aks-cluster.kube_config[0].client_certificate }}")}
+        client_key: ${base64decode("${{ aks-cluster.kube_config[0].client_key }}")}
+        cluster_ca_certificate: ${base64decode("${{ aks-cluster.kube_config[0].cluster_ca_certificate }}")}
       resource:
         metadata:
           name: sample-api
@@ -139,7 +139,7 @@ modules:
             spec:
               container:
                 - name: sample-api
-                  image: ${{ parameter.base.modules.acr.login_server }}/sample-api:${{ parameter.api.modules.api-remote-image.tag }}
+                  image: ${{ parameter.base.acr.login_server }}/sample-api:${{ parameter.api.api-remote-image.tag }}
                   port:
                     - container_port: 3000
   - name: aks-service
@@ -186,7 +186,7 @@ modules:
       provider: *azurerm
       resource:
         name: ${{ parameter.prefix }}sampleacr
-        resource_group_name: ${{ modules.rg.name }}
+        resource_group_name: ${{ rg.name }}
         location: "Japan East"
         sku: Basic
         admin_enabled: true

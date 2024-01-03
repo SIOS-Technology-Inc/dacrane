@@ -64,6 +64,6 @@ modules:
 - name: image
   module: docker/resource/local-image
   argument:
-    dockerfile: ${{ modules.dockerfile.filename }}
+    dockerfile: ${{ dockerfile.filename }}
     image: ${{ parameter.image }}
     tag: ${{ parameter.tag }}

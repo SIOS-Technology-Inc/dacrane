@@ -88,22 +88,22 @@ $ dacrane apply base base -a '{ prefix: dacrane }'
 
 ```bash
 $ dacrane apply api-image api-v1 \
-  -a '{ tag: v1, acr: "${{ instances.base.modules.acr }}" }'
+  -a '{ tag: v1, acr: "${{ instances.base.acr }}" }'
 ```
 
 ```bash
 $ dacrane apply local-docker local \
-  -a '{ image: "${{ instances.api-v1.modules.api-local-image.modules.image }}" }'
+  -a '{ image: "${{ instances.api-v1.api-local-image.image }}" }'
 ```
 
 ```bash
 $ dacrane apply db-migration schema-v1-local -a '
 version: v1
-network: ${{ instances.local.modules.net.name }}
+network: ${{ instances.local.net.name }}
 mysql:
   username: root
   password: my-secret-pw
-  host: ${{ instances.local.modules.db.name }}
+  host: ${{ instances.local.db.name }}
   database: api
 '
 ```
@@ -133,10 +133,10 @@ api: ${{ instances.api-v1 }}
 $ dacrane apply db-migration schema-v1-dev -a '
 version: v1
 mysql:
-  username: ${{ instances.dev.modules.mysql.administrator_login }}@${{ instances.dev.modules.mysql.name }}
-  password: ${{ instances.dev.modules.mysql.administrator_login_password }}
-  host: ${{ instances.dev.modules.mysql.fqdn }}
-  database: ${{ instances.dev.modules.mysql-database.parameter.database }}
+  username: ${{ instances.dev.mysql.administrator_login }}@${{ instances.dev.mysql.name }}
+  password: ${{ instances.dev.mysql.administrator_login_password }}
+  host: ${{ instances.dev.mysql.fqdn }}
+  database: ${{ instances.dev.mysql-database.parameter.database }}
 '
 ```
 
