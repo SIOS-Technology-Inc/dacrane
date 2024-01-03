@@ -182,7 +182,7 @@ func appPlugin(image string, input any, output any, setting map[string]any) erro
 		if err != nil {
 			return err
 		}
-		script = fmt.Sprintf("%s -v %s:%s", script, dir, setting["working_dir"])
+		script = fmt.Sprintf("%s -e HOST_WORKING_DIR=%s -v %s:%s", script, dir, dir, setting["working_dir"])
 	}
 	if setting != nil && setting["docker_host"] != nil {
 		// TODO get docker host from environment

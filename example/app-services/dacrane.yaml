@@ -8,6 +8,16 @@ modules:
   module: local-docker
   argument:
     image: ${{ modules.image.modules.api-local-image.modules.image }}
+- name: migrate
+  module: db-migration
+  argument:
+    version: v1
+    network: ${{ modules.container.modules.net.name }}
+    mysql:
+      username: root
+      password: my-secret-pw
+      database: api
+      host: ${{ modules.container.modules.db.name }}
 ---
 name: quick-start-as
 modules:
@@ -27,6 +37,15 @@ modules:
     spec: low
     base: ${{ modules.qs-base }}
     api: ${{ modules.qs-api-image }}
+- name: qs-migration
+  module: db-migration
+  argument:
+    version: v1
+    mysql:
+      username: ${{ modules.qs-app-service.modules.mysql.administrator_login }}@${{ modules.qs-app-service.modules.mysql.name }}
+      password: ${{ modules.qs-app-service.modules.mysql.administrator_login_password }}
+      host: ${{ modules.qs-app-service.modules.mysql.fqdn }}
+      database: ${{ modules.qs-app-service.modules.mysql-database.parameter.database }}
 ---
 name: local-docker
 parameter:
@@ -39,16 +58,118 @@ parameter:
         image: { type: string, default: sample-api }
         tag: { type: string, default: latest }
 modules:
+- module: docker/resource/network
+  name: net
+  argument:
+    name: api-net
 - module: docker/resource/container
-  name: docker
+  name: db
+  argument:
+    name: db
+    image: mysql
+    tag: 8.2.0
+    network: ${{ modules.net.name }}
+    env:
+      - name: MYSQL_ROOT_PASSWORD
+        value: &password my-secret-pw
+      - name: MYSQL_DATABASE
+        value: &database api
+    healthcheck:
+      cmd: "mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD"
+      interval: 30s
+      timeout: 5s
+      retries: "6"
+      start_period: 30s
+- module: docker/resource/container
+  name: api
   argument:
     name: api
     image: ${{ parameter.image.image }}
+    network: ${{ modules.net.name }}
     tag: ${{ parameter.image.tag }}
     port: 3000:3000
     env:
       - name: PORT
         value: "3000"
+      - name: MYSQL_HOST
+        value: ${{ modules.db.name }}
+      - name: MYSQL_USER
+        value: root
+      - name: MYSQL_PASSWORD
+        value: *password
+      - name: MYSQL_DATABASE
+        value: *database
+---
+name: db-migration
+parameter:
+  type: object
+  required: ["version"]
+  properties:
+    version: { type: string }
+    network: { type: string }
+    mysql:
+      type: object
+      required: ["username", "password", "host"]
+      properties:
+        username: { type: string }
+        password: { type: string }
+        database: { type: string }
+        host: { type: string }
+modules:
+- name: migrate
+  module: custom/resource/shell
+  argument:
+    image: mysql
+    tag: 8.2.0
+    network: ${{ parameter.network }}
+    env: []
+    shell: /bin/bash
+    create:
+      mysql
+      -h ${{ parameter.mysql.host }}
+      -u ${{ parameter.mysql.username }}
+      -p${{ parameter.mysql.password }}
+      ${{ parameter.mysql.database }}
+      < /work/schemas/${{ parameter.version }}-up.sql
+    delete:
+      mysql
+      -h ${{ parameter.mysql.host }}
+      -u ${{ parameter.mysql.username }}
+      -p${{ parameter.mysql.password }}
+      ${{ parameter.mysql.database }}
+      < /work/schemas/${{ parameter.version }}-down.sql
+---
+name: mysql-database
+parameter:
+  type: object
+  properties:
+    database: { type: string }
+    mysql:
+      type: object
+      required: ["username", "password", "host"]
+      properties:
+        username: { type: string }
+        password: { type: string }
+        host: { type: string }
+modules:
+- name: mysql-database
+  module: custom/resource/shell
+  argument:
+    image: mysql
+    tag: 8.2.0
+    network: ${{ parameter.network }}
+    env: []
+    shell: /bin/bash
+    create:
+      echo 'CREATE DATABASE IF NOT EXISTS ${{ parameter.database }};' | mysql
+      -h ${{ parameter.mysql.host }}
+      -u ${{ parameter.mysql.username }}
+      -p${{ parameter.mysql.password }}
+    delete:
+      echo 'DROP DATABASE IF EXISTS ${{ parameter.database }};' | mysql
+      -h ${{ parameter.mysql.host }}
+      -u ${{ parameter.mysql.username }}
+      -p${{ parameter.mysql.password }}
 ---
 name: api-image
 parameter:
@@ -105,6 +226,39 @@ modules:
       sku:
         tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
         size: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
+- name: mysql
+  module: terraform/resource/azurerm_mysql_server
+  argument:
+    provider: *azurerm
+    resource:
+      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-mysql
+      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      location: "Japan East"
+      sku_name: "B_Gen5_2"
+      version: "8.0"
+      administrator_login: mysqladminun
+      administrator_login_password: ${{ env.MYSQL_PASSWORD }}
+      ssl_enforcement_enabled: false
+      ssl_minimal_tls_version_enforced: TLSEnforcementDisabled
+- name: mysql-firewall-role
+  module: terraform/resource/azurerm_mysql_firewall_rule
+  argument:
+    provider: *azurerm
+    resource:
+      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-mysql-firewall-allow-all-ip-address
+      resource_group_name: ${{ parameter.base.modules.rg.name }}
+      server_name: ${{ modules.mysql.name }}
+      start_ip_address: 0.0.0.0
+      end_ip_address: 255.255.255.255
+- name: mysql-database
+  module: mysql-database
+  depends_on: [mysql-firewall-role]
+  argument:
+    database: api
+    mysql:
+      host: ${{ modules.mysql.fqdn }}
+      username: mysqladminun@${{ modules.mysql.name }}
+      password: ${{ env.MYSQL_PASSWORD }}
 - name: as
   module: terraform/resource/azurerm_app_service
   argument:
@@ -121,6 +275,10 @@ modules:
         DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.modules.acr.admin_username }}
         DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.modules.acr.admin_password }}
         WEBSITES_PORT: "3000"
+        MYSQL_HOST: ${{ modules.mysql.fqdn }}
+        MYSQL_DATABASE: api
+        MYSQL_USER: mysqladminun@${{ modules.mysql.name }}
+        MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
 ---
 name: base
 parameter:
