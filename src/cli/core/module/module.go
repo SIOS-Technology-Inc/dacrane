@@ -25,9 +25,14 @@ import (
 type Module struct {
 	Name         string       `yaml:"name"`
 	Import       []string     `yaml:"import"`
-	Parameter    any          `yaml:"parameter"`
+	Parameters   []Parameter  `yaml:"parameters"`
 	Dependencies []Dependency `yaml:"dependencies"`
 	ModuleCalls  []ModuleCall `yaml:"modules"`
+}
+
+type Parameter struct {
+	Name   string `yaml:"name"`
+	Schema any    `yaml:"schema"`
 }
 
 type Dependency struct {
@@ -39,25 +44,26 @@ type ModuleCall struct {
 	Name         string            `yaml:"name"`
 	DependsOn    []string          `yaml:"depends_on"`
 	Module       string            `yaml:"module"`
-	Argument     any               `yaml:"argument"`
+	Arguments    map[string]any    `yaml:"arguments"`
 	Dependencies map[string]string `yaml:"dependencies"`
 	If           any               `yaml:"if"`
 }
 
 func (module Module) Apply(
 	instanceAddress string,
-	argument any,
+	arguments map[string]any,
 	instances *repository.DocumentRepository,
 	importedModule []Module,
 ) {
-	// Validation Argument
-	err := utils.Validate(module.Parameter, argument)
-	if err != nil {
-		panic(err)
+	// Check arguments
+	for _, parameter := range module.Parameters {
+		v := arguments[parameter.Name]
+		err := utils.Validate(parameter.Schema, v)
+		if err != nil {
+			panic(fmt.Errorf("invalid argument %s is %s", parameter.Name, err.Error()))
+		}
+		arguments[parameter.Name] = utils.FillDefault(parameter.Schema, v)
 	}
-
-	// Fill the argument with default
-	argument = utils.FillDefault(module.Parameter, argument)
 
 	// Create or get the instance
 	var instance moduleInstance
@@ -65,7 +71,7 @@ func (module Module) Apply(
 		document := instances.Find(instanceAddress)
 		instance = NewInstanceFromDocument(document).(moduleInstance)
 	} else {
-		instance = NewModuleInstance(module, instanceAddress, argument)
+		instance = NewModuleInstance(module, instanceAddress, arguments)
 		instances.Upsert(instanceAddress, instance)
 	}
 
@@ -83,14 +89,14 @@ func (module Module) Apply(
 		fmt.Printf("[%s (%s)] Evaluating...\n", instanceAddress, moduleCall.Module)
 		data := instance.ToState(*instances).(map[string]any)
 		customStatePath := filepath.Join(".dacrane/custom_state", childAbsAddr)
-		data["self"] = map[string]any{
+		data["$self"] = map[string]any{
 			"name":              moduleCall.Name,
 			"module":            moduleCall.Module,
 			"address":           childAbsAddr,
 			"custom_state_path": customStatePath,
 		}
 		data["$env"] = utils.GetEnvMap()
-		if moduleCall.HasReferences("^self.custom_state_path$") {
+		if moduleCall.HasReferences("^\\$self.custom_state_path$") {
 			err := os.MkdirAll(customStatePath, 0755)
 			if err != nil {
 				panic(err)
@@ -108,7 +114,7 @@ func (module Module) Apply(
 
 		if isPlugin {
 			plugin := NewPlugin(evaluatedModuleCall.Module)
-			plugin.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances)
+			plugin.Apply(childAbsAddr, evaluatedModuleCall.Arguments, instances)
 		} else {
 			exists := utils.Contains(importedModule, func(module Module) bool {
 				return module.Name == evaluatedModuleCall.Module
@@ -119,7 +125,7 @@ func (module Module) Apply(
 			childModule := utils.Find(importedModule, func(module Module) bool {
 				return module.Name == evaluatedModuleCall.Module
 			})
-			childModule.Apply(childAbsAddr, evaluatedModuleCall.Argument, instances, importedModule)
+			childModule.Apply(childAbsAddr, evaluatedModuleCall.Arguments, instances, importedModule)
 		}
 		instance.Instances = append(instance.Instances, childRelAddr)
 		instances.Upsert(instanceAddress, instance)
@@ -227,7 +233,7 @@ func (mc ModuleCall) ExplicitDependency() []string {
 
 func (mc ModuleCall) ImplicitDependency(modules []string) []string {
 	paths := []string{}
-	for _, path := range references(mc.Argument, ".+") {
+	for _, path := range references(mc.Arguments, ".+") {
 		keys := strings.Split(path, ".")
 
 		if slices.Contains(modules, keys[0]) {
@@ -251,7 +257,7 @@ func (mc ModuleCall) Evaluate(data map[string]any) *ModuleCall {
 }
 
 func (mc ModuleCall) HasReferences(pattern string) bool {
-	return len(references(mc.Argument, pattern)) > 0
+	return len(references(mc.Arguments, pattern)) > 0
 }
 
 func (mc ModuleCall) toMap() map[string]any {
@@ -262,7 +268,7 @@ func (mc ModuleCall) toMap() map[string]any {
 		"name":       mc.Name,
 		"depends_on": mc.DependsOn,
 		"module":     mc.Module,
-		"argument":   mc.Argument,
+		"arguments":  mc.Arguments,
 		"if":         mc.If,
 	}
 }
@@ -279,7 +285,7 @@ func toModuleCall(mc map[string]any) *ModuleCall {
 		Name:      mc["name"].(string),
 		DependsOn: dependsOn,
 		Module:    mc["module"].(string),
-		Argument:  mc["argument"],
+		Arguments: mc["arguments"].(map[string]any),
 	}
 }
 

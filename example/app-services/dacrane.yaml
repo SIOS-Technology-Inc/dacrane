@@ -2,15 +2,16 @@ name: quick-start
 modules:
 - name: image
   module: api-image
-  argument:
+  arguments:
     tag: latest
 - name: container
   module: local-docker
-  argument:
-    image: ${{ image.api-local-image.image }}
+  arguments:
+    image: ${{ image.api-local-image.build.image }}
+    tag: ${{ image.api-local-image.build.tag }}
 - name: migrate
   module: db-migration
-  argument:
+  arguments:
     version: v1
     network: ${{ container.net.name }}
     mysql:
@@ -23,48 +24,44 @@ name: quick-start-as
 modules:
 - name: qs-base
   module: base
-  argument:
+  arguments:
     prefix: dacrane
 - name: qs-api-image
   module: api-image
-  argument:
+  arguments:
     tag: latest
     acr: ${{ qs-base.acr }}
 - name: qs-app-service
   module: app-service
-  argument:
+  arguments:
     env: qs
     spec: low
     base: ${{ qs-base }}
     api: ${{ qs-api-image }}
 - name: qs-migration
   module: db-migration
-  argument:
+  arguments:
     version: v1
     mysql:
       username: ${{ qs-app-service.mysql.administrator_login }}@${{ qs-app-service.mysql.name }}
       password: ${{ qs-app-service.mysql.administrator_login_password }}
       host: ${{ qs-app-service.mysql.fqdn }}
-      database: ${{ qs-app-service.mysql-database.parameter.database }}
+      database: ${{ qs-app-service.mysql-database.database }}
 ---
 name: local-docker
-parameter:
-  type: object
-  default: { image: sample-api, tag: latest }
-  properties:
-    image:
-      type: object
-      properties:
-        image: { type: string, default: sample-api }
-        tag: { type: string, default: latest }
+parameters:
+- name: image
+  schema: { type: string, default: sample-api }
+- name: tag
+  schema: { type: string, default: latest }
 modules:
 - module: docker/resource/network
   name: net
-  argument:
+  arguments:
     name: api-net
 - module: docker/resource/container
   name: db
-  argument:
+  arguments:
     name: db
     image: mysql
     tag: 8.2.0
@@ -82,11 +79,11 @@ modules:
       start_period: 30s
 - module: docker/resource/container
   name: api
-  argument:
+  arguments:
     name: api
-    image: ${{ parameter.image.image }}
+    image: ${{ image }}
     network: ${{ net.name }}
-    tag: ${{ parameter.image.tag }}
+    tag: ${{ tag }}
     port: 3000:3000
     env:
       - name: PORT
@@ -101,116 +98,117 @@ modules:
         value: *database
 ---
 name: db-migration
-parameter:
-  type: object
-  required: ["version"]
-  properties:
-    version: { type: string }
-    network: { type: string }
-    mysql:
-      type: object
-      required: ["username", "password", "host"]
-      properties:
-        username: { type: string }
-        password: { type: string }
-        database: { type: string }
-        host: { type: string }
+parameters:
+- name: version
+  schema: { type: string }
+- name: network
+  schema: { type: ["string", "null"] }
+- name: mysql
+  schema:
+    type: object
+    required: ["username", "password", "host"]
+    properties:
+      username: { type: string }
+      password: { type: string }
+      database: { type: string }
+      host: { type: string }
 modules:
 - name: migrate
   module: custom/resource/shell
-  argument:
+  arguments:
     image: mysql
     tag: 8.2.0
-    network: ${{ parameter.network }}
+    network: ${{ network }}
     env: []
     shell: /bin/bash
     create:
       mysql
-      -h ${{ parameter.mysql.host }}
-      -u ${{ parameter.mysql.username }}
-      -p${{ parameter.mysql.password }}
-      ${{ parameter.mysql.database }}
-      < /work/schemas/${{ parameter.version }}-up.sql
+      -h ${{ mysql.host }}
+      -u ${{ mysql.username }}
+      -p${{ mysql.password }}
+      ${{ mysql.database }}
+      < /work/schemas/${{ version }}-up.sql
     delete:
       mysql
-      -h ${{ parameter.mysql.host }}
-      -u ${{ parameter.mysql.username }}
-      -p${{ parameter.mysql.password }}
-      ${{ parameter.mysql.database }}
-      < /work/schemas/${{ parameter.version }}-down.sql
+      -h ${{ mysql.host }}
+      -u ${{ mysql.username }}
+      -p${{ mysql.password }}
+      ${{ mysql.database }}
+      < /work/schemas/${{ version }}-down.sql
 ---
 name: mysql-database
-parameter:
-  type: object
-  properties:
-    database: { type: string }
-    mysql:
-      type: object
-      required: ["username", "password", "host"]
-      properties:
-        username: { type: string }
-        password: { type: string }
-        host: { type: string }
+parameters:
+- name: database
+  schema: { type: string }
+- name: mysql
+  schema:
+    type: object
+    required: ["username", "password", "host"]
+    properties:
+      username: { type: string }
+      password: { type: string }
+      host: { type: string }
 modules:
 - name: mysql-database
   module: custom/resource/shell
-  argument:
+  arguments:
     image: mysql
     tag: 8.2.0
-    network: ${{ parameter.network }}
+    network: ${{ network }}
     env: []
     shell: /bin/bash
     create:
-      echo 'CREATE DATABASE IF NOT EXISTS ${{ parameter.database }};' | mysql
-      -h ${{ parameter.mysql.host }}
-      -u ${{ parameter.mysql.username }}
-      -p${{ parameter.mysql.password }}
+      echo 'CREATE DATABASE IF NOT EXISTS ${{ database }};' | mysql
+      -h ${{ mysql.host }}
+      -u ${{ mysql.username }}
+      -p${{ mysql.password }}
     delete:
-      echo 'DROP DATABASE IF EXISTS ${{ parameter.database }};' | mysql
-      -h ${{ parameter.mysql.host }}
-      -u ${{ parameter.mysql.username }}
-      -p${{ parameter.mysql.password }}
+      echo 'DROP DATABASE IF EXISTS ${{ database }};' | mysql
+      -h ${{ mysql.host }}
+      -u ${{ mysql.username }}
+      -p${{ mysql.password }}
 ---
 name: api-image
-parameter:
-  type: object
-  properties:
-    tag: { type: string, default: "latest" }
-    acr: { type: object }
+parameters:
+- name: tag
+  schema: { type: string, default: "latest" }
+- name: acr
+  schema: { type: ["object", "null"] }
 import:
   - ../../module/docker-npm.yaml
   # - import: https://raw.githubusercontent.com/SIOS-Technology-Inc/dacrane/main/module/docker-npm.yaml
 modules:
 - name: api-local-image
   module: docker-npm
-  argument:
+  arguments:
     image: sample-api
-    tag: ${{ parameter.tag }}
+    tag: ${{ tag }}
 - name: api-remote-image
-  if: ${{ parameter.acr != null }}
+  if: ${{ acr != null }}
   module: docker/resource/remote-image
-  argument:
-    image: ${{ api-local-image.image.image }}
-    tag: ${{ api-local-image.image.tag }}
+  arguments:
+    image: ${{ api-local-image.build.image }}
+    tag: ${{ api-local-image.build.tag }}
     remote:
-      url: ${{ parameter.acr.login_server }}
-      user: ${{ parameter.acr.admin_username }}
-      password: ${{ parameter.acr.admin_password }}
+      url: ${{ acr.login_server }}
+      user: ${{ acr.admin_username }}
+      password: ${{ acr.admin_password }}
 ---
 name: app-service
-argument:
-parameter:
-  type: object
-  required: ["env", "base", "api"]
-  properties:
-    env: { type: string, default: "dev" }
-    spec: { type: string, enum: ["low", "high"], default: "low" }
-    base: { type: object }
-    api: { type: object }
+arguments:
+parameters:
+- name: env
+  schema: { type: string, default: "dev" }
+- name: spec
+  schema: { type: string, enum: ["low", "high"], default: "low" }
+- name: base
+  schema: { type: object }
+- name: api
+  schema: { type: object }
 modules:
 - name: asp
   module: terraform/resource/azurerm_app_service_plan
-  argument:
+  arguments:
     provider: &azurerm
       features: {}
       client_id: ${{ $env.ARM_CLIENT_ID }}
@@ -218,21 +216,21 @@ modules:
       tenant_id: ${{ $env.ARM_TENANT_ID }}
       subscription_id: ${{ $env.ARM_SUBSCRIPTION_ID }}
     resource:
-      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-asp
-      resource_group_name: ${{ parameter.base.rg.name }}
+      name: ${{ env }}-${{ base.prefix }}-sample-asp
+      resource_group_name: ${{ base.rg.name }}
       location: "Japan East"
       kind: "Linux"
       reserved: true
       sku:
-        tier: '${{ {"low": "Basic", "high": "Standard" }[parameter.spec] }}'
-        size: '${{ {"low": "B1", "high": "S1" }[parameter.spec] }}'
+        tier: '${{ {"low": "Basic", "high": "Standard" }[spec] }}'
+        size: '${{ {"low": "B1", "high": "S1" }[spec] }}'
 - name: mysql
   module: terraform/resource/azurerm_mysql_server
-  argument:
+  arguments:
     provider: *azurerm
     resource:
-      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-mysql
-      resource_group_name: ${{ parameter.base.rg.name }}
+      name: ${{ env }}-${{ base.prefix }}-sample-mysql
+      resource_group_name: ${{ base.rg.name }}
       location: "Japan East"
       sku_name: "B_Gen5_2"
       version: "8.0"
@@ -242,18 +240,18 @@ modules:
       ssl_minimal_tls_version_enforced: TLSEnforcementDisabled
 - name: mysql-firewall-role
   module: terraform/resource/azurerm_mysql_firewall_rule
-  argument:
+  arguments:
     provider: *azurerm
     resource:
-      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-mysql-firewall-allow-all-ip-address
-      resource_group_name: ${{ parameter.base.rg.name }}
+      name: ${{ env }}-${{ base.prefix }}-sample-mysql-firewall-allow-all-ip-address
+      resource_group_name: ${{ base.rg.name }}
       server_name: ${{ mysql.name }}
       start_ip_address: 0.0.0.0
       end_ip_address: 255.255.255.255
 - name: mysql-database
   module: mysql-database
   depends_on: [mysql-firewall-role]
-  argument:
+  arguments:
     database: api
     mysql:
       host: ${{ mysql.fqdn }}
@@ -261,19 +259,19 @@ modules:
       password: ${{ $env.MYSQL_PASSWORD }}
 - name: as
   module: terraform/resource/azurerm_app_service
-  argument:
+  arguments:
     provider: *azurerm
     resource:
-      name: ${{ parameter.env }}-${{ parameter.base.parameter.prefix }}-sample-as
-      resource_group_name: ${{ parameter.base.rg.name }}
+      name: ${{ env }}-${{ base.prefix }}-sample-as
+      resource_group_name: ${{ base.rg.name }}
       location: "Japan East"
       app_service_plan_id: ${{ asp.id }}
       site_config:
-        linux_fx_version: DOCKER|${{ parameter.base.acr.login_server }}/sample-api:${{ parameter.api.api-remote-image.tag }}
+        linux_fx_version: DOCKER|${{ base.acr.login_server }}/sample-api:${{ api.api-remote-image.tag }}
       app_settings:
-        DOCKER_REGISTRY_SERVER_URL: ${{ parameter.base.acr.login_server }}
-        DOCKER_REGISTRY_SERVER_USERNAME: ${{ parameter.base.acr.admin_username }}
-        DOCKER_REGISTRY_SERVER_PASSWORD: ${{ parameter.base.acr.admin_password }}
+        DOCKER_REGISTRY_SERVER_URL: ${{ base.acr.login_server }}
+        DOCKER_REGISTRY_SERVER_USERNAME: ${{ base.acr.admin_username }}
+        DOCKER_REGISTRY_SERVER_PASSWORD: ${{ base.acr.admin_password }}
         WEBSITES_PORT: "3000"
         MYSQL_HOST: ${{ mysql.fqdn }}
         MYSQL_DATABASE: api
@@ -281,15 +279,13 @@ modules:
         MYSQL_PASSWORD: ${{ $env.MYSQL_PASSWORD }}
 ---
 name: base
-parameter:
-  type: object
-  required: ["prefix"]
-  properties:
-    prefix: { type: string }
+parameters:
+- name: prefix
+  schema: { type: string }
 modules:
 - name: rg
   module: terraform/resource/azurerm_resource_group
-  argument:
+  arguments:
     provider: &azurerm
       features: {}
       client_id: ${{ $env.ARM_CLIENT_ID }}
@@ -297,14 +293,14 @@ modules:
       tenant_id: ${{ $env.ARM_TENANT_ID }}
       subscription_id: ${{ $env.ARM_SUBSCRIPTION_ID }}
     resource:
-      name: ${{ parameter.prefix }}-sample-rg
+      name: ${{ prefix }}-sample-rg
       location: "Japan East"
 - name: acr
   module: terraform/resource/azurerm_container_registry
-  argument:
+  arguments:
     provider: *azurerm
     resource:
-      name: ${{ parameter.prefix }}sampleacr
+      name: ${{ prefix }}sampleacr
       resource_group_name: ${{ rg.name }}
       location: "Japan East"
       sku: Basic

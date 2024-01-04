@@ -20,11 +20,12 @@ var destroyCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		instanceName := args[0]
-		instances := repository.LoadDocumentRepository()
-		doc := instances.Find(instanceName)
-		instance := module.NewInstanceFromDocument(doc)
-		instance.Destroy(instanceName, &instances)
+		for _, instanceName := range args {
+			instances := repository.LoadDocumentRepository()
+			doc := instances.Find(instanceName)
+			instance := module.NewInstanceFromDocument(doc)
+			instance.Destroy(instanceName, &instances)
+		}
 	},
 }
 

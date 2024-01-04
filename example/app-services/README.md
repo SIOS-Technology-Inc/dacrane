@@ -83,28 +83,29 @@ $ dacrane destroy qs-as
 This section explains the more practical way to deploy.
 
 ```bash
-$ dacrane apply base base -a '{ prefix: dacrane }'
+$ dacrane apply base base -a prefix=dacrane
 ```
 
 ```bash
 $ dacrane apply api-image api-v1 \
-  -a '{ tag: v1, acr: "${{ base.acr }}" }'
+  -a tag=v1 -a acr='${{ base.acr }}'
 ```
 
 ```bash
 $ dacrane apply local-docker local \
-  -a '{ image: "${{ api-v1.api-local-image.image }}" }'
+  -a image='${{ api-v1.api-local-image.build.image }}' \
+  -a tag='${{ api-v1.api-local-image.build.tag }}'
 ```
 
 ```bash
-$ dacrane apply db-migration schema-v1-local -a '
-version: v1
-network: ${{ local.net.name }}
-mysql:
-  username: root
-  password: my-secret-pw
-  host: ${{ local.db.name }}
-  database: api
+$ dacrane apply db-migration schema-v1-local \
+  -a version=v1 \
+  -a network='${{ local.net.name }}' \
+  -a mysql='
+username: root
+password: my-secret-pw
+host: ${{ local.db.name }}
+database: api
 '
 ```
 
@@ -121,22 +122,21 @@ $ curl http://localhost:3000/users
 ```
 
 ```bash
-$ dacrane apply app-service dev -a '
-env: dev
-spec: low
-base: ${{ base }}
-api: ${{ api-v1 }}
-'
+$ dacrane apply app-service dev \
+  -a env=dev \
+  -a spec=low \
+  -a base='${{ base }}' \
+  -a api='${{ api-v1 }}'
 ```
 
 ```bash
-$ dacrane apply db-migration schema-v1-dev -a '
-version: v1
-mysql:
-  username: ${{ dev.mysql.administrator_login }}@${{ dev.mysql.name }}
-  password: ${{ dev.mysql.administrator_login_password }}
-  host: ${{ dev.mysql.fqdn }}
-  database: ${{ dev.mysql-database.parameter.database }}
+$ dacrane apply db-migration schema-v1-dev \
+  -a version=v1 \
+  -a mysql='
+username: ${{ dev.mysql.administrator_login }}@${{ dev.mysql.name }}
+password: ${{ dev.mysql.administrator_login_password }}
+host: ${{ dev.mysql.fqdn }}
+database: ${{ dev.mysql-database.database }}
 '
 ```
 
@@ -153,25 +153,5 @@ $ curl https://dev-dacrane-sample-as.azurewebsites.net/users
 ```
 
 ```bash
-$ dacrane destroy schema-v1-dev
-```
-
-```bash
-$ dacrane destroy dev
-```
-
-```bash
-$ dacrane destroy schema-v1-local
-```
-
-```bash
-$ dacrane destroy local
-```
-
-```bash
-$ dacrane destroy api-v1
-```
-
-```bash
-$ dacrane destroy base
+$ dacrane destroy schema-v1-dev dev schema-v1-local local api-v1 base
 ```
