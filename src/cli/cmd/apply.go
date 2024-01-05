@@ -35,11 +35,7 @@ var applyCmd = &cobra.Command{
 
 		modules := module.ParseModules(codeBytes)
 
-		var argument map[string]any
-		err = yaml.Unmarshal([]byte(argumentString), &argument)
-		if err != nil {
-			panic(err)
-		}
+		arguments := map[string]any{}
 
 		states := map[string]any{}
 		for address, doc := range instances.Document() {
@@ -49,9 +45,14 @@ var applyCmd = &cobra.Command{
 			}
 		}
 
-		evaluatedArg := module.Evaluate(argument, map[string]any{
-			"instances": states,
-		})
+		for k, yamlString := range argumentString {
+			var v any
+			err = yaml.Unmarshal([]byte(yamlString), &v)
+			if err != nil {
+				panic(err)
+			}
+			arguments[k] = module.Evaluate(v, states)
+		}
 
 		moduleExists := utils.Contains(modules, func(module module.Module) bool {
 			return module.Name == moduleName
@@ -64,13 +65,13 @@ var applyCmd = &cobra.Command{
 			return module.Name == moduleName
 		})
 
-		module.Apply(instanceName, evaluatedArg, &instances, modules)
+		module.Apply(instanceName, arguments, &instances, modules)
 	},
 }
 
-var argumentString = ""
+var argumentString map[string]string
 
 func init() {
 	rootCmd.AddCommand(applyCmd)
-	applyCmd.Flags().StringVarP(&argumentString, "argument", "a", "{}", "Argument")
+	applyCmd.Flags().StringToStringVarP(&argumentString, "argument", "a", map[string]string{}, "Argument")
 }

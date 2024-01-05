@@ -20,9 +20,14 @@ modules:
     - bar
   module: resource/baz
   argument:
-    a: ${{ modules.baz }}
+    a: ${{ baz }}
     b: abc
 - name: bar
+  module: resource/qux
+  argument:
+    a: 123
+    b: abc
+- name: baz
   module: resource/qux
   argument:
     a: 123
@@ -32,7 +37,7 @@ modules:
 	assert.Len(t, modules, 1)
 	module := modules[0]
 	assert.Equal(t, "foo", module.Name)
-	assert.Equal(t, []string{"bar", "baz"}, module.FindModuleCall("foo").Dependency())
+	assert.Equal(t, []string{"bar", "baz"}, module.FindModuleCall("foo").Dependency(module.ModuleNames()))
 }
 
 func TestTopologicalSortedModuleCalls(t *testing.T) {
@@ -51,7 +56,7 @@ modules:
 - name: bar
   module: resource/a
   argument:
-    a: ${{ modules.baz }}
+    a: ${{ baz }}
 - name: baz
   module: resource/a
 `

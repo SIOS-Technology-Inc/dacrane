@@ -23,7 +23,7 @@ func NewLexer(reader io.Reader) *Lexer {
 		simplexer.NewRegexpTokenType(STRING, `"([^"]*)"`),
 		simplexer.NewRegexpTokenType(BOOLEAN, `true|false`),
 		simplexer.NewRegexpTokenType(NULL, `null`),
-		simplexer.NewRegexpTokenType(IDENTIFIER, `[a-zA-Z0-9_-]+`),
+		simplexer.NewRegexpTokenType(IDENTIFIER, `\$?[a-zA-Z0-9_-]+`),
 		simplexer.NewRegexpTokenType(DOT, `\.`),
 		simplexer.NewRegexpTokenType(COMMA, `,`),
 		simplexer.NewRegexpTokenType(COLON, `:`),

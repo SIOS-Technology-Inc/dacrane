@@ -65,17 +65,18 @@ $ dacrane destroy qs-aks
 This section explains the more practical way to deploy.
 
 ```bash
-$ dacrane apply base base -a '{ prefix: dacrane }'
+$ dacrane apply base base -a prefix=dacrane
 ```
 
 ```bash
 $ dacrane apply api-image api-v1 \
-  -a '{ tag: v1, acr: "${{ instances.base.modules.acr }}" }'
+  -a tag=v1 -a acr='${{ base.acr }}'
 ```
 
 ```bash
 $ dacrane apply local-docker local \
-  -a '{ image: "${{ instances.api-v1.modules.api-local-image.modules.image }}" }'
+  -a image='${{ api-v1.api-local-image.build.image }}' \
+  -a tag='${{ api-v1.api-local-image.build.tag }}'
 ```
 
 ```bash
@@ -85,11 +86,10 @@ hello world
 ```
 
 ```bash
-$ dacrane apply aks dev -a '
-env: dev
-base: ${{ instances.base }}
-api: ${{ instances.api-v1 }}
-'
+$ dacrane apply aks dev \
+  -a env=dev \
+  -a base='${{ base }}' \
+  -a api='${{ api-v1 }}'
 ```
 
 ```bash
@@ -99,17 +99,5 @@ hello world
 ```
 
 ```bash
-$ dacrane destroy dev
-```
-
-```bash
-$ dacrane destroy local
-```
-
-```bash
-$ dacrane destroy api-v1
-```
-
-```bash
-$ dacrane destroy base
+$ dacrane destroy dev local api-v1 base
 ```

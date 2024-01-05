@@ -16,11 +16,11 @@ type Instance interface {
 }
 
 type moduleInstance struct {
-	Type      string   `yaml:"type"`
-	Module    Module   `yaml:"module"`
-	Argument  any      `yaml:"argument"`
-	Address   string   `yaml:"address"`
-	Instances []string `yaml:"instances"`
+	Type      string         `yaml:"type"`
+	Module    Module         `yaml:"module"`
+	Arguments map[string]any `yaml:"argument"`
+	Address   string         `yaml:"address"`
+	Instances []string       `yaml:"instances"`
 }
 
 type pluginInstance struct {
@@ -31,12 +31,12 @@ type pluginInstance struct {
 	Output         any    `yaml:"output"`
 }
 
-func NewModuleInstance(module Module, address string, argument any) moduleInstance {
+func NewModuleInstance(module Module, address string, arguments map[string]any) moduleInstance {
 	return moduleInstance{
 		Type:      "module",
 		Module:    module,
 		Address:   address,
-		Argument:  argument,
+		Arguments: arguments,
 		Instances: []string{},
 	}
 }
@@ -76,15 +76,12 @@ func NewInstanceFromDocument(document any) Instance {
 }
 
 func (instance moduleInstance) ToState(instances repository.DocumentRepository) any {
-	state := map[string]any{
-		"parameter": instance.Argument,
-		"modules":   map[string]any{},
-	}
+	state := instance.Arguments
 	for _, address := range instance.Instances {
 		childAbsAddr := instance.Address + "." + address
 		doc := instances.Find(childAbsAddr)
 		child := NewInstanceFromDocument(doc)
-		state["modules"].(map[string]any)[address] = child.ToState(instances)
+		state[address] = child.ToState(instances)
 	}
 	return state
 }
