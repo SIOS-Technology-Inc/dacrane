@@ -14,10 +14,12 @@ $ source .env
 
 ## demo環境を構築する
 
+dacrane.yamlにデプロイ定義がされています。
+
 12分くらい待つ。
 
 ```bash
-$ dacrane apply demo demo \
+$ dacrane apply demo ps-live \
   -a prefix=demo
 ```
 
@@ -26,8 +28,6 @@ $ dacrane apply demo demo \
 * index.js
 * schemas
 * dacrane.yaml
-* .dacrane
-* コマンドの説明
 
 ## 動作確認
 

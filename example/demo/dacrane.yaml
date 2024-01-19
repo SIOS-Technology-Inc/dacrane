@@ -1,32 +1,55 @@
-name: demo
-parameters:
+# このファイルはデモアプリをデプロイするためのコードです。
+# YAMLドキュメント1つ=Dacraneモジュール
+# モジュールとは引数をとってリソースを出力する関数のようなもの。
+# モジュールは他のモジュールを呼び出したりプラグインを呼び出せる。
+# 今回は8個のモジュールを使っている。
+# demoが最上位のモジュール。
+
+# 実行コマンドの説明
+# ```bash
+# $ dacrane apply demo ps-live \
+#   -a prefix=demo
+# ```
+# モジュールから作られたリソースの実際をインスタンスと呼ぶ
+# demoモジュールからps-liveというインスタンスを作れというコマンド
+# -a (argument)で引数を指定する。
+
+# デモ環境を作るモジュール
+name: demo # モジュールの名前
+parameters: # モジュールの引数
 - name: prefix
   schema: { type: string }
-modules:
-- name: demo-rg
-  module: resource-group
-  arguments:
+modules: # モジュール本体
+# リソースグループを作る
+- name: demo-rg          # インスタンスの名前
+  module: resource-group # 呼び出すモジュールの名前
+  arguments:             # 呼び出すモジュールへ与える引数
     prefix: ${{ prefix }}
+# ACRを作る
 - name: demo-acr
   module: container-registry
   arguments:
     prefix: ${{ prefix }}
     resource_group: ${{ demo-rg.rg }}
+# コンテナイメージを作る
 - name: demo-image-v1
   module: container-image
   arguments:
     tag: v1
     acr: ${{ demo-acr.acr }}
+# Azure Database For MySQLを作る
 - name: demo-db
   module: azure-mysql
   arguments:
     prefix: demo
     resource_group: ${{ demo-rg.rg }}
+# MySQLのデータベースを作る
 - name: demo-mysql-db
   module: mysql-database
   arguments:
-    database: demo
+    database: demo               #データベースの名前
     mysql: ${{ demo-db.mysql }}
+# データベースマイグレーションをする
 - name: demo-mysql-mig-v1
   module: mysql-migration
   depends_on: [ demo-mysql-db ]
@@ -35,6 +58,7 @@ modules:
     mysql: ${{ demo-db.mysql }}
     up_sql: schemas/v1-up.sql
     down_sql: schemas/v1-down.sql
+# App Serviceにアプリをデプロイする
 - name: demo-as
   module: app-service
   depends_on: [ demo-mysql-mig-v1 ]
@@ -46,13 +70,14 @@ modules:
     api: ${{ demo-image-v1.remote }}
     database: demo
 ---
+# リソースグループを作るモジュール
 name: resource-group
 parameters:
 - name: prefix
   schema: { type: string }
 modules:
 - name: rg
-  module: terraform/resource/azurerm_resource_group
+  module: terraform/resource/azurerm_resource_group # Terraformプラグインを呼び出している
   arguments:
     provider: &azurerm
       features: {}
@@ -60,10 +85,11 @@ modules:
       client_secret: ${{ $env.ARM_CLIENT_SECRET }}
       tenant_id: ${{ $env.ARM_TENANT_ID }}
       subscription_id: ${{ $env.ARM_SUBSCRIPTION_ID }}
-    resource:
+    resource:                                       # リソースの定義
       name: ${{ prefix }}-sample-rg
       location: "Japan East"
 ---
+# ACRを作るモジュール
 name: container-registry
 parameters:
 - name: prefix
@@ -82,20 +108,23 @@ modules:
       sku: Basic
       admin_enabled: true
 ---
+# コンテナイメージを作るモジュール
 name: container-image
 parameters:
 - name: tag
   schema: { type: string }
 - name: acr
   schema: { type: object }
-import:
+import: # 外部モジュールをインポートする
   - ../../module/docker-npm.yaml
 modules:
+# ローカルでコンテナイメージをビルドする
 - name: local
   module: docker-npm
   arguments:
     image: sample-api
     tag: ${{ tag }}
+# ACRにコンテナイメージをプッシュする
 - name: remote
   module: docker/resource/remote-image
   arguments:
@@ -106,6 +135,7 @@ modules:
       user: ${{ acr.admin_username }}
       password: ${{ acr.admin_password }}
 ---
+# Azure Database For MySQLを作る
 name: azure-mysql
 parameters:
 - name: prefix
@@ -113,6 +143,7 @@ parameters:
 - name: resource_group
   schema: { type: object }
 modules:
+# Azure Database For MySQLを作る
 - name: mysql
   module: terraform/resource/azurerm_mysql_server
   arguments:
@@ -127,6 +158,7 @@ modules:
       administrator_login_password: ${{ $env.MYSQL_PASSWORD }}
       ssl_enforcement_enabled: false
       ssl_minimal_tls_version_enforced: TLSEnforcementDisabled
+# どのIPアドレスからもリクエストを許可する
 - name: mysql-firewall-role
   module: terraform/resource/azurerm_mysql_firewall_rule
   arguments:
@@ -138,6 +170,7 @@ modules:
       start_ip_address: 0.0.0.0
       end_ip_address: 255.255.255.255
 ---
+# MySQLのデータベースを作る
 name: mysql-database
 parameters:
 - name: database
@@ -145,8 +178,9 @@ parameters:
 - name: mysql
   schema: { type: object }
 modules:
+# MySQLのデータベースを作る
 - name: mysql-database
-  module: custom/resource/shell
+  module: custom/resource/shell # 任意のコマンドを叩けるcustomプラグイン
   arguments:
     image: mysql
     tag: 8.2.0
@@ -164,6 +198,7 @@ modules:
       -u ${{ mysql.administrator_login }}@${{ mysql.name }}
       -p${{ mysql.administrator_login_password }}
 ---
+# データベースマイグレーションを実施するモジュール
 name: mysql-migration
 parameters:
 - name: up_sql
@@ -197,6 +232,7 @@ modules:
       ${{ database }}
       < /work/${{ down_sql }}
 ---
+# App Serviceを作るモジュール
 name: app-service
 arguments:
 parameters:

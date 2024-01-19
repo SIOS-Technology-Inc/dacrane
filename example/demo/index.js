@@ -9,7 +9,7 @@ const connection = mysql.createConnection({
   database : process.env.MYSQL_DATABASE,
 })
 
-// respond with "hello world" when a GET request is made to the homepage
+// ヘルスチェックのAPI
 app.get('/status', (req, res) => {
   connection.query('SELECT 1 + 1', function (error, results, fields) {
     if (error) {
@@ -20,6 +20,7 @@ app.get('/status', (req, res) => {
   })
 })
 
+// ユーザを取得するAPI
 app.get('/users', (req, res) => {
   connection.query('SELECT * FROM users', function (error, results, fields) {
     if (error) {
