@@ -1,0 +1,253 @@
+name: demo
+parameters:
+- name: prefix
+  schema: { type: string }
+modules:
+- name: demo-rg
+  module: resource-group
+  arguments:
+    prefix: ${{ prefix }}
+- name: demo-acr
+  module: container-registry
+  arguments:
+    prefix: ${{ prefix }}
+    resource_group: ${{ demo-rg.rg }}
+- name: demo-image-v1
+  module: container-image
+  arguments:
+    tag: v1
+    acr: ${{ demo-acr.acr }}
+- name: demo-db
+  module: azure-mysql
+  arguments:
+    prefix: demo
+    resource_group: ${{ demo-rg.rg }}
+- name: demo-mysql-db
+  module: mysql-database
+  arguments:
+    database: demo
+    mysql: ${{ demo-db.mysql }}
+- name: demo-mysql-mig-v1
+  module: mysql-migration
+  depends_on: [ demo-mysql-db ]
+  arguments:
+    database: demo
+    mysql: ${{ demo-db.mysql }}
+    up_sql: schemas/v1-up.sql
+    down_sql: schemas/v1-down.sql
+- name: demo-as
+  module: app-service
+  depends_on: [ demo-mysql-mig-v1 ]
+  arguments:
+    prefix: ${{ prefix }}
+    resource_group: ${{ demo-rg.rg }}
+    acr: ${{ demo-acr.acr }}
+    mysql: ${{ demo-db.mysql }}
+    api: ${{ demo-image-v1.remote }}
+    database: demo
+---
+name: resource-group
+parameters:
+- name: prefix
+  schema: { type: string }
+modules:
+- name: rg
+  module: terraform/resource/azurerm_resource_group
+  arguments:
+    provider: &azurerm
+      features: {}
+      client_id: ${{ $env.ARM_CLIENT_ID }}
+      client_secret: ${{ $env.ARM_CLIENT_SECRET }}
+      tenant_id: ${{ $env.ARM_TENANT_ID }}
+      subscription_id: ${{ $env.ARM_SUBSCRIPTION_ID }}
+    resource:
+      name: ${{ prefix }}-sample-rg
+      location: "Japan East"
+---
+name: container-registry
+parameters:
+- name: prefix
+  schema: { type: string }
+- name: resource_group
+  schema: { type: object }
+modules:
+- name: acr
+  module: terraform/resource/azurerm_container_registry
+  arguments:
+    provider: *azurerm
+    resource:
+      name: ${{ prefix }}sampleacr
+      resource_group_name: ${{ resource_group.name }}
+      location: "Japan East"
+      sku: Basic
+      admin_enabled: true
+---
+name: container-image
+parameters:
+- name: tag
+  schema: { type: string }
+- name: acr
+  schema: { type: object }
+import:
+  - ../../module/docker-npm.yaml
+modules:
+- name: local
+  module: docker-npm
+  arguments:
+    image: sample-api
+    tag: ${{ tag }}
+- name: remote
+  module: docker/resource/remote-image
+  arguments:
+    image: ${{ local.build.image }}
+    tag: ${{ local.build.tag }}
+    remote:
+      url: ${{ acr.login_server }}
+      user: ${{ acr.admin_username }}
+      password: ${{ acr.admin_password }}
+---
+name: azure-mysql
+parameters:
+- name: prefix
+  schema: { type: string }
+- name: resource_group
+  schema: { type: object }
+modules:
+- name: mysql
+  module: terraform/resource/azurerm_mysql_server
+  arguments:
+    provider: *azurerm
+    resource:
+      name: ${{ prefix }}-sample-mysql
+      resource_group_name: ${{ resource_group.name }}
+      location: "Japan East"
+      sku_name: "B_Gen5_2"
+      version: "8.0"
+      administrator_login: mysqladminun
+      administrator_login_password: ${{ $env.MYSQL_PASSWORD }}
+      ssl_enforcement_enabled: false
+      ssl_minimal_tls_version_enforced: TLSEnforcementDisabled
+- name: mysql-firewall-role
+  module: terraform/resource/azurerm_mysql_firewall_rule
+  arguments:
+    provider: *azurerm
+    resource:
+      name: ${{ prefix }}-sample-mysql-firewall-allow-all-ip-address
+      resource_group_name: ${{ resource_group.name }}
+      server_name: ${{ mysql.name }}
+      start_ip_address: 0.0.0.0
+      end_ip_address: 255.255.255.255
+---
+name: mysql-database
+parameters:
+- name: database
+  schema: { type: string }
+- name: mysql
+  schema: { type: object }
+modules:
+- name: mysql-database
+  module: custom/resource/shell
+  arguments:
+    image: mysql
+    tag: 8.2.0
+    network: ${{ network }}
+    env: []
+    shell: /bin/bash
+    create:
+      echo 'CREATE DATABASE IF NOT EXISTS ${{ database }};' | mysql
+      -h ${{ mysql.fqdn }}
+      -u ${{ mysql.administrator_login }}@${{ mysql.name }}
+      -p${{ mysql.administrator_login_password }}
+    delete:
+      echo 'DROP DATABASE IF EXISTS ${{ database }};' | mysql
+      -h ${{ mysql.fqdn }}
+      -u ${{ mysql.administrator_login }}@${{ mysql.name }}
+      -p${{ mysql.administrator_login_password }}
+---
+name: mysql-migration
+parameters:
+- name: up_sql
+  schema: { type: string }
+- name: down_sql
+  schema: { type: string }
+- name: database
+  schema: { type: string }
+- name: mysql
+  schema: { type: object }
+modules:
+- name: migrate
+  module: custom/resource/shell
+  arguments:
+    image: mysql
+    tag: 8.2.0
+    env: []
+    shell: /bin/bash
+    create:
+      mysql
+      -h ${{ mysql.fqdn }}
+      -u ${{ mysql.administrator_login }}@${{ mysql.name }}
+      -p${{ mysql.administrator_login_password }}
+      ${{ database }}
+      < /work/${{ up_sql }}
+    delete:
+      mysql
+      -h ${{ mysql.fqdn }}
+      -u ${{ mysql.administrator_login }}@${{ mysql.name }}
+      -p${{ mysql.administrator_login_password }}
+      ${{ database }}
+      < /work/${{ down_sql }}
+---
+name: app-service
+arguments:
+parameters:
+- name: prefix
+  schema: { type: string }
+- name: resource_group
+  schema: { type: object }
+- name: acr
+  schema: { type: object }
+- name: mysql
+  schema: { type: object }
+- name: api
+  schema: { type: object }
+- name: database
+  schema: { type: string }
+modules:
+- name: asp
+  module: terraform/resource/azurerm_app_service_plan
+  arguments:
+    provider: &azurerm
+      features: {}
+      client_id: ${{ $env.ARM_CLIENT_ID }}
+      client_secret: ${{ $env.ARM_CLIENT_SECRET }}
+      tenant_id: ${{ $env.ARM_TENANT_ID }}
+      subscription_id: ${{ $env.ARM_SUBSCRIPTION_ID }}
+    resource:
+      name: ${{ prefix }}-sample-asp
+      resource_group_name: ${{ resource_group.name }}
+      location: "Japan East"
+      kind: "Linux"
+      reserved: true
+      sku:
+        tier: "Basic"
+        size: "B1"
+- name: as
+  module: terraform/resource/azurerm_app_service
+  arguments:
+    provider: *azurerm
+    resource:
+      name: ${{ prefix }}-sample-as
+      resource_group_name: ${{ resource_group.name }}
+      location: "Japan East"
+      app_service_plan_id: ${{ asp.id }}
+      site_config:
+        linux_fx_version: DOCKER|${{ acr.login_server }}/${{ api.image }}:${{ api.tag }}
+      app_settings:
+        DOCKER_REGISTRY_SERVER_URL: ${{ acr.login_server }}
+        DOCKER_REGISTRY_SERVER_USERNAME: ${{ acr.admin_username }}
+        DOCKER_REGISTRY_SERVER_PASSWORD: ${{ acr.admin_password }}
+        WEBSITES_PORT: "3000"
+        MYSQL_HOST: ${{ mysql.fqdn }}
+        MYSQL_DATABASE: ${{ database }}
+        MYSQL_USER: ${{ mysql.administrator_login }}@${{ mysql.name }}
+        MYSQL_PASSWORD: ${{ mysql.administrator_login_password }}
