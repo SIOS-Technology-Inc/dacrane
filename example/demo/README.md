@@ -26,6 +26,8 @@ $ dacrane apply demo demo \
 * index.js
 * schemas
 * dacrane.yaml
+* .dacrane
+* コマンドの説明
 
 ## 動作確認
 
