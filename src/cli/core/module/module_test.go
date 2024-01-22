@@ -9,27 +9,22 @@ import (
 func TestDependency(t *testing.T) {
 	codeStr := `
 name: foo
-parameter:
-  type: object
-  properties:
-    a: { type: number }
-    b: { type: string }
 modules:
 - name: foo
   depends_on:
     - bar
   module: resource/baz
-  argument:
+  arguments:
     a: ${{ baz }}
     b: abc
 - name: bar
   module: resource/qux
-  argument:
+  arguments:
     a: 123
     b: abc
 - name: baz
   module: resource/qux
-  argument:
+  arguments:
     a: 123
     b: abc
 `
