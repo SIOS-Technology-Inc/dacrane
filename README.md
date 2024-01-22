@@ -15,9 +15,9 @@ The code can be easily replicated for development, staging, production, etc.
 Dacrane is currently in the early stages of development.
 **Please support this project with your Github Star!**
 
-## Deployment as Code (DaC)
+## Delivery as Code (DaC)
 
-Deployment as Code (DaC) is a term coined to describe the use of declarative code to deploy from infrastructure to application.
+Delivery as Code (DaC) is a term coined to describe the use of declarative code to deploy from infrastructure to application.
 
 Traditionally, developers must deploy applications using different tools for each layer of infrastructure, OS, middleware, and application, with numerous configuration files, CLIs, and GUIs to maintain exact consistency.
 
