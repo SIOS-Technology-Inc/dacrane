@@ -1,6 +1,4 @@
 - [Architecture](#architecture)
-- [Data Design](#data-design)
-  - [Abstract/Concrete Deployment Code (ADC/CDC)](#abstractconcrete-deployment-code-adccdc)
 - [Specification](#specification)
   - [Deployment Code](#deployment-code)
     - [Module](#module)
@@ -10,7 +8,7 @@
       - [Modules section](#modules-section)
     - [Expression](#expression)
       - [Syntax](#syntax)
-      - [Fixture Variables](#fixture-variables)
+      - [Meta Variables](#meta-variables)
       - [Expansion](#expansion)
         - [String Expansion](#string-expansion)
         - [Object Expansion](#object-expansion)
@@ -57,22 +55,6 @@ A typical Dacrane environment build process proceeds as follows:
 7. resource plugins perform infrastructure and application deployment.
 8. Users will be able to make requests to the built application.
 
-# Data Design
-
-## Abstract/Concrete Deployment Code (ADC/CDC)
-
-To meet the requirement of an easily replicable environment, Dacrane uses two types of codes: abstract deployment code (ADC) and concrete deployment code (CDC).
-
-The ADC is a configuration definition that is separate from the infrastructure and application entities and contains information such as what infrastructure the application will be deployed to.
-On the other hand, a CDC is a configuration definition that corresponds to the actual infrastructure and application.
-
-The ADC is committed and managed in a code repository, while the CDC is managed on a separate file server (such as a local PC file system or AWS S3).
-This allows for separation of per-environment deployment settings from the repository, eliminating the need to maintain environment-related files such as local.yaml, stg.yaml, prd.yaml, etc.
-
-For example, ADC defines that the application will be deployed to App Services, but does not specifically specify Azure tenants or resource groups. These values are defined separately as environment variables.
-
-![adc-and-cdc](./images/adc-and-cdc.drawio.svg)
-
 # Specification
 
 ## Deployment Code
@@ -104,7 +86,7 @@ name:
 
 import:
 
-parameter:
+parameters:
 
 modules:
 ```
@@ -216,7 +198,7 @@ modules:
 - name: [string]
   depends_on: [list(string)]
   module: [string]
-  argument: [object]
+  arguments: [object]
 ```
 
 For example
@@ -227,12 +209,12 @@ modules:
   depends_on:
     - bar
   module: plugin1/resource/baz
-  argument:
+  arguments:
     a: 123
     b: abc
 - name: bar
   module: plugin2:v1.2.3/resource/qux
-  argument:
+  arguments:
     a: 123
     b: abc
 ```
@@ -337,19 +319,16 @@ REF
     | IDENTIFIER
 ```
 
-#### Fixture Variables
+#### Meta Variables
 
 | name | type | scope | description |
 | -- | -- | -- | -- |
-| parameter | object | modules section | |
-| self | object | module section | |
-| env | object | module section | |
-| modules | object | modules section | |
-| instances | object | command argument flag | |
+| `$self` | object | module section | |
+| `$env` | object | module section | |
 
 ```yaml
-${{ parameter.a }}
-${{ modules.foo }}
+${{ $self.custom_state_path }}
+${{ $env.TOKEN }}
 ```
 
 #### Expansion
@@ -380,9 +359,9 @@ if: '${{ 1 < 2 }}'
 if: true
 
 # object expand
-argument: '${{ { "a": 1, "b": 2 } }}'
+arguments: '${{ { "a": 1, "b": 2 } }}'
 # is the same as
-argument:
+arguments:
   a: 1
   b: 2
 ```
@@ -397,7 +376,7 @@ By using a meta key for flow control, the Meta keys can only be used in modules.
 Note that if `if` evaluates to `false`, the expression for that object is not evaluated.
 
 ```yaml
-argument:
+arguments:
   a: 1
   b:
     if: ${{ parameter.enable }}
@@ -405,14 +384,14 @@ argument:
     d: abc
 
 # is the same as (parameter.enable == true)
-argument:
+arguments:
   a: 1
   b:
     c: 123
     d: abc
 
 # is the same as (parameter.enable == false)
-argument:
+arguments:
   a: 1
 ```
 
@@ -422,7 +401,7 @@ argument:
 for key can only be used within an array of objects.
 
 ```yaml
-argument:
+arguments:
   nodes:
     - for: ["a", "b", "c"]
       name: node-${{ for.element }}
@@ -430,7 +409,7 @@ argument:
       version: v1.0.0
 
 # is the same as
-argument:
+arguments:
   nodes:
     - name: node-a
       zone: a
