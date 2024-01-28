@@ -1,0 +1,23 @@
+name: test
+parameters:
+- name: arg
+  schema: { type: string }
+modules:
+- name: print-arg
+  module: debug/resource/print
+  arguments:
+    arg: ${{ arg }}
+- name: dummy
+  module: debug/resource/dummy
+  arguments:
+    a: "dummy-resource"
+    b: 1
+- name: print-dummy
+  module: debug/resource/print
+  arguments:
+    resource: ${{ dummy }}
+- name: print-calculate
+  module: debug/resource/print
+  arguments:
+    expression: 1 + 2 * 3
+    result: ${{ 1 + 2 * 3 }}
