@@ -1,6 +1,29 @@
-# Dacrane: A deployment tool for cloud applications
+<div style="text-align: center;">
+  <p><img src="./doc/images/logo.svg" alt="Dacrane Icon"></p>
+  <p>Dacrane: A delivery tool for cloud applications</p>
+  <p>
+    <a href=https://opensource.org/licenses/Apache-2.0>
+      <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License">
+    </a>
+    <a href="https://github.com/SIOS-Technology-Inc/dacrane/actions/workflows/unit-test.yaml">
+      <img src="https://github.com/SIOS-Technology-Inc/dacrane/actions/workflows/unit-test.yaml/badge.svg?branch=main" alt="Unit Test">
+    </a>
+    <p>
+      <a href="https://discord.gg/8nTpyRrmkm">
+        <img src="https://dcbadge.vercel.app/api/server/8nTpyRrmkm" alt="Dacrane Discord">
+      </a>
+    </p>
+  </p>
+  <p>
+    <img src="https://img.shields.io/github/stars/SIOS-Technology-Inc/dacrane" alt="GitHub Stars">
+  </p>
+  <p>
+    Status: <b>Experimental Version</b> :test_tube:
+    (Public Beta coming soon)
+  </p>
+</div>
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Unit Test](https://github.com/SIOS-Technology-Inc/dacrane/actions/workflows/unit-test.yaml/badge.svg?branch=main)](https://github.com/SIOS-Technology-Inc/dacrane/actions/workflows/unit-test.yaml)
+---
 
 Dacrane is an open-source tool for integrating container infrastructure, build, release and deployment.
 
