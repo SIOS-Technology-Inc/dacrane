@@ -1,4 +1,4 @@
-<div style="text-align: center;">
+<div align="center">
   <p><img src="./doc/images/logo.svg" alt="Dacrane Icon"></p>
   <p>Dacrane: A delivery tool for cloud applications</p>
   <p>
