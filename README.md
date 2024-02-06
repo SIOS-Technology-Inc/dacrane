@@ -96,7 +96,7 @@ Install Dacrane.
 
 ```bash
 $ make install
-$ make install-plugins
+$ make install-plugin
 ```
 
 Make sure Dacrane CLI.
