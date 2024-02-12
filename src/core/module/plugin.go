@@ -2,13 +2,14 @@ package module
 
 import (
 	"bytes"
-	"dacrane/cli/core/repository"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
 )
 
 type Plugin struct {

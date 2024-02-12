@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"dacrane/cli/core/module"
-	"dacrane/cli/core/repository"
 	"fmt"
+
+	"github.com/SIOS-Technology-Inc/dacrane/v0/core/module"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
 
 	"github.com/spf13/cobra"
 )

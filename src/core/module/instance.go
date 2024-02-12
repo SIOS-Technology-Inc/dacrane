@@ -1,11 +1,12 @@
 package module
 
 import (
-	"dacrane/cli/core/repository"
-	"dacrane/cli/utils"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/utils"
 
 	"gopkg.in/yaml.v3"
 )

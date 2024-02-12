@@ -1,9 +1,0 @@
-go 1.21
-
-use ./src/cli
-use ./src/pdk
-use ./src/plugin/custom
-use ./src/plugin/debug
-use ./src/plugin/docker
-use ./src/plugin/local
-use ./src/plugin/terraform

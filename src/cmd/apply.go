@@ -1,13 +1,14 @@
 package cmd
 
 import (
-	"dacrane/cli/core/module"
-	"dacrane/cli/core/repository"
-	"dacrane/cli/utils"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/SIOS-Technology-Inc/dacrane/v0/core/module"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/utils"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
