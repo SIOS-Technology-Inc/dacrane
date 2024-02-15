@@ -27,15 +27,20 @@ type Plugin struct {
 
 func IsPluginPathString(module string) bool {
 	keys := strings.Split(module, "/")
-	return len(keys) == 3
+	return len(keys) == 3 || len(keys) == 4
 }
 
 func NewPlugin(module string) Plugin {
 	keys := strings.Split(module, "/")
-	if len(keys) != 3 {
+	var kind string
+	if len(keys) == 3 {
+		kind = keys[1]
+	} else if len(keys) == 4 {
+		kind = keys[2]
+	} else {
 		panic("module name should be {container_image}/{resource|data}/{name}")
 	}
-	kind := keys[1]
+
 	switch kind {
 	case "resource":
 		return NewResourcePlugin(module)
@@ -48,12 +53,18 @@ func NewPlugin(module string) Plugin {
 
 func NewResourcePlugin(module string) Plugin {
 	keys := strings.Split(module, "/")
-	if len(keys) != 3 {
+	var image, kind, name string
+	if len(keys) == 3 {
+		image = "dacrane/" + keys[0]
+		kind = keys[1]
+		name = keys[2]
+	} else if len(keys) == 4 {
+		image = keys[0] + "/" + keys[1]
+		kind = keys[2]
+		name = keys[3]
+	} else {
 		panic("module name should be {container_image}/{resource|data}/{name}")
 	}
-	image := keys[0]
-	kind := keys[1]
-	name := keys[2]
 
 	return Plugin{
 		Name: module,
