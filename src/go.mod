@@ -1,6 +1,6 @@
-module dacrane/cli
+module github.com/SIOS-Technology-Inc/dacrane/v0
 
-go 1.20
+go 1.21.0
 
 require (
 	github.com/spf13/cobra v1.7.0 // direct

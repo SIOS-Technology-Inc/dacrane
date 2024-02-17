@@ -2,9 +2,6 @@ package module
 
 import (
 	"bytes"
-	"dacrane/cli/core/evaluator"
-	"dacrane/cli/core/repository"
-	"dacrane/cli/utils"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +12,10 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/SIOS-Technology-Inc/dacrane/v0/core/evaluator"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/utils"
 
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
