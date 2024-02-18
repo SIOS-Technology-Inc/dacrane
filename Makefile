@@ -1,5 +1,5 @@
 install:
-	cd src && go build -o /usr/local/bin/dacrane main.go
+	go build -o /usr/local/bin/dacrane src/main.go
 uninstall:
 	rm /usr/local/bin/dacrane
 build-parser:

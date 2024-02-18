@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SIOS-Technology-Inc/dacrane/v0/core/evaluator"
-	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
-	"github.com/SIOS-Technology-Inc/dacrane/v0/utils"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/evaluator"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/repository"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/utils"
 
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
