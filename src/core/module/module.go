@@ -17,10 +17,10 @@ import (
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/repository"
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/utils"
 
+	"github.com/goccy/go-yaml"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
-	"gopkg.in/yaml.v3"
 )
 
 type Module struct {

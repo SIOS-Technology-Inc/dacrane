@@ -10,8 +10,8 @@ import (
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/repository"
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/utils"
 
+	"github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 // applyCmd represents the up command
