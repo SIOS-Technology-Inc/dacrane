@@ -29,7 +29,7 @@ func ToType(a any) Type {
 	switch a.(type) {
 	case nil:
 		return TNull
-	case int64:
+	case int:
 		return TInt
 	case float64:
 		return TFloat

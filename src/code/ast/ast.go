@@ -155,7 +155,7 @@ func (v SString) Eval(map[string]Expr) (any, error) {
 
 // Scaler Float represents floating point value
 type SInteger struct {
-	Value int64
+	Value int
 	Pos   Position
 }
 

@@ -66,7 +66,7 @@ Expr
 		}
 	}
 	| INTEGER {
-		v, err := strconv.ParseInt($1.Literal, 10, 64)
+		v, err := strconv.Atoi($1.Literal)
 		if err != nil {
 			panic(err)
 		}

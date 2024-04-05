@@ -574,7 +574,7 @@ yydefault:
 		yyDollar = yyS[yypt-1 : yypt+1]
 //line src/code/parser/parser.go.y:68
 		{
-			v, err := strconv.ParseInt(yyDollar[1].token.Literal, 10, 64)
+			v, err := strconv.Atoi(yyDollar[1].token.Literal)
 			if err != nil {
 				panic(err)
 			}
