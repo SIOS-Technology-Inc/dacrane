@@ -1,4 +1,4 @@
-package evaluator
+package parser
 
 import (
 	"fmt"
@@ -6,20 +6,22 @@ import (
 	"os"
 	"strings"
 
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/code/ast"
 	"github.com/macrat/simplexer"
 )
 
 type Lexer struct {
 	lexer     *simplexer.Lexer
 	lastToken *simplexer.Token
-	result    Expr
+	result    ast.Expr
 }
 
 func NewLexer(reader io.Reader) *Lexer {
 	l := simplexer.NewLexer(reader)
 
 	l.TokenTypes = []simplexer.TokenType{
-		simplexer.NewRegexpTokenType(NUMBER, `[0-9]+(\.[0-9]+)?`),
+		simplexer.NewRegexpTokenType(FLOAT, `[0-9]+(\.[0-9]+)`),
+		simplexer.NewRegexpTokenType(INTEGER, `[0-9]+`),
 		simplexer.NewRegexpTokenType(STRING, `"([^"]*)"`),
 		simplexer.NewRegexpTokenType(BOOLEAN, `true|false`),
 		simplexer.NewRegexpTokenType(NULL, `null`),
