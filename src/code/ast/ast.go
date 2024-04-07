@@ -5,6 +5,7 @@ import "fmt"
 type Expr interface {
 	Position() Position
 	Evaluate(vars map[string]Expr) (any, error)
+	CollectVariables() []string
 }
 
 // App represents a function application.
@@ -37,6 +38,14 @@ func (v App) Evaluate(vars map[string]Expr) (any, error) {
 	return f(vs)
 }
 
+func (v App) CollectVariables() []string {
+	refs := []string{}
+	for _, arg := range v.Args {
+		refs = append(refs, arg.CollectVariables()...)
+	}
+	return refs
+}
+
 // Variable represents a reference to another expression.
 type Variable struct {
 	Name string
@@ -53,6 +62,10 @@ func (v Variable) Evaluate(vars map[string]Expr) (any, error) {
 		return nil, NewEvaluateError(v.Pos, fmt.Sprintf("%s is not defined", v.Name))
 	}
 	return e.Evaluate(vars)
+}
+
+func (v Variable) CollectVariables() []string {
+	return []string{v.Name}
 }
 
 // Ref represents a reference to another expression.
@@ -91,6 +104,12 @@ func (r Ref) Evaluate(vars map[string]Expr) (any, error) {
 	}
 }
 
+func (r Ref) CollectVariables() []string {
+	dictRefs := r.Dict.CollectVariables()
+	keyRefs := r.Key.CollectVariables()
+	return append(dictRefs, keyRefs...)
+}
+
 // Seq represents a seq of expressions.
 type Seq struct {
 	Value []Expr
@@ -111,6 +130,14 @@ func (s Seq) Evaluate(vars map[string]Expr) (any, error) {
 		EvaluateSlice = append(EvaluateSlice, EvaluateValue)
 	}
 	return EvaluateSlice, nil
+}
+
+func (s Seq) CollectVariables() []string {
+	refs := []string{}
+	for _, v := range s.Value {
+		refs = append(refs, v.CollectVariables()...)
+	}
+	return refs
 }
 
 // Map represents a map of expression to expression.
@@ -139,6 +166,15 @@ func (m Map) Evaluate(vars map[string]Expr) (any, error) {
 	return EvaluateMap, nil
 }
 
+func (m Map) CollectVariables() []string {
+	refs := []string{}
+	for k, v := range m.Value {
+		refs = append(refs, k.CollectVariables()...)
+		refs = append(refs, v.CollectVariables()...)
+	}
+	return refs
+}
+
 // Scaler String represents string value
 type SString struct {
 	Value string
@@ -151,6 +187,10 @@ func (v SString) Position() Position {
 
 func (v SString) Evaluate(map[string]Expr) (any, error) {
 	return v.Value, nil
+}
+
+func (SString) CollectVariables() []string {
+	return []string{}
 }
 
 // Scaler Float represents floating point value
@@ -167,6 +207,10 @@ func (v SInteger) Evaluate(map[string]Expr) (any, error) {
 	return v.Value, nil
 }
 
+func (SInteger) CollectVariables() []string {
+	return []string{}
+}
+
 // Scaler Float represents floating point value
 type SFloat struct {
 	Value float64
@@ -179,6 +223,10 @@ func (v SFloat) Position() Position {
 
 func (v SFloat) Evaluate(map[string]Expr) (any, error) {
 	return v.Value, nil
+}
+
+func (SFloat) CollectVariables() []string {
+	return []string{}
 }
 
 // Scaler Boolean represents bool value
@@ -195,6 +243,10 @@ func (v SBool) Evaluate(map[string]Expr) (any, error) {
 	return v.Value, nil
 }
 
+func (SBool) CollectVariables() []string {
+	return []string{}
+}
+
 // Scaler Null represents null value
 type SNull struct {
 	Pos Position
@@ -206,4 +258,8 @@ func (v SNull) Position() Position {
 
 func (SNull) Evaluate(map[string]Expr) (any, error) {
 	return nil, nil
+}
+
+func (SNull) CollectVariables() []string {
+	return []string{}
 }
