@@ -4,7 +4,7 @@ import "fmt"
 
 type Expr interface {
 	Position() Position
-	Evaluate(vars map[string]Expr) (any, error)
+	Evaluate(vars map[string]any) (any, error)
 	CollectVariables() []string
 }
 
@@ -19,7 +19,7 @@ func (v App) Position() (pos Position) {
 	return v.Pos
 }
 
-func (v App) Evaluate(vars map[string]Expr) (any, error) {
+func (v App) Evaluate(vars map[string]any) (any, error) {
 	ts := []Type{}
 	vs := []any{}
 	for _, arg := range v.Args {
@@ -56,12 +56,12 @@ func (v Variable) Position() (pos Position) {
 	return v.Pos
 }
 
-func (v Variable) Evaluate(vars map[string]Expr) (any, error) {
+func (v Variable) Evaluate(vars map[string]any) (any, error) {
 	e, ok := vars[v.Name]
 	if !ok {
 		return nil, NewEvaluateError(v.Pos, fmt.Sprintf("%s is not defined", v.Name))
 	}
-	return e.Evaluate(vars)
+	return e, nil
 }
 
 func (v Variable) CollectVariables() []string {
@@ -79,7 +79,7 @@ func (r Ref) Position() (pos Position) {
 	return r.Pos
 }
 
-func (r Ref) Evaluate(vars map[string]Expr) (any, error) {
+func (r Ref) Evaluate(vars map[string]any) (any, error) {
 	dict, err := r.Dict.Evaluate(vars)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (s Seq) Position() (pos Position) {
 	return s.Pos
 }
 
-func (s Seq) Evaluate(vars map[string]Expr) (any, error) {
+func (s Seq) Evaluate(vars map[string]any) (any, error) {
 	EvaluateSlice := []any{}
 	for _, v := range s.Value {
 		EvaluateValue, err := v.Evaluate(vars)
@@ -150,7 +150,7 @@ func (m Map) Position() Position {
 	return m.Pos
 }
 
-func (m Map) Evaluate(vars map[string]Expr) (any, error) {
+func (m Map) Evaluate(vars map[string]any) (any, error) {
 	EvaluateMap := map[any]any{}
 	for k, v := range m.Value {
 		EvaluateKey, err := k.Evaluate(vars)
@@ -185,7 +185,7 @@ func (v SString) Position() Position {
 	return v.Pos
 }
 
-func (v SString) Evaluate(map[string]Expr) (any, error) {
+func (v SString) Evaluate(map[string]any) (any, error) {
 	return v.Value, nil
 }
 
@@ -203,7 +203,7 @@ func (v SInteger) Position() Position {
 	return v.Pos
 }
 
-func (v SInteger) Evaluate(map[string]Expr) (any, error) {
+func (v SInteger) Evaluate(map[string]any) (any, error) {
 	return v.Value, nil
 }
 
@@ -221,7 +221,7 @@ func (v SFloat) Position() Position {
 	return v.Pos
 }
 
-func (v SFloat) Evaluate(map[string]Expr) (any, error) {
+func (v SFloat) Evaluate(map[string]any) (any, error) {
 	return v.Value, nil
 }
 
@@ -239,7 +239,7 @@ func (v SBool) Position() Position {
 	return v.Pos
 }
 
-func (v SBool) Evaluate(map[string]Expr) (any, error) {
+func (v SBool) Evaluate(map[string]any) (any, error) {
 	return v.Value, nil
 }
 
@@ -256,7 +256,7 @@ func (v SNull) Position() Position {
 	return v.Pos
 }
 
-func (SNull) Evaluate(map[string]Expr) (any, error) {
+func (SNull) Evaluate(map[string]any) (any, error) {
 	return nil, nil
 }
 
