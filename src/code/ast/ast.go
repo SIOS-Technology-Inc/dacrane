@@ -4,7 +4,7 @@ import "fmt"
 
 type Expr interface {
 	Position() Position
-	Eval(vars map[string]Expr) (any, error)
+	Evaluate(vars map[string]Expr) (any, error)
 }
 
 // App represents a function application.
@@ -18,11 +18,11 @@ func (v App) Position() (pos Position) {
 	return v.Pos
 }
 
-func (v App) Eval(vars map[string]Expr) (any, error) {
+func (v App) Evaluate(vars map[string]Expr) (any, error) {
 	ts := []Type{}
 	vs := []any{}
 	for _, arg := range v.Args {
-		v, err := arg.Eval(vars)
+		v, err := arg.Evaluate(vars)
 		if err != nil {
 			return nil, err
 		}
@@ -32,7 +32,7 @@ func (v App) Eval(vars map[string]Expr) (any, error) {
 	sign := Signature(v.Func, ts...)
 	f, ok := FixtureFunctions[sign]
 	if !ok {
-		return nil, NewEvalError(v.Pos, fmt.Sprintf("%s is not defined", sign))
+		return nil, NewEvaluateError(v.Pos, fmt.Sprintf("%s is not defined", sign))
 	}
 	return f(vs)
 }
@@ -47,12 +47,12 @@ func (v Variable) Position() (pos Position) {
 	return v.Pos
 }
 
-func (v Variable) Eval(vars map[string]Expr) (any, error) {
+func (v Variable) Evaluate(vars map[string]Expr) (any, error) {
 	e, ok := vars[v.Name]
 	if !ok {
-		return nil, NewEvalError(v.Pos, fmt.Sprintf("%s is not defined", v.Name))
+		return nil, NewEvaluateError(v.Pos, fmt.Sprintf("%s is not defined", v.Name))
 	}
-	return e.Eval(vars)
+	return e.Evaluate(vars)
 }
 
 // Ref represents a reference to another expression.
@@ -66,12 +66,12 @@ func (r Ref) Position() (pos Position) {
 	return r.Pos
 }
 
-func (r Ref) Eval(vars map[string]Expr) (any, error) {
-	dict, err := r.Dict.Eval(vars)
+func (r Ref) Evaluate(vars map[string]Expr) (any, error) {
+	dict, err := r.Dict.Evaluate(vars)
 	if err != nil {
 		return nil, err
 	}
-	key, err := r.Key.Eval(vars)
+	key, err := r.Key.Evaluate(vars)
 	if err != nil {
 		return nil, err
 	}
@@ -82,12 +82,12 @@ func (r Ref) Eval(vars map[string]Expr) (any, error) {
 		case int:
 			return dict[key], nil
 		default:
-			return nil, NewEvalError(r.Pos, "the index of the sequence must be an integer")
+			return nil, NewEvaluateError(r.Pos, "the index of the sequence must be an integer")
 		}
 	case map[any]any:
 		return dict[key], nil
 	default:
-		return nil, NewEvalError(r.Pos, "it is neither sequence nor mapping")
+		return nil, NewEvaluateError(r.Pos, "it is neither sequence nor mapping")
 	}
 }
 
@@ -101,16 +101,16 @@ func (s Seq) Position() (pos Position) {
 	return s.Pos
 }
 
-func (s Seq) Eval(vars map[string]Expr) (any, error) {
-	evalSlice := []any{}
+func (s Seq) Evaluate(vars map[string]Expr) (any, error) {
+	EvaluateSlice := []any{}
 	for _, v := range s.Value {
-		evalValue, err := v.Eval(vars)
+		EvaluateValue, err := v.Evaluate(vars)
 		if err != nil {
 			return nil, err
 		}
-		evalSlice = append(evalSlice, evalValue)
+		EvaluateSlice = append(EvaluateSlice, EvaluateValue)
 	}
-	return evalSlice, nil
+	return EvaluateSlice, nil
 }
 
 // Map represents a map of expression to expression.
@@ -123,20 +123,20 @@ func (m Map) Position() Position {
 	return m.Pos
 }
 
-func (m Map) Eval(vars map[string]Expr) (any, error) {
-	evalMap := map[any]any{}
+func (m Map) Evaluate(vars map[string]Expr) (any, error) {
+	EvaluateMap := map[any]any{}
 	for k, v := range m.Value {
-		evalKey, err := k.Eval(vars)
+		EvaluateKey, err := k.Evaluate(vars)
 		if err != nil {
 			return nil, err
 		}
-		evalValue, err := v.Eval(vars)
+		EvaluateValue, err := v.Evaluate(vars)
 		if err != nil {
 			return nil, err
 		}
-		evalMap[evalKey] = evalValue
+		EvaluateMap[EvaluateKey] = EvaluateValue
 	}
-	return evalMap, nil
+	return EvaluateMap, nil
 }
 
 // Scaler String represents string value
@@ -149,7 +149,7 @@ func (v SString) Position() Position {
 	return v.Pos
 }
 
-func (v SString) Eval(map[string]Expr) (any, error) {
+func (v SString) Evaluate(map[string]Expr) (any, error) {
 	return v.Value, nil
 }
 
@@ -163,7 +163,7 @@ func (v SInteger) Position() Position {
 	return v.Pos
 }
 
-func (v SInteger) Eval(map[string]Expr) (any, error) {
+func (v SInteger) Evaluate(map[string]Expr) (any, error) {
 	return v.Value, nil
 }
 
@@ -177,7 +177,7 @@ func (v SFloat) Position() Position {
 	return v.Pos
 }
 
-func (v SFloat) Eval(map[string]Expr) (any, error) {
+func (v SFloat) Evaluate(map[string]Expr) (any, error) {
 	return v.Value, nil
 }
 
@@ -191,7 +191,7 @@ func (v SBool) Position() Position {
 	return v.Pos
 }
 
-func (v SBool) Eval(map[string]Expr) (any, error) {
+func (v SBool) Evaluate(map[string]Expr) (any, error) {
 	return v.Value, nil
 }
 
@@ -204,6 +204,6 @@ func (v SNull) Position() Position {
 	return v.Pos
 }
 
-func (SNull) Eval(map[string]Expr) (any, error) {
+func (SNull) Evaluate(map[string]Expr) (any, error) {
 	return nil, nil
 }
