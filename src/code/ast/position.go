@@ -44,7 +44,7 @@ func (p1 Position) Add(p2 Position) Position {
 }
 
 func (p Position) String() string {
-	return fmt.Sprintf("[line:%d, column:%d]", p.Line, p.Column)
+	return fmt.Sprintf("%d:%d", p.Line, p.Column)
 }
 
 func PosFrom(sp *simplexer.Position) Position {
