@@ -32,7 +32,7 @@ func (v App) Eval(vars map[string]Expr) (any, error) {
 	sign := Signature(v.Func, ts...)
 	f, ok := FixtureFunctions[sign]
 	if !ok {
-		return nil, fmt.Errorf("%s is not defined", sign)
+		return nil, NewEvalError(v.Pos, fmt.Sprintf("%s is not defined", sign))
 	}
 	return f(vs)
 }
@@ -50,7 +50,7 @@ func (v Variable) Position() (pos Position) {
 func (v Variable) Eval(vars map[string]Expr) (any, error) {
 	e, ok := vars[v.Name]
 	if !ok {
-		return nil, fmt.Errorf("%s is not defined", v.Name)
+		return nil, NewEvalError(v.Pos, fmt.Sprintf("%s is not defined", v.Name))
 	}
 	return e.Eval(vars)
 }
@@ -82,12 +82,12 @@ func (r Ref) Eval(vars map[string]Expr) (any, error) {
 		case int:
 			return dict[key], nil
 		default:
-			return nil, fmt.Errorf("the index of the sequence must be an integer")
+			return nil, NewEvalError(r.Pos, "the index of the sequence must be an integer")
 		}
 	case map[any]any:
 		return dict[key], nil
 	default:
-		return nil, fmt.Errorf("it is neither sequence nor mapping")
+		return nil, NewEvalError(r.Pos, "it is neither sequence nor mapping")
 	}
 }
 
