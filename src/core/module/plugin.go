@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/repository"
 )
 
 type Plugin struct {

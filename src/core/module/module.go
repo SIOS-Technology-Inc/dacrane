@@ -13,14 +13,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SIOS-Technology-Inc/dacrane/v0/core/evaluator"
-	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
-	"github.com/SIOS-Technology-Inc/dacrane/v0/utils"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/code/parser"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/repository"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/utils"
 
+	"github.com/goccy/go-yaml"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
-	"gopkg.in/yaml.v3"
 )
 
 type Module struct {
@@ -88,23 +88,22 @@ func (module Module) Apply(
 		childAbsAddr := instanceAddress + "." + moduleCall.Name
 
 		fmt.Printf("[%s (%s)] Evaluating...\n", instanceAddress, moduleCall.Module)
-		data := instance.ToState(*instances).(map[string]any)
+		vars := instance.ToState(*instances).(map[string]any)
 		customStatePath := filepath.Join(".dacrane/custom_state", childAbsAddr)
-		data["$self"] = map[string]any{
+		vars["$self"] = map[any]any{
 			"name":              moduleCall.Name,
 			"module":            moduleCall.Module,
 			"address":           childAbsAddr,
 			"custom_state_path": customStatePath,
 		}
-		data["$env"] = utils.GetEnvMap()
-		if moduleCall.HasReferences("^\\$self.custom_state_path$") {
-			err := os.MkdirAll(customStatePath, 0755)
-			if err != nil {
-				panic(err)
-			}
+		vars["$env"] = utils.GetEnvMap()
+
+		err := os.MkdirAll(customStatePath, 0755)
+		if err != nil {
+			panic(err)
 		}
 
-		evaluatedModuleCall := moduleCall.Evaluate(data)
+		evaluatedModuleCall := moduleCall.Evaluate(vars)
 		fmt.Printf("[%s (%s)] Evaluated.\n", instanceAddress, moduleCall.Module)
 		if evaluatedModuleCall == nil {
 			fmt.Printf("[%s (%s)] Skipped.\n", instanceAddress, moduleCall.Module)
@@ -234,7 +233,7 @@ func (mc ModuleCall) ExplicitDependency() []string {
 
 func (mc ModuleCall) ImplicitDependency(modules []string) []string {
 	paths := []string{}
-	for _, path := range references(mc.Arguments, ".+") {
+	for _, path := range references(mc.Arguments) {
 		keys := strings.Split(path, ".")
 
 		if slices.Contains(modules, keys[0]) {
@@ -244,21 +243,17 @@ func (mc ModuleCall) ImplicitDependency(modules []string) []string {
 	return paths
 }
 
-func (mc ModuleCall) Evaluate(data map[string]any) *ModuleCall {
+func (mc ModuleCall) Evaluate(vars map[string]any) *ModuleCall {
 
 	mapMc := mc.toMap()
 
-	evaluated := Evaluate(mapMc, data)
+	evaluated := Evaluate(mapMc, vars)
 
 	if evaluated == nil {
 		return nil
 	}
 
 	return toModuleCall(evaluated.(map[string]any))
-}
-
-func (mc ModuleCall) HasReferences(pattern string) bool {
-	return len(references(mc.Arguments, pattern)) > 0
 }
 
 func (mc ModuleCall) toMap() map[string]any {
@@ -290,7 +285,7 @@ func toModuleCall(mc map[string]any) *ModuleCall {
 	}
 }
 
-func Evaluate(prop any, data map[string]any) any {
+func Evaluate(prop any, vars map[string]any) any {
 	switch prop := prop.(type) {
 	case string:
 		single := isSingleExprString(prop)
@@ -300,25 +295,29 @@ func Evaluate(prop any, data map[string]any) any {
 				panic(e)
 			}
 			exprStr := r.FindStringSubmatch(prop)[1]
-			expr := evaluator.Parse(exprStr)
-			return evaluator.Evaluate(expr, data)
+			expr := parser.Parse(exprStr)
+			v, err := expr.Evaluate(vars)
+			if err != nil {
+				panic(err)
+			}
+			return v
 		} else {
-			return expandExpr(prop, data)
+			return expandExpr(prop, vars)
 		}
 	case map[string]any:
-		prop, exists := evalIfProp(prop, data)
+		prop, exists := evalIfProp(prop, vars)
 		if !exists {
 			return nil
 		}
 		output := map[string]any{}
 		for k, v := range prop {
-			output[k] = Evaluate(v, data)
+			output[k] = Evaluate(v, vars)
 		}
 		return output
 	case []any:
 		output := []any{}
 		for _, v := range prop {
-			output = append(output, Evaluate(v, data))
+			output = append(output, Evaluate(v, vars))
 		}
 		return output
 	default:
@@ -326,22 +325,25 @@ func Evaluate(prop any, data map[string]any) any {
 	}
 }
 
-func expandExpr(prop string, data map[string]any) string {
+func expandExpr(prop string, vars map[string]any) string {
 	r, e := regexp.Compile(`\$\{\{(.*?)\}\}`)
 	if e != nil {
 		panic(e)
 	}
 	return r.ReplaceAllStringFunc(prop, func(s string) string {
 		exprStr := r.FindStringSubmatch(s)
-		expr := evaluator.Parse(exprStr[1])
-		v := evaluator.Evaluate(expr, data)
+		expr := parser.Parse(exprStr[1])
+		v, err := expr.Evaluate(vars)
+		if err != nil {
+			panic(err)
+		}
 		return convertToString(v)
 	})
 }
 
-func evalIfProp(prop map[string]any, data map[string]any) (map[string]any, bool) {
+func evalIfProp(prop map[string]any, vars map[string]any) (map[string]any, bool) {
 	if condition, ok := prop["if"]; ok {
-		if !Evaluate(condition, data).(bool) {
+		if !Evaluate(condition, vars).(bool) {
 			return nil, false
 		}
 	}
@@ -376,18 +378,18 @@ func convertToString(value interface{}) string {
 	}
 }
 
-func references(raw any, pattern string) []string {
+func references(raw any) []string {
 	switch raw := raw.(type) {
 	case map[string]any:
 		var paths []string
 		for _, v := range raw {
-			paths = append(paths, references(v, pattern)...)
+			paths = append(paths, references(v)...)
 		}
 		return paths
 	case []any:
 		var paths []string
 		for _, v := range raw {
-			paths = append(paths, references(v, pattern)...)
+			paths = append(paths, references(v)...)
 		}
 		return paths
 	case string:
@@ -398,8 +400,8 @@ func references(raw any, pattern string) []string {
 		res := r.FindAllStringSubmatch(raw, -1)
 		var paths []string
 		for _, exprStr := range res {
-			expr := evaluator.Parse(exprStr[1])
-			paths = append(paths, evaluator.CollectReferences(expr, pattern)...)
+			expr := parser.Parse(exprStr[1])
+			paths = append(paths, expr.CollectVariables()...)
 		}
 		return paths
 	default:

@@ -1,6 +1,6 @@
 install:
-	cd src && go build -o /usr/local/bin/dacrane main.go
+	go build -o /usr/local/bin/dacrane src/main.go
 uninstall:
 	rm /usr/local/bin/dacrane
 build-parser:
-	goyacc -o src/core/evaluator/parser.go src/core/evaluator/parser.go.y
+	goyacc -o src/code/parser/parser.go src/code/parser/parser.go.y

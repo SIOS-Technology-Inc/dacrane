@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
-	"github.com/SIOS-Technology-Inc/dacrane/v0/utils"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/repository"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/utils"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 type Instance interface {

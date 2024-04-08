@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/SIOS-Technology-Inc/dacrane/v0/core/module"
-	"github.com/SIOS-Technology-Inc/dacrane/v0/core/repository"
-	"github.com/SIOS-Technology-Inc/dacrane/v0/utils"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/module"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/core/repository"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/utils"
 
+	"github.com/goccy/go-yaml"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 )
 
 // applyCmd represents the up command
