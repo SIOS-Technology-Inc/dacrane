@@ -1,0 +1,155 @@
+name: quick-start
+modules:
+- name: image
+  module: api-image
+  arguments:
+    tag: latest
+- name: container
+  module: local-docker
+  arguments:
+    image: ${{ image.api-local-image.build.image }}
+    tag: ${{ image.api-local-image.build.tag }}
+- name: migrate
+  module: db-migration
+  arguments:
+    version: v1
+    network: ${{ container.net.name }}
+    mysql:
+      username: root
+      password: my-secret-pw
+      database: api
+      host: ${{ container.db.name }}
+---
+name: local-docker
+parameters:
+- name: image
+  schema: { type: string, default: sample-api }
+- name: tag
+  schema: { type: string, default: latest }
+modules:
+- module: docker/resource/network
+  name: net
+  arguments:
+    name: api-net
+- module: docker/resource/container
+  name: db
+  arguments:
+    name: db
+    image: mysql
+    tag: 8.2.0
+    network: ${{ net.name }}
+    env:
+      - name: MYSQL_ROOT_PASSWORD
+        value: &password my-secret-pw
+      - name: MYSQL_DATABASE
+        value: &database api
+    healthcheck:
+      cmd: "mysqladmin ping -u root -p$MYSQL_ROOT_PASSWORD"
+      interval: 30s
+      timeout: 5s
+      retries: "6"
+      start_period: 30s
+- module: docker/resource/container
+  name: api
+  arguments:
+    name: api
+    image: ${{ image }}
+    network: ${{ net.name }}
+    tag: ${{ tag }}
+    port: 3000:3000
+    env:
+      - name: PORT
+        value: "3000"
+      - name: MYSQL_HOST
+        value: ${{ db.name }}
+      - name: MYSQL_USER
+        value: root
+      - name: MYSQL_PASSWORD
+        value: *password
+      - name: MYSQL_DATABASE
+        value: *database
+---
+name: db-migration
+parameters:
+- name: version
+  schema: { type: string }
+- name: network
+  schema: { type: ["string", "null"] }
+- name: mysql
+  schema:
+    type: object
+    required: ["username", "password", "host"]
+    properties:
+      username: { type: string }
+      password: { type: string }
+      database: { type: string }
+      host: { type: string }
+modules:
+- name: migrate
+  module: custom/resource/shell
+  arguments:
+    image: mysql
+    tag: 8.2.0
+    network: ${{ network }}
+    env: []
+    shell: /bin/bash
+    create:
+      mysql
+      -h ${{ mysql.host }}
+      -u ${{ mysql.username }}
+      -p${{ mysql.password }}
+      ${{ mysql.database }}
+      < /work/schemas/${{ version }}-up.sql
+    delete:
+      mysql
+      -h ${{ mysql.host }}
+      -u ${{ mysql.username }}
+      -p${{ mysql.password }}
+      ${{ mysql.database }}
+      < /work/schemas/${{ version }}-down.sql
+---
+name: mysql-database
+parameters:
+- name: database
+  schema: { type: string }
+- name: mysql
+  schema:
+    type: object
+    required: ["username", "password", "host"]
+    properties:
+      username: { type: string }
+      password: { type: string }
+      host: { type: string }
+modules:
+- name: mysql-database
+  module: custom/resource/shell
+  arguments:
+    image: mysql
+    tag: 8.2.0
+    network: ${{ network }}
+    env: []
+    shell: /bin/bash
+    create:
+      echo 'CREATE DATABASE IF NOT EXISTS ${{ database }};' | mysql
+      -h ${{ mysql.host }}
+      -u ${{ mysql.username }}
+      -p${{ mysql.password }}
+    delete:
+      echo 'DROP DATABASE IF EXISTS ${{ database }};' | mysql
+      -h ${{ mysql.host }}
+      -u ${{ mysql.username }}
+      -p${{ mysql.password }}
+---
+name: api-image
+parameters:
+- name: tag
+  schema: { type: string, default: "latest" }
+import:
+  - ../../module/docker-npm.yaml
+  # - import: https://raw.githubusercontent.com/SIOS-Technology-Inc/dacrane/main/module/docker-npm.yaml
+modules:
+- name: api-local-image
+  module: docker-npm
+  arguments:
+    image: sample-api
+    tag: ${{ tag }}
