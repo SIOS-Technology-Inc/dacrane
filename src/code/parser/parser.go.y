@@ -6,7 +6,7 @@ import "strconv"
 import "strings"
 import "github.com/SIOS-Technology-Inc/dacrane/v0/src/code/ast"
 
-func Parse(exprStr string) ast.Expr {
+func Parse(exprStr string) ast.Module {
 	lexer := NewLexer(strings.NewReader(exprStr))
 	yyParse(lexer)
 	return lexer.result
@@ -14,10 +14,15 @@ func Parse(exprStr string) ast.Expr {
 %}
 
 %union{
-	token    *simplexer.Token
-	expr     ast.Expr
-	exprs    []ast.Expr
-	kvMap    map[ast.Expr]ast.Expr
+	token   *simplexer.Token
+	Module  ast.Module
+	Expr    ast.Expr
+	Exprs   []ast.Expr
+	Params  []ast.Param
+	KvMap   map[ast.Expr]ast.Expr
+	String  string
+	Strings []string
+	Assigns []ast.Assign
 }
 
 %right IF THEN ELSE
@@ -41,18 +46,58 @@ func Parse(exprStr string) ast.Expr {
 %token <token> AND OR NOT EQ NEQ LT LTE GT GTE PRIORITY
 %token <token> ADD SUB MUL DIV
 %token <token> LBRACKET RBRACKET LSBRACKET RSBRACKET LCBRACKET RCBRACKET
-%token <token> IF THEN ELSE
+%token <token> FUNC DATA TYPE MODULE IMPORT EXPORT
+%token <token> ASSIGN
 
-%type <expr> Root Expr Ref App Seq Map Variable
-%type <exprs> Params Items
-%type <kvMap> KVs
+%type <Module> Root Module
+%type <Expr> Expr Ref App Seq Map Variable
+%type <Exprs> Args Items
+%type <Params> Params
+%type <KvMap> KVs
+%type <String> ModuleDeclare
+%type <Strings> Identifiers ImportSection ExportSection
+%type <Assigns> Assigns
 
 %%
 
-Root: Expr {
+Root: Module {
 	yylex.(*Lexer).result = $1
 	$$ = $1
 }
+
+Module: ModuleDeclare ImportSection ExportSection Assigns {
+	$$ = ast.Module{
+		Name: $1,
+		Imports: $2,
+		Exports: $3,
+		Assigns: $4,
+  }
+}
+
+ModuleDeclare: MODULE IDENTIFIER { $$ = $2.Literal }
+
+ImportSection
+  : IMPORT Identifiers { $$ = $2 }
+	| { $$ = []string{} }
+
+ExportSection
+  : EXPORT Identifiers { $$ = $2 }
+	| { $$ = []string{} }
+
+Identifiers
+  : IDENTIFIER Identifiers { $$ = append([]string{$1.Literal}, $2...) }
+	| { $$ = []string{} }
+
+Assigns
+  : IDENTIFIER ASSIGN Expr Assigns {
+			$$ = append([]ast.Assign{{
+				Name: $1.Literal,
+				Expr: $3,
+				Pos: ast.PosFrom(&$1.Position),
+			}},
+			$4...)
+		}
+  | { $$ = []ast.Assign{} }
 
 Expr
 	: FLOAT {
@@ -101,7 +146,6 @@ Expr
 	| Ref                         { $$ = $1 }
 	| Expr EQ Expr                { $$ = &ast.App{Func: $2.Literal, Args: []ast.Expr{$1, $3}, Pos: $1.Position()} }
 	| Expr NEQ Expr               { $$ = &ast.App{Func: $2.Literal, Args: []ast.Expr{$1, $3}, Pos: $1.Position()} }
-	| Expr PRIORITY Expr          { $$ = &ast.App{Func: $2.Literal, Args: []ast.Expr{$1, $3}, Pos: $1.Position()} }
 	| Expr LT Expr                { $$ = &ast.App{Func: $2.Literal, Args: []ast.Expr{$1, $3}, Pos: $1.Position()} }
 	| Expr LTE Expr               { $$ = &ast.App{Func: $2.Literal, Args: []ast.Expr{$1, $3}, Pos: $1.Position()} }
 	| Expr GT Expr                { $$ = &ast.App{Func: $2.Literal, Args: []ast.Expr{$1, $3}, Pos: $1.Position()} }
@@ -114,6 +158,9 @@ Expr
 	| Expr OR Expr                { $$ = &ast.App{Func: $2.Literal, Args: []ast.Expr{$1, $3}, Pos: $1.Position()} }
 	| NOT Expr                    { $$ = &ast.App{Func: $1.Literal, Args: []ast.Expr{$2}, Pos: ast.PosFrom(&$1.Position)} }
 	| SUB Expr %prec UMINUS       { $$ = &ast.App{Func: $1.Literal, Args: []ast.Expr{$2}, Pos: ast.PosFrom(&$1.Position)} }
+	| FUNC LBRACKET Params RBRACKET LCBRACKET Expr RCBRACKET {
+		$$ = &ast.Func{Params: $3 , Body: $6, Pos: ast.PosFrom(&$1.Position) }
+	}
 	;
 
 Ref
@@ -122,11 +169,16 @@ Ref
 
 Variable: IDENTIFIER { $$ = &ast.Variable{Name: $1.Literal, Pos: ast.PosFrom(&$1.Position)} }
 
-App: IDENTIFIER LBRACKET Params RBRACKET { $$ = &ast.App{Func: $1.Literal, Args: $3, Pos: ast.PosFrom(&$1.Position)} }
 Params
 	: Params COMMA Params { $$ = append($1, $3...) }
-	| Expr                { $$ = []ast.Expr{$1} }
-	|                     { $$ = []ast.Expr{} }
+	| IDENTIFIER          { $$ = []ast.Param{ { Name: $1.Literal , Pos: ast.PosFrom(&$1.Position) } } }
+	|                     { $$ = []ast.Param{} }
+
+App: IDENTIFIER LBRACKET Args RBRACKET { $$ = &ast.App{Func: $1.Literal, Args: $3, Pos: ast.PosFrom(&$1.Position)} }
+Args
+	: Args COMMA Args { $$ = append($1, $3...) }
+	| Expr            { $$ = []ast.Expr{$1} }
+	|                 { $$ = []ast.Expr{} }
 
 Seq: LSBRACKET Items RSBRACKET { $$ = &ast.Seq{Value: $2, Pos: ast.PosFrom(&$1.Position)} }
 Items

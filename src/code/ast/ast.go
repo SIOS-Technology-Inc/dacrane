@@ -4,8 +4,44 @@ import "fmt"
 
 type Expr interface {
 	Position() Position
-	Evaluate(vars map[string]any) (any, error)
+	Simplify(vars map[string]any) (any, error)
 	CollectVariables() []string
+}
+
+type Module struct {
+	Name    string
+	Imports []string
+	Exports []string
+	Assigns []Assign
+}
+
+type Assign struct {
+	Name string
+	Expr Expr
+	Pos  Position
+}
+
+type Func struct {
+	Params []Param
+	Body   Expr
+	Pos    Position
+}
+
+func (v Func) Position() (pos Position) {
+	return v.Pos
+}
+
+func (v Func) Simplify(vars map[string]any) (any, error) {
+	return func() {}, nil
+}
+
+func (v Func) CollectVariables() []string {
+	return []string{}
+}
+
+type Param struct {
+	Name string
+	Pos  Position
 }
 
 // App represents a function application.
@@ -19,11 +55,11 @@ func (v App) Position() (pos Position) {
 	return v.Pos
 }
 
-func (v App) Evaluate(vars map[string]any) (any, error) {
+func (v App) Simplify(vars map[string]any) (any, error) {
 	ts := []Type{}
 	vs := []any{}
 	for _, arg := range v.Args {
-		v, err := arg.Evaluate(vars)
+		v, err := arg.Simplify(vars)
 		if err != nil {
 			return nil, err
 		}
@@ -33,7 +69,7 @@ func (v App) Evaluate(vars map[string]any) (any, error) {
 	sign := Signature(v.Func, ts...)
 	f, ok := FixtureFunctions[sign]
 	if !ok {
-		return nil, NewEvaluateError(v.Pos, fmt.Sprintf("%s is not defined", sign))
+		return nil, NewSimplifyError(v.Pos, fmt.Sprintf("%s is not defined", sign))
 	}
 	return f(vs)
 }
@@ -56,10 +92,10 @@ func (v Variable) Position() (pos Position) {
 	return v.Pos
 }
 
-func (v Variable) Evaluate(vars map[string]any) (any, error) {
+func (v Variable) Simplify(vars map[string]any) (any, error) {
 	e, ok := vars[v.Name]
 	if !ok {
-		return nil, NewEvaluateError(v.Pos, fmt.Sprintf("%s is not defined", v.Name))
+		return nil, NewSimplifyError(v.Pos, fmt.Sprintf("%s is not defined", v.Name))
 	}
 	return e, nil
 }
@@ -79,12 +115,12 @@ func (r Ref) Position() (pos Position) {
 	return r.Pos
 }
 
-func (r Ref) Evaluate(vars map[string]any) (any, error) {
-	dict, err := r.Dict.Evaluate(vars)
+func (r Ref) Simplify(vars map[string]any) (any, error) {
+	dict, err := r.Dict.Simplify(vars)
 	if err != nil {
 		return nil, err
 	}
-	key, err := r.Key.Evaluate(vars)
+	key, err := r.Key.Simplify(vars)
 	if err != nil {
 		return nil, err
 	}
@@ -95,12 +131,12 @@ func (r Ref) Evaluate(vars map[string]any) (any, error) {
 		case int:
 			return dict[key], nil
 		default:
-			return nil, NewEvaluateError(r.Pos, "the index of the sequence must be an integer")
+			return nil, NewSimplifyError(r.Pos, "the index of the sequence must be an integer")
 		}
 	case map[any]any:
 		return dict[key], nil
 	default:
-		return nil, NewEvaluateError(r.Pos, "it is neither sequence nor mapping")
+		return nil, NewSimplifyError(r.Pos, "it is neither sequence nor mapping")
 	}
 }
 
@@ -120,16 +156,16 @@ func (s Seq) Position() (pos Position) {
 	return s.Pos
 }
 
-func (s Seq) Evaluate(vars map[string]any) (any, error) {
-	EvaluateSlice := []any{}
+func (s Seq) Simplify(vars map[string]any) (any, error) {
+	SimplifySlice := []any{}
 	for _, v := range s.Value {
-		EvaluateValue, err := v.Evaluate(vars)
+		SimplifyValue, err := v.Simplify(vars)
 		if err != nil {
 			return nil, err
 		}
-		EvaluateSlice = append(EvaluateSlice, EvaluateValue)
+		SimplifySlice = append(SimplifySlice, SimplifyValue)
 	}
-	return EvaluateSlice, nil
+	return SimplifySlice, nil
 }
 
 func (s Seq) CollectVariables() []string {
@@ -150,20 +186,20 @@ func (m Map) Position() Position {
 	return m.Pos
 }
 
-func (m Map) Evaluate(vars map[string]any) (any, error) {
-	EvaluateMap := map[any]any{}
+func (m Map) Simplify(vars map[string]any) (any, error) {
+	SimplifyMap := map[any]any{}
 	for k, v := range m.Value {
-		EvaluateKey, err := k.Evaluate(vars)
+		SimplifyKey, err := k.Simplify(vars)
 		if err != nil {
 			return nil, err
 		}
-		EvaluateValue, err := v.Evaluate(vars)
+		SimplifyValue, err := v.Simplify(vars)
 		if err != nil {
 			return nil, err
 		}
-		EvaluateMap[EvaluateKey] = EvaluateValue
+		SimplifyMap[SimplifyKey] = SimplifyValue
 	}
-	return EvaluateMap, nil
+	return SimplifyMap, nil
 }
 
 func (m Map) CollectVariables() []string {
@@ -185,7 +221,7 @@ func (v SString) Position() Position {
 	return v.Pos
 }
 
-func (v SString) Evaluate(map[string]any) (any, error) {
+func (v SString) Simplify(map[string]any) (any, error) {
 	return v.Value, nil
 }
 
@@ -203,7 +239,7 @@ func (v SInteger) Position() Position {
 	return v.Pos
 }
 
-func (v SInteger) Evaluate(map[string]any) (any, error) {
+func (v SInteger) Simplify(map[string]any) (any, error) {
 	return v.Value, nil
 }
 
@@ -221,7 +257,7 @@ func (v SFloat) Position() Position {
 	return v.Pos
 }
 
-func (v SFloat) Evaluate(map[string]any) (any, error) {
+func (v SFloat) Simplify(map[string]any) (any, error) {
 	return v.Value, nil
 }
 
@@ -239,7 +275,7 @@ func (v SBool) Position() Position {
 	return v.Pos
 }
 
-func (v SBool) Evaluate(map[string]any) (any, error) {
+func (v SBool) Simplify(map[string]any) (any, error) {
 	return v.Value, nil
 }
 
@@ -256,7 +292,7 @@ func (v SNull) Position() Position {
 	return v.Pos
 }
 
-func (SNull) Evaluate(map[string]any) (any, error) {
+func (SNull) Simplify(map[string]any) (any, error) {
 	return nil, nil
 }
 

@@ -11,7 +11,7 @@ func TestEvaluate(t *testing.T) {
 		Func: "+",
 		Args: []Expr{SInteger{Value: 1}, SInteger{Value: 2}},
 	}
-	result, err := expr.Evaluate(map[string]any{})
+	result, err := expr.Simplify(map[string]any{})
 	assert.NoError(t, err)
 	assert.Equal(t, 3, result)
 }

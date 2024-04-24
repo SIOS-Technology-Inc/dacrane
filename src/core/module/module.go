@@ -296,7 +296,7 @@ func Evaluate(prop any, vars map[string]any) any {
 			}
 			exprStr := r.FindStringSubmatch(prop)[1]
 			expr := parser.Parse(exprStr)
-			v, err := expr.Evaluate(vars)
+			v, err := expr.Simplify(vars)
 			if err != nil {
 				panic(err)
 			}
@@ -333,7 +333,7 @@ func expandExpr(prop string, vars map[string]any) string {
 	return r.ReplaceAllStringFunc(prop, func(s string) string {
 		exprStr := r.FindStringSubmatch(s)
 		expr := parser.Parse(exprStr[1])
-		v, err := expr.Evaluate(vars)
+		v, err := expr.Simplify(vars)
 		if err != nil {
 			panic(err)
 		}

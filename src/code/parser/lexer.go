@@ -13,7 +13,7 @@ import (
 type Lexer struct {
 	lexer     *simplexer.Lexer
 	lastToken *simplexer.Token
-	result    ast.Expr
+	result    ast.Module
 }
 
 func NewLexer(reader io.Reader) *Lexer {
@@ -25,16 +25,15 @@ func NewLexer(reader io.Reader) *Lexer {
 		simplexer.NewRegexpTokenType(STRING, `"([^"]*)"`),
 		simplexer.NewRegexpTokenType(BOOLEAN, `true|false`),
 		simplexer.NewRegexpTokenType(NULL, `null`),
-		simplexer.NewRegexpTokenType(IDENTIFIER, `\$?[a-zA-Z0-9_-]+`),
 		simplexer.NewRegexpTokenType(DOT, `\.`),
 		simplexer.NewRegexpTokenType(COMMA, `,`),
 		simplexer.NewRegexpTokenType(COLON, `:`),
 		simplexer.NewRegexpTokenType(AND, `&&`),
 		simplexer.NewRegexpTokenType(OR, `\|\|`),
 		simplexer.NewRegexpTokenType(EQ, `==`),
+		simplexer.NewRegexpTokenType(ASSIGN, `=`),
 		simplexer.NewRegexpTokenType(NEQ, `!=`),
 		simplexer.NewRegexpTokenType(NOT, `!`),
-		simplexer.NewRegexpTokenType(PRIORITY, `>>`),
 		simplexer.NewRegexpTokenType(LT, `<`),
 		simplexer.NewRegexpTokenType(LTE, `<=`),
 		simplexer.NewRegexpTokenType(GT, `>`),
@@ -49,9 +48,16 @@ func NewLexer(reader io.Reader) *Lexer {
 		simplexer.NewRegexpTokenType(RSBRACKET, `\]`),
 		simplexer.NewRegexpTokenType(LCBRACKET, `\{`),
 		simplexer.NewRegexpTokenType(RCBRACKET, `\}`),
+		simplexer.NewRegexpTokenType(FUNC, `func`),
+		simplexer.NewRegexpTokenType(DATA, `data`),
+		simplexer.NewRegexpTokenType(TYPE, `type`),
 		simplexer.NewRegexpTokenType(IF, `if`),
 		simplexer.NewRegexpTokenType(THEN, `then`),
 		simplexer.NewRegexpTokenType(ELSE, `else`),
+		simplexer.NewRegexpTokenType(MODULE, `module`),
+		simplexer.NewRegexpTokenType(IMPORT, `import`),
+		simplexer.NewRegexpTokenType(EXPORT, `export`),
+		simplexer.NewRegexpTokenType(IDENTIFIER, `\$?[a-zA-Z0-9_-]+`),
 	}
 
 	return &Lexer{lexer: l}
