@@ -9,9 +9,9 @@ import (
 func TestEvaluate(t *testing.T) {
 	var expr Expr = App{
 		Func: "+",
-		Args: []Expr{SInteger{Value: 1}, SInteger{Value: 2}},
+		Args: []Expr{SInt{Value: 1}, SInt{Value: 2}},
 	}
-	result, err := expr.Simplify(map[string]any{})
+	result, err := expr.Evaluate()
 	assert.NoError(t, err)
 	assert.Equal(t, 3, result)
 }

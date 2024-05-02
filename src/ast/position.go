@@ -11,6 +11,11 @@ type Position struct {
 	Column int
 }
 
+type Range struct {
+	Start Position
+	End   Position
+}
+
 func (p1 Position) Lt(p2 Position) bool {
 	if p1.Line < p2.Line {
 		return true
@@ -44,7 +49,7 @@ func (p1 Position) Add(p2 Position) Position {
 }
 
 func (p Position) String() string {
-	return fmt.Sprintf("%d:%d", p.Line, p.Column)
+	return fmt.Sprintf("%d:%d", p.Line+1, p.Column+1)
 }
 
 func PosFrom(sp *simplexer.Position) Position {
