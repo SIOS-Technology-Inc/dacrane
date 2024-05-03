@@ -97,58 +97,44 @@ func TextDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 
 	tokens, err := parser.Lex(text)
 	if errors.As(err, &codeErr) {
-		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
-			URI: params.TextDocument.URI,
-			Diagnostics: []protocol.Diagnostic{
-				{
-					Range: protocol.Range{
-						Start: protocol.Position{Line: uint32(codeErr.Range.Start.Line), Character: uint32(codeErr.Range.Start.Column)},
-						End:   protocol.Position{Line: uint32(codeErr.Range.End.Line), Character: uint32(codeErr.Range.End.Column)},
-					},
-					Message: codeErr.Message,
-				},
-			},
-		})
+		SendCodeError(context, params.TextDocument.URI, *codeErr)
 		return nil
 	}
 
 	expr, err := parser.Parse(tokens)
 	if errors.As(err, &codeErr) {
-		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
-			URI: params.TextDocument.URI,
-			Diagnostics: []protocol.Diagnostic{
-				{
-					Range: protocol.Range{
-						Start: protocol.Position{Line: uint32(codeErr.Range.Start.Line), Character: uint32(codeErr.Range.Start.Column)},
-						End:   protocol.Position{Line: uint32(codeErr.Range.End.Line), Character: uint32(codeErr.Range.End.Column)},
-					},
-					Message: codeErr.Message,
-				},
-			},
-		})
+		SendCodeError(context, params.TextDocument.URI, *codeErr)
 		return nil
 	}
 
 	_, err = expr.Evaluate()
 	if errors.As(err, &codeErr) {
-		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
-			URI: params.TextDocument.URI,
-			Diagnostics: []protocol.Diagnostic{
-				{
-					Range: protocol.Range{
-						Start: protocol.Position{Line: uint32(codeErr.Range.Start.Line), Character: uint32(codeErr.Range.Start.Column)},
-						End:   protocol.Position{Line: uint32(codeErr.Range.End.Line), Character: uint32(codeErr.Range.End.Column)},
-					},
-					Message: codeErr.Message,
-				},
-			},
-		})
+		SendCodeError(context, params.TextDocument.URI, *codeErr)
 		return nil
 	}
-	context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
-		URI:         params.TextDocument.URI,
-		Diagnostics: []protocol.Diagnostic{},
-	})
+	SendNoError(context, params.TextDocument.URI)
 
 	return nil
+}
+
+func SendCodeError(context *glsp.Context, uri string, codeError exception.CodeError) {
+	context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
+		URI: uri,
+		Diagnostics: []protocol.Diagnostic{
+			{
+				Range: protocol.Range{
+					Start: protocol.Position{Line: uint32(codeError.Range.Start.Line), Character: uint32(codeError.Range.Start.Column)},
+					End:   protocol.Position{Line: uint32(codeError.Range.End.Line), Character: uint32(codeError.Range.End.Column)},
+				},
+				Message: codeError.Message,
+			},
+		},
+	})
+}
+
+func SendNoError(context *glsp.Context, uri string) {
+	context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
+		URI:         uri,
+		Diagnostics: []protocol.Diagnostic{},
+	})
 }
