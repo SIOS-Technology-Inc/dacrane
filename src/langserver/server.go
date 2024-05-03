@@ -31,6 +31,7 @@ func Start() {
 		Shutdown:               shutdown,
 		SetTrace:               setTrace,
 		TextDocumentCompletion: TextDocumentCompletion,
+		TextDocumentDidOpen:    TextDocumentDidOpen,
 		TextDocumentDidChange:  TextDocumentDidChange,
 	}
 
@@ -91,30 +92,41 @@ func TextDocumentCompletion(context *glsp.Context, params *protocol.CompletionPa
 	return completionItems, nil
 }
 
+func TextDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
+	text := params.TextDocument.Text
+	uri := params.TextDocument.URI
+	SendNotifications(context, uri, text)
+	return nil
+}
+
 func TextDocumentDidChange(context *glsp.Context, params *protocol.DidChangeTextDocumentParams) error {
 	text := params.ContentChanges[0].(protocol.TextDocumentContentChangeEventWhole).Text
+	uri := params.TextDocument.URI
+	SendNotifications(context, uri, text)
+	return nil
+}
+
+func SendNotifications(context *glsp.Context, uri string, text string) {
 	var codeErr *exception.CodeError
 
 	tokens, err := parser.Lex(text)
 	if errors.As(err, &codeErr) {
-		SendCodeError(context, params.TextDocument.URI, *codeErr)
-		return nil
+		SendCodeError(context, uri, *codeErr)
+		return
 	}
 
 	expr, err := parser.Parse(tokens)
 	if errors.As(err, &codeErr) {
-		SendCodeError(context, params.TextDocument.URI, *codeErr)
-		return nil
+		SendCodeError(context, uri, *codeErr)
+		return
 	}
 
 	_, err = expr.Evaluate()
 	if errors.As(err, &codeErr) {
-		SendCodeError(context, params.TextDocument.URI, *codeErr)
-		return nil
+		SendCodeError(context, uri, *codeErr)
+		return
 	}
-	SendNoError(context, params.TextDocument.URI)
-
-	return nil
+	SendNoError(context, uri)
 }
 
 func SendCodeError(context *glsp.Context, uri string, codeError exception.CodeError) {
