@@ -7,10 +7,13 @@ import "strings"
 import "github.com/SIOS-Technology-Inc/dacrane/v0/src/ast"
 import "github.com/SIOS-Technology-Inc/dacrane/v0/src/locator"
 
-func Parse(tokens []*simplexer.Token) ast.Expr {
+func Parse(tokens []*simplexer.Token) (ast.Expr, error) {
 	lexer := NewTokenIterationLexer(tokens)
 	yyParse(lexer)
-	return lexer.result
+	if lexer.error != nil {
+		return nil, lexer.error
+	}
+	return lexer.result, nil
 }
 %}
 

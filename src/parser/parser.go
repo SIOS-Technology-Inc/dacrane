@@ -13,13 +13,16 @@ import "strings"
 import "github.com/SIOS-Technology-Inc/dacrane/v0/src/ast"
 import "github.com/SIOS-Technology-Inc/dacrane/v0/src/locator"
 
-func Parse(tokens []*simplexer.Token) ast.Expr {
+func Parse(tokens []*simplexer.Token) (ast.Expr, error) {
 	lexer := NewTokenIterationLexer(tokens)
 	yyParse(lexer)
-	return lexer.result
+	if lexer.error != nil {
+		return nil, lexer.error
+	}
+	return lexer.result, nil
 }
 
-//line src/parser/parser.go.y:17
+//line src/parser/parser.go.y:20
 type yySymType struct {
 	yys   int
 	token *simplexer.Token
@@ -54,7 +57,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line src/parser/parser.go.y:65
+//line src/parser/parser.go.y:68
 
 //line yacctab:1
 var yyExca = [...]int8{
@@ -446,14 +449,14 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line src/parser/parser.go.y:34
+//line src/parser/parser.go.y:37
 		{
 			yylex.(*TokenIterationLexer).result = yyDollar[1].Expr
 			yyVAL.Expr = yyDollar[1].Expr
 		}
 	case 2:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line src/parser/parser.go.y:40
+//line src/parser/parser.go.y:43
 		{
 			v, err := strconv.Atoi(yyDollar[1].token.Literal)
 			if err != nil {
@@ -466,7 +469,7 @@ yydefault:
 		}
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line src/parser/parser.go.y:50
+//line src/parser/parser.go.y:53
 		{
 			yyVAL.Expr = &ast.SString{
 				Value: strings.Replace(yyDollar[1].token.Literal, "\"", "", -1),
@@ -475,7 +478,7 @@ yydefault:
 		}
 	case 4:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line src/parser/parser.go.y:56
+//line src/parser/parser.go.y:59
 		{
 			yyVAL.Expr = &ast.App{
 				Func:  yyDollar[2].token.Literal,

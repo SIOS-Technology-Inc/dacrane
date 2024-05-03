@@ -11,7 +11,8 @@ import (
 func TestParse(t *testing.T) {
 	tokens, err := Lex("1 + 1")
 	assert.NoError(t, err)
-	expr := Parse(tokens)
+	expr, err := Parse(tokens)
+	assert.NoError(t, err)
 	assert.Equal(t, &ast.App{
 		Func: "+",
 		Args: []ast.Expr{

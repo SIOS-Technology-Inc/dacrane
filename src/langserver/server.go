@@ -109,14 +109,26 @@ func TextDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 				},
 			},
 		})
-	} else {
-		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
-			URI:         params.TextDocument.URI,
-			Diagnostics: []protocol.Diagnostic{},
-		})
+		return nil
 	}
 
-	expr := parser.Parse(tokens)
+	expr, err := parser.Parse(tokens)
+	if errors.As(err, &codeErr) {
+		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
+			URI: params.TextDocument.URI,
+			Diagnostics: []protocol.Diagnostic{
+				{
+					Range: protocol.Range{
+						Start: protocol.Position{Line: uint32(codeErr.Range.Start.Line), Character: uint32(codeErr.Range.Start.Column)},
+						End:   protocol.Position{Line: uint32(codeErr.Range.End.Line), Character: uint32(codeErr.Range.End.Column)},
+					},
+					Message: codeErr.Message,
+				},
+			},
+		})
+		return nil
+	}
+
 	_, err = expr.Evaluate()
 	if errors.As(err, &codeErr) {
 		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
@@ -131,11 +143,12 @@ func TextDocumentDidChange(context *glsp.Context, params *protocol.DidChangeText
 				},
 			},
 		})
-	} else {
-		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
-			URI:         params.TextDocument.URI,
-			Diagnostics: []protocol.Diagnostic{},
-		})
+		return nil
 	}
+	context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
+		URI:         params.TextDocument.URI,
+		Diagnostics: []protocol.Diagnostic{},
+	})
+
 	return nil
 }

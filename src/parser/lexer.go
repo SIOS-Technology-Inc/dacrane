@@ -2,8 +2,6 @@ package parser
 
 import (
 	"errors"
-	"fmt"
-	"os"
 	"strings"
 
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/ast"
@@ -16,7 +14,7 @@ type TokenIterationLexer struct {
 	tokens    []*simplexer.Token
 	lastIndex int
 	lastToken *simplexer.Token
-	src       string
+	error     error
 	result    ast.Expr
 }
 
@@ -41,14 +39,8 @@ func (l *TokenIterationLexer) Lex(lval *yySymType) int {
 	return int(token.Type.GetID())
 }
 
-func (l TokenIterationLexer) GetLine(line int) string {
-	return strings.Split(l.src, "\n")[line]
-}
-
 func (l *TokenIterationLexer) Error(e string) {
-	fmt.Fprintln(os.Stderr, e+":")
-	fmt.Fprintln(os.Stderr, l.GetLine(l.lastToken.Position.Line))
-	fmt.Fprintln(os.Stderr, strings.Repeat(" ", l.lastToken.Position.Column)+strings.Repeat("^", len(l.lastToken.Literal)))
+	l.error = exception.NewCodeError(locator.NewRangeFromToken(*l.lastToken), e)
 }
 
 func Lex(code string) ([]*simplexer.Token, error) {

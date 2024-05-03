@@ -28,13 +28,24 @@ var runCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
+
 		tokens, err := parser.Lex(string(codeBytes))
 		var codeErr *exception.CodeError
 		if errors.As(err, &codeErr) {
 			fmt.Fprintln(os.Stderr, codeErr.Pretty(fileName))
 			return
 		}
-		expr := parser.Parse(tokens)
+
+		expr, err := parser.Parse(tokens)
+		if errors.As(err, &codeErr) {
+			fmt.Fprintln(os.Stderr, codeErr.Pretty(fileName))
+			return
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			return
+		}
+
 		res, err := expr.Evaluate()
 		if errors.As(err, &codeErr) {
 			fmt.Fprintln(os.Stderr, codeErr.Pretty(fileName))
