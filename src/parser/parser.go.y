@@ -5,9 +5,10 @@ import "github.com/macrat/simplexer"
 import "strconv"
 import "strings"
 import "github.com/SIOS-Technology-Inc/dacrane/v0/src/ast"
+import "github.com/SIOS-Technology-Inc/dacrane/v0/src/locator"
 
-func Parse(exprStr string) ast.Expr {
-	lexer := NewLexer(strings.NewReader(exprStr))
+func Parse(tokens []*simplexer.Token) ast.Expr {
+	lexer := NewTokenIterationLexer(tokens)
 	yyParse(lexer)
 	return lexer.result
 }
@@ -31,7 +32,7 @@ func Parse(exprStr string) ast.Expr {
 %%
 
 Root: Expr {
-	yylex.(*Lexer).result = $1
+	yylex.(*TokenIterationLexer).result = $1
 	$$ = $1
 }
 
@@ -43,16 +44,22 @@ Expr
 		}
 		$$ = &ast.SInt{
 			Value: v,
-			Pos: ast.PosFrom(&$1.Position),
+			Range: locator.NewRangeFromToken(*$1),
 		}
 	}
 	| STRING {
 		$$ = &ast.SString{
 			Value: strings.Replace($1.Literal, "\"", "", -1),
-			Pos: ast.PosFrom(&$1.Position),
+			Range: locator.NewRangeFromToken(*$1),
 		}
 	}
-	| Expr ADD Expr               { $$ = &ast.App{Func: $2.Literal, Args: []ast.Expr{$1, $3}, Pos: $1.Position()} }
+	| Expr ADD Expr {
+		$$ = &ast.App{
+			Func: $2.Literal,
+			Args: []ast.Expr{$1, $3},
+			Range: $1.GetRange().Union($3.GetRange()),
+		}
+	}
 	;
 
 %%

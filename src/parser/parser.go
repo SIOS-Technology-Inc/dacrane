@@ -11,14 +11,15 @@ import "github.com/macrat/simplexer"
 import "strconv"
 import "strings"
 import "github.com/SIOS-Technology-Inc/dacrane/v0/src/ast"
+import "github.com/SIOS-Technology-Inc/dacrane/v0/src/locator"
 
-func Parse(exprStr string) ast.Expr {
-	lexer := NewLexer(strings.NewReader(exprStr))
+func Parse(tokens []*simplexer.Token) ast.Expr {
+	lexer := NewTokenIterationLexer(tokens)
 	yyParse(lexer)
 	return lexer.result
 }
 
-//line src/parser/parser.go.y:16
+//line src/parser/parser.go.y:17
 type yySymType struct {
 	yys   int
 	token *simplexer.Token
@@ -53,7 +54,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyInitialStackSize = 16
 
-//line src/parser/parser.go.y:58
+//line src/parser/parser.go.y:65
 
 //line yacctab:1
 var yyExca = [...]int8{
@@ -445,14 +446,14 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line src/parser/parser.go.y:33
+//line src/parser/parser.go.y:34
 		{
-			yylex.(*Lexer).result = yyDollar[1].Expr
+			yylex.(*TokenIterationLexer).result = yyDollar[1].Expr
 			yyVAL.Expr = yyDollar[1].Expr
 		}
 	case 2:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line src/parser/parser.go.y:39
+//line src/parser/parser.go.y:40
 		{
 			v, err := strconv.Atoi(yyDollar[1].token.Literal)
 			if err != nil {
@@ -460,23 +461,27 @@ yydefault:
 			}
 			yyVAL.Expr = &ast.SInt{
 				Value: v,
-				Pos:   ast.PosFrom(&yyDollar[1].token.Position),
+				Range: locator.NewRangeFromToken(*yyDollar[1].token),
 			}
 		}
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line src/parser/parser.go.y:49
+//line src/parser/parser.go.y:50
 		{
 			yyVAL.Expr = &ast.SString{
 				Value: strings.Replace(yyDollar[1].token.Literal, "\"", "", -1),
-				Pos:   ast.PosFrom(&yyDollar[1].token.Position),
+				Range: locator.NewRangeFromToken(*yyDollar[1].token),
 			}
 		}
 	case 4:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line src/parser/parser.go.y:55
+//line src/parser/parser.go.y:56
 		{
-			yyVAL.Expr = &ast.App{Func: yyDollar[2].token.Literal, Args: []ast.Expr{yyDollar[1].Expr, yyDollar[3].Expr}, Pos: yyDollar[1].Expr.Position()}
+			yyVAL.Expr = &ast.App{
+				Func:  yyDollar[2].token.Literal,
+				Args:  []ast.Expr{yyDollar[1].Expr, yyDollar[3].Expr},
+				Range: yyDollar[1].Expr.GetRange().Union(yyDollar[3].Expr.GetRange()),
+			}
 		}
 	}
 	goto yystack /* stack new state and value */

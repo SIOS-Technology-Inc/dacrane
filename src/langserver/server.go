@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/ast"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/exception"
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/parser"
 	"github.com/tliron/commonlog"
 	"github.com/tliron/glsp"
@@ -45,6 +46,13 @@ func initialize(context *glsp.Context, params *protocol.InitializeParams) (any, 
 
 	capabilities.TextDocumentSync = protocol.TextDocumentSyncKindFull
 	capabilities.CompletionProvider = &protocol.CompletionOptions{}
+	// capabilities.SemanticTokensProvider = &protocol.SemanticTokensOptions{
+	// 	Legend: protocol.SemanticTokensLegend{
+	// 		TokenTypes:     []string{"number", "string", "operator"},
+	// 		TokenModifiers: []string{},
+	// 	},
+	// 	Full: protocol.True,
+	// }
 
 	return protocol.InitializeResult{
 		Capabilities: capabilities,
@@ -69,20 +77,14 @@ func setTrace(context *glsp.Context, params *protocol.SetTraceParams) error {
 	return nil
 }
 
-var Completions = map[string]string{
-	"a": "A",
-	"b": "B",
-}
-
 func TextDocumentCompletion(context *glsp.Context, params *protocol.CompletionParams) (interface{}, error) {
 	var completionItems []protocol.CompletionItem
 
-	for word, emoji := range Completions {
-		emojiCopy := emoji // Create a copy of emoji
+	operator := protocol.CompletionItemKindOperator
+	for _, f := range ast.FixtureFunctions {
 		completionItems = append(completionItems, protocol.CompletionItem{
-			Label:      word,
-			Detail:     &emojiCopy,
-			InsertText: &emojiCopy,
+			Label: f.Name,
+			Kind:  &operator,
 		})
 	}
 
@@ -91,19 +93,41 @@ func TextDocumentCompletion(context *glsp.Context, params *protocol.CompletionPa
 
 func TextDocumentDidChange(context *glsp.Context, params *protocol.DidChangeTextDocumentParams) error {
 	text := params.ContentChanges[0].(protocol.TextDocumentContentChangeEventWhole).Text
-	expr := parser.Parse(text)
-	_, err := expr.Evaluate()
-	var evalErr *ast.EvalError
-	if errors.As(err, &evalErr) {
+	var codeErr *exception.CodeError
+
+	tokens, err := parser.Lex(text)
+	if errors.As(err, &codeErr) {
 		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
 			URI: params.TextDocument.URI,
 			Diagnostics: []protocol.Diagnostic{
 				{
 					Range: protocol.Range{
-						Start: protocol.Position{Line: uint32(evalErr.Position.Line), Character: uint32(evalErr.Position.Column)},
-						End:   protocol.Position{Line: uint32(evalErr.Position.Line), Character: uint32(evalErr.Position.Column + 1)},
+						Start: protocol.Position{Line: uint32(codeErr.Range.Start.Line), Character: uint32(codeErr.Range.Start.Column)},
+						End:   protocol.Position{Line: uint32(codeErr.Range.End.Line), Character: uint32(codeErr.Range.End.Column)},
 					},
-					Message: evalErr.Message,
+					Message: codeErr.Message,
+				},
+			},
+		})
+	} else {
+		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
+			URI:         params.TextDocument.URI,
+			Diagnostics: []protocol.Diagnostic{},
+		})
+	}
+
+	expr := parser.Parse(tokens)
+	_, err = expr.Evaluate()
+	if errors.As(err, &codeErr) {
+		context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
+			URI: params.TextDocument.URI,
+			Diagnostics: []protocol.Diagnostic{
+				{
+					Range: protocol.Range{
+						Start: protocol.Position{Line: uint32(codeErr.Range.Start.Line), Character: uint32(codeErr.Range.Start.Column)},
+						End:   protocol.Position{Line: uint32(codeErr.Range.End.Line), Character: uint32(codeErr.Range.End.Column)},
+					},
+					Message: codeErr.Message,
 				},
 			},
 		})

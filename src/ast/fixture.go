@@ -6,7 +6,7 @@ type fixtureFunction struct {
 	Function func([]any) (any, error)
 }
 
-var fixtureFunctions = []fixtureFunction{
+var FixtureFunctions = []fixtureFunction{
 	{
 		Name: "+",
 		Type: FuncType{
@@ -26,7 +26,7 @@ var fixtureFunctions = []fixtureFunction{
 }
 
 func FindFixtureFunctions(name string, args ArgsType) *fixtureFunction {
-	for _, v := range fixtureFunctions {
+	for _, v := range FixtureFunctions {
 		ok, _ := v.Type.Applicable(args)
 		if v.Name == name && ok {
 			return &v

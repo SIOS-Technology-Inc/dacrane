@@ -1,22 +1,27 @@
 package ast
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/exception"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/locator"
+)
 
 type Expr interface {
-	Position() Position
+	GetRange() locator.Range
 	Evaluate() (any, error)
 	Infer() (Type, error)
 }
 
 // App represents a function application.
 type App struct {
-	Func string
-	Args []Expr
-	Pos  Position
+	Func  string
+	Args  []Expr
+	Range locator.Range
 }
 
-func (v App) Position() (pos Position) {
-	return v.Pos
+func (v App) GetRange() locator.Range {
+	return v.Range
 }
 
 func (v App) Evaluate() (any, error) {
@@ -37,7 +42,7 @@ func (v App) Evaluate() (any, error) {
 	}
 	f := FindFixtureFunctions(v.Func, ts)
 	if f == nil {
-		return nil, NewSimplifyError(v.Pos, fmt.Sprintf("%s(%s) is not defined", v.Func, ArgsType(ts).String()))
+		return nil, exception.NewCodeError(v.Range, fmt.Sprintf("%s(%s) is not defined", v.Func, ArgsType(ts).String()))
 	}
 	return f.Function(args)
 }
@@ -53,7 +58,7 @@ func (v App) Infer() (Type, error) {
 	}
 	f := FindFixtureFunctions(v.Func, ts)
 	if f == nil {
-		return nil, NewSimplifyError(v.Pos, fmt.Sprintf("%s is not defined", ArgsType(ts).String()))
+		return nil, exception.NewCodeError(v.Range, fmt.Sprintf("%s is not defined", ArgsType(ts).String()))
 	}
 	return f.Type.Returns, nil
 }
@@ -61,11 +66,11 @@ func (v App) Infer() (Type, error) {
 // Scaler Integer represents integer value
 type SInt struct {
 	Value int
-	Pos   Position
+	Range locator.Range
 }
 
-func (v SInt) Position() Position {
-	return v.Pos
+func (v SInt) GetRange() locator.Range {
+	return v.Range
 }
 
 func (v SInt) Evaluate() (any, error) {
@@ -79,11 +84,11 @@ func (v SInt) Infer() (Type, error) {
 // Scaler String represents string value
 type SString struct {
 	Value string
-	Pos   Position
+	Range locator.Range
 }
 
-func (v SString) Position() Position {
-	return v.Pos
+func (v SString) GetRange() locator.Range {
+	return v.Range
 }
 
 func (v SString) Evaluate() (any, error) {

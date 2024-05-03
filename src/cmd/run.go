@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/SIOS-Technology-Inc/dacrane/v0/src/ast"
+	"github.com/SIOS-Technology-Inc/dacrane/v0/src/exception"
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/parser"
 	"github.com/spf13/cobra"
 )
@@ -28,15 +28,20 @@ var runCmd = &cobra.Command{
 		if err != nil {
 			panic(err)
 		}
-		expr := parser.Parse(string(codeBytes))
+		tokens, err := parser.Lex(string(codeBytes))
+		var codeErr *exception.CodeError
+		if errors.As(err, &codeErr) {
+			fmt.Fprintln(os.Stderr, codeErr.Pretty(fileName))
+			return
+		}
+		expr := parser.Parse(tokens)
 		res, err := expr.Evaluate()
-		var evalErr *ast.EvalError
-		if errors.As(err, &evalErr) {
-			os.Stderr.Write([]byte(fileName + ":" + evalErr.Position.String() + ":" + err.Error() + "\n"))
+		if errors.As(err, &codeErr) {
+			fmt.Fprintln(os.Stderr, codeErr.Pretty(fileName))
 			return
 		}
 		if err != nil {
-			os.Stderr.Write([]byte(err.Error() + "\n"))
+			fmt.Fprintln(os.Stderr, err.Error())
 			return
 		}
 		fmt.Println(res)
