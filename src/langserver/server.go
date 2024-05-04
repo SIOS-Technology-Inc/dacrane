@@ -2,10 +2,12 @@ package langserver
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/ast"
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/exception"
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/parser"
+	"github.com/macrat/simplexer"
 	"github.com/tliron/commonlog"
 	"github.com/tliron/glsp"
 	protocol "github.com/tliron/glsp/protocol_3_16"
@@ -21,18 +23,22 @@ var (
 	handler protocol.Handler
 )
 
+var Files = map[string]string{}
+
 func Start() {
 	// This increases logging verbosity (optional)
 	commonlog.Configure(2, nil)
 
 	handler = protocol.Handler{
-		Initialize:             initialize,
-		Initialized:            initialized,
-		Shutdown:               shutdown,
-		SetTrace:               setTrace,
-		TextDocumentCompletion: TextDocumentCompletion,
-		TextDocumentDidOpen:    TextDocumentDidOpen,
-		TextDocumentDidChange:  TextDocumentDidChange,
+		Initialize:                     initialize,
+		Initialized:                    initialized,
+		Shutdown:                       shutdown,
+		SetTrace:                       setTrace,
+		TextDocumentCompletion:         TextDocumentCompletion,
+		TextDocumentSemanticTokensFull: TextDocumentSemanticTokensFull,
+		TextDocumentDidOpen:            TextDocumentDidOpen,
+		TextDocumentDidChange:          TextDocumentDidChange,
+		TextDocumentDidSave:            TextDocumentDidSave,
 	}
 
 	server := server.NewServer(&handler, lsName, true)
@@ -47,13 +53,13 @@ func initialize(context *glsp.Context, params *protocol.InitializeParams) (any, 
 
 	capabilities.TextDocumentSync = protocol.TextDocumentSyncKindFull
 	capabilities.CompletionProvider = &protocol.CompletionOptions{}
-	// capabilities.SemanticTokensProvider = &protocol.SemanticTokensOptions{
-	// 	Legend: protocol.SemanticTokensLegend{
-	// 		TokenTypes:     []string{"number", "string", "operator"},
-	// 		TokenModifiers: []string{},
-	// 	},
-	// 	Full: protocol.True,
-	// }
+	capabilities.SemanticTokensProvider = &protocol.SemanticTokensOptions{
+		Legend: protocol.SemanticTokensLegend{
+			TokenTypes:     tokenTypes,
+			TokenModifiers: []string{},
+		},
+		Full: protocol.True,
+	}
 
 	return protocol.InitializeResult{
 		Capabilities: capabilities,
@@ -95,6 +101,7 @@ func TextDocumentCompletion(context *glsp.Context, params *protocol.CompletionPa
 func TextDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocumentParams) error {
 	text := params.TextDocument.Text
 	uri := params.TextDocument.URI
+	Files[uri] = text
 	SendNotifications(context, uri, text)
 	return nil
 }
@@ -102,7 +109,12 @@ func TextDocumentDidOpen(context *glsp.Context, params *protocol.DidOpenTextDocu
 func TextDocumentDidChange(context *glsp.Context, params *protocol.DidChangeTextDocumentParams) error {
 	text := params.ContentChanges[0].(protocol.TextDocumentContentChangeEventWhole).Text
 	uri := params.TextDocument.URI
+	Files[uri] = text
 	SendNotifications(context, uri, text)
+	return nil
+}
+
+func TextDocumentDidSave(context *glsp.Context, params *protocol.DidSaveTextDocumentParams) error {
 	return nil
 }
 
@@ -127,6 +139,59 @@ func SendNotifications(context *glsp.Context, uri string, text string) {
 		return
 	}
 	SendNoError(context, uri)
+}
+
+func TextDocumentSemanticTokensFull(context *glsp.Context, params *protocol.SemanticTokensParams) (*protocol.SemanticTokens, error) {
+	text := Files[params.TextDocument.URI]
+
+	tokens, err := parser.Lex(text)
+	if err != nil {
+		return nil, nil
+	}
+
+	return CreateSemanticTokens(tokens)
+}
+
+var tokenTypes = []string{"number", "string", "operator"}
+
+func TokenKindNumber(token *simplexer.Token) (uint32, error) {
+	switch token.Type.GetID() {
+	case parser.INTEGER:
+		return 0, nil
+	case parser.STRING:
+		return 1, nil
+	case parser.ADD:
+		return 2, nil
+	default:
+		return 99, fmt.Errorf("cannot mapping token kind: token id (%d)", token.Type.GetID())
+	}
+}
+
+func CreateSemanticTokens(tokens []*simplexer.Token) (*protocol.SemanticTokens, error) {
+	data := []uint32{}
+	if len(tokens) == 0 {
+		return &protocol.SemanticTokens{
+			Data: data,
+		}, nil
+	}
+	previousToken := tokens[0]
+	for _, t := range tokens {
+		tokenKindNumber, err := TokenKindNumber(t)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data,
+			uint32(t.Position.Line-previousToken.Position.Line),
+			uint32(t.Position.Column-previousToken.Position.Column),
+			uint32(len(t.Literal)),
+			tokenKindNumber,
+			0, //
+		)
+		previousToken = t
+	}
+	return &protocol.SemanticTokens{
+		Data: data,
+	}, nil
 }
 
 func SendCodeError(context *glsp.Context, uri string, codeError exception.CodeError) {

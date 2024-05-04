@@ -40,6 +40,12 @@ func (l *TokenIterationLexer) Lex(lval *yySymType) int {
 }
 
 func (l *TokenIterationLexer) Error(e string) {
+	if l.lastToken == nil {
+		l.error = exception.NewCodeError(locator.Range{
+			Start: locator.Position{Line: 0, Column: 0},
+			End:   locator.Position{Line: 0, Column: 0},
+		}, e)
+	}
 	l.error = exception.NewCodeError(locator.NewRangeFromToken(*l.lastToken), e)
 }
 
@@ -78,6 +84,16 @@ func Lex(code string) ([]*simplexer.Token, error) {
 		}
 
 		tokens = append(tokens, token)
+	}
+
+	if len(tokens) == 0 {
+		return nil, &exception.CodeError{
+			Range: locator.Range{
+				Start: locator.Position{Line: 0, Column: 0},
+				End:   locator.Position{Line: 0, Column: 0},
+			},
+			Message: "no token",
+		}
 	}
 
 	return tokens, nil
