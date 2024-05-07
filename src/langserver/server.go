@@ -120,25 +120,30 @@ func TextDocumentDidSave(context *glsp.Context, params *protocol.DidSaveTextDocu
 
 func SendNotifications(context *glsp.Context, uri string, text string) {
 	var codeErr *exception.CodeError
+	codeErrors := []exception.CodeError{}
 
 	tokens, err := parser.Lex(text)
 	if errors.As(err, &codeErr) {
-		SendCodeError(context, uri, *codeErr)
+		codeErrors = append(codeErrors, *codeErr)
+		SendCodeError(context, uri, codeErrors)
 		return
 	}
 
-	expr, err := parser.Parse(tokens)
+	m, err := parser.Parse(tokens)
 	if errors.As(err, &codeErr) {
-		SendCodeError(context, uri, *codeErr)
+		codeErrors = append(codeErrors, *codeErr)
+		SendCodeError(context, uri, codeErrors)
 		return
 	}
 
-	_, err = expr.Evaluate()
-	if errors.As(err, &codeErr) {
-		SendCodeError(context, uri, *codeErr)
-		return
+	for _, v := range m.Vars {
+		_, err := v.Expr.Infer(m.Vars)
+		if errors.As(err, &codeErr) {
+			codeErrors = append(codeErrors, *codeErr)
+		}
 	}
-	SendNoError(context, uri)
+
+	SendCodeError(context, uri, codeErrors)
 }
 
 func TextDocumentSemanticTokensFull(context *glsp.Context, params *protocol.SemanticTokensParams) (*protocol.SemanticTokens, error) {
@@ -152,7 +157,7 @@ func TextDocumentSemanticTokensFull(context *glsp.Context, params *protocol.Sema
 	return CreateSemanticTokens(tokens)
 }
 
-var tokenTypes = []string{"number", "string", "operator"}
+var tokenTypes = []string{"number", "string", "operator", "variable"}
 
 func TokenKindNumber(token *simplexer.Token) (uint32, error) {
 	switch token.Type.GetID() {
@@ -160,8 +165,16 @@ func TokenKindNumber(token *simplexer.Token) (uint32, error) {
 		return 0, nil
 	case parser.STRING:
 		return 1, nil
+	case parser.ASSIGN:
+		return 2, nil
 	case parser.ADD:
 		return 2, nil
+	case parser.LBRACKET:
+		return 2, nil
+	case parser.RBRACKET:
+		return 2, nil
+	case parser.IDENTIFIER:
+		return 3, nil
 	default:
 		return 99, fmt.Errorf("cannot mapping token kind: token id (%d)", token.Type.GetID())
 	}
@@ -180,9 +193,14 @@ func CreateSemanticTokens(tokens []*simplexer.Token) (*protocol.SemanticTokens, 
 		if err != nil {
 			return nil, err
 		}
+		dColumn := 0
+		if t.Position.Line == previousToken.Position.Line {
+			dColumn = t.Position.Column - previousToken.Position.Column
+		}
+
 		data = append(data,
 			uint32(t.Position.Line-previousToken.Position.Line),
-			uint32(t.Position.Column-previousToken.Position.Column),
+			uint32(dColumn),
 			uint32(len(t.Literal)),
 			tokenKindNumber,
 			0, //
@@ -194,18 +212,21 @@ func CreateSemanticTokens(tokens []*simplexer.Token) (*protocol.SemanticTokens, 
 	}, nil
 }
 
-func SendCodeError(context *glsp.Context, uri string, codeError exception.CodeError) {
-	context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
-		URI: uri,
-		Diagnostics: []protocol.Diagnostic{
-			{
-				Range: protocol.Range{
-					Start: protocol.Position{Line: uint32(codeError.Range.Start.Line), Character: uint32(codeError.Range.Start.Column)},
-					End:   protocol.Position{Line: uint32(codeError.Range.End.Line), Character: uint32(codeError.Range.End.Column)},
-				},
-				Message: codeError.Message,
+func SendCodeError(context *glsp.Context, uri string, codeErrors []exception.CodeError) {
+	diagnostics := []protocol.Diagnostic{}
+	for _, codeError := range codeErrors {
+		diagnostics = append(diagnostics, protocol.Diagnostic{
+			Range: protocol.Range{
+				Start: protocol.Position{Line: uint32(codeError.Range.Start.Line), Character: uint32(codeError.Range.Start.Column)},
+				End:   protocol.Position{Line: uint32(codeError.Range.End.Line), Character: uint32(codeError.Range.End.Column)},
 			},
-		},
+			Message: codeError.Message,
+		})
+	}
+
+	context.Notify("textDocument/publishDiagnostics", protocol.PublishDiagnosticsParams{
+		URI:         uri,
+		Diagnostics: diagnostics,
 	})
 }
 

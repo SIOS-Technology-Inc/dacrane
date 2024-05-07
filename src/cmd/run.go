@@ -36,7 +36,7 @@ var runCmd = &cobra.Command{
 			return
 		}
 
-		expr, err := parser.Parse(tokens)
+		m, err := parser.Parse(tokens)
 		if errors.As(err, &codeErr) {
 			fmt.Fprintln(os.Stderr, codeErr.Pretty(fileName))
 			return
@@ -46,7 +46,14 @@ var runCmd = &cobra.Command{
 			return
 		}
 
-		res, err := expr.Evaluate()
+		v, ok := m.FindVar(callVar)
+
+		if !ok {
+			fmt.Fprintf(os.Stderr, "%s is not found\n", callVar)
+			return
+		}
+
+		res, err := v.Expr.Evaluate(m.Vars)
 		if errors.As(err, &codeErr) {
 			fmt.Fprintln(os.Stderr, codeErr.Pretty(fileName))
 			return
@@ -60,8 +67,10 @@ var runCmd = &cobra.Command{
 }
 
 var argumentString map[string]string
+var callVar string
 
 func init() {
 	rootCmd.AddCommand(runCmd)
 	runCmd.Flags().StringToStringVarP(&argumentString, "argument", "a", map[string]string{}, "Argument")
+	runCmd.Flags().StringVarP(&callVar, "function", "f", "main", "Function")
 }

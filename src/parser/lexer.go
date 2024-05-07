@@ -15,7 +15,7 @@ type TokenIterationLexer struct {
 	lastIndex int
 	lastToken *simplexer.Token
 	error     error
-	result    ast.Expr
+	result    ast.Module
 }
 
 func NewTokenIterationLexer(tokens []*simplexer.Token) *TokenIterationLexer {
@@ -23,7 +23,6 @@ func NewTokenIterationLexer(tokens []*simplexer.Token) *TokenIterationLexer {
 		tokens:    tokens,
 		lastIndex: -1,
 		lastToken: nil,
-		result:    nil,
 	}
 }
 
@@ -54,9 +53,13 @@ func Lex(code string) ([]*simplexer.Token, error) {
 	l := simplexer.NewLexer(reader)
 
 	l.TokenTypes = []simplexer.TokenType{
+		simplexer.NewRegexpTokenType(IDENTIFIER, `[a-zA-Z_][a-zA-Z0-9_]*`),
 		simplexer.NewRegexpTokenType(INTEGER, `[0-9]+`),
 		simplexer.NewRegexpTokenType(STRING, `"([^"]*)"`),
 		simplexer.NewRegexpTokenType(ADD, `\+`),
+		simplexer.NewRegexpTokenType(ASSIGN, `:=`),
+		simplexer.NewRegexpTokenType(LBRACKET, `\(`),
+		simplexer.NewRegexpTokenType(RBRACKET, `\)`),
 	}
 
 	tokens := []*simplexer.Token{}

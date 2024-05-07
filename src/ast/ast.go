@@ -7,10 +7,60 @@ import (
 	"github.com/SIOS-Technology-Inc/dacrane/v0/src/locator"
 )
 
+type Module struct {
+	Vars []Var
+}
+
 type Expr interface {
 	GetRange() locator.Range
-	Evaluate() (any, error)
-	Infer() (Type, error)
+	Evaluate(vars []Var) (any, error)
+	Infer(vars []Var) (Type, error)
+}
+
+func (m Module) FindVar(name string) (Var, bool) {
+	return findVar(name, m.Vars)
+}
+
+func findVar(name string, Vars []Var) (Var, bool) {
+	for _, v := range Vars {
+		if v.Name == name {
+			return v, true
+		}
+	}
+	return Var{}, false
+}
+
+// Var represents a variable assignment.
+type Var struct {
+	Name  string
+	Expr  Expr
+	Range locator.Range
+}
+
+// Ref represents a reference of variable.
+type Ref struct {
+	Name  string
+	Range locator.Range
+}
+
+func (r Ref) GetRange() locator.Range {
+	return r.Range
+}
+
+func (r Ref) Evaluate(vars []Var) (any, error) {
+	v, ok := findVar(r.Name, vars)
+	if !ok {
+		return nil, exception.NewCodeError(r.Range, fmt.Sprintf("%s is not defined", r.Name))
+	}
+	return v.Expr.Evaluate(vars)
+}
+
+func (r Ref) Infer(vars []Var) (Type, error) {
+	v, ok := findVar(r.Name, vars)
+	if !ok {
+		return nil, exception.NewCodeError(r.Range, fmt.Sprintf("%s is not defined", r.Name))
+	}
+	return v.Expr.Infer(vars)
 }
 
 // App represents a function application.
@@ -24,17 +74,17 @@ func (v App) GetRange() locator.Range {
 	return v.Range
 }
 
-func (v App) Evaluate() (any, error) {
+func (v App) Evaluate(vars []Var) (any, error) {
 	ts := []Type{}
 	args := []any{}
 	for _, arg := range v.Args {
-		t, err := arg.Infer()
+		t, err := arg.Infer(vars)
 		if err != nil {
 			return nil, err
 		}
 		ts = append(ts, t)
 
-		arg, err := arg.Evaluate()
+		arg, err := arg.Evaluate(vars)
 		if err != nil {
 			return nil, err
 		}
@@ -47,10 +97,10 @@ func (v App) Evaluate() (any, error) {
 	return f.Function(args)
 }
 
-func (v App) Infer() (Type, error) {
+func (v App) Infer(vars []Var) (Type, error) {
 	ts := []Type{}
 	for _, arg := range v.Args {
-		t, err := arg.Infer()
+		t, err := arg.Infer(vars)
 		if err != nil {
 			return nil, err
 		}
@@ -73,11 +123,11 @@ func (v SInt) GetRange() locator.Range {
 	return v.Range
 }
 
-func (v SInt) Evaluate() (any, error) {
+func (v SInt) Evaluate([]Var) (any, error) {
 	return v.Value, nil
 }
 
-func (v SInt) Infer() (Type, error) {
+func (v SInt) Infer([]Var) (Type, error) {
 	return TInt, nil
 }
 
@@ -91,10 +141,10 @@ func (v SString) GetRange() locator.Range {
 	return v.Range
 }
 
-func (v SString) Evaluate() (any, error) {
+func (v SString) Evaluate([]Var) (any, error) {
 	return v.Value, nil
 }
 
-func (v SString) Infer() (Type, error) {
+func (v SString) Infer([]Var) (Type, error) {
 	return TString, nil
 }

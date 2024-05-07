@@ -11,7 +11,7 @@ func TestEvaluate(t *testing.T) {
 		Func: "+",
 		Args: []Expr{SInt{Value: 1}, SInt{Value: 2}},
 	}
-	result, err := expr.Evaluate()
+	result, err := expr.Evaluate([]Var{})
 	assert.NoError(t, err)
 	assert.Equal(t, 3, result)
 }
