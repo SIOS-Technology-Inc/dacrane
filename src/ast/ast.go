@@ -108,7 +108,7 @@ func (v App) Infer(vars []Var) (Type, error) {
 	}
 	f := FindFixtureFunctions(v.Func, ts)
 	if f == nil {
-		return nil, exception.NewCodeError(v.Range, fmt.Sprintf("%s is not defined", ArgsType(ts).String()))
+		return nil, exception.NewCodeError(v.Range, fmt.Sprintf("%s(%s) is not defined", v.Func, ArgsType(ts).String()))
 	}
 	return f.Type.Returns, nil
 }

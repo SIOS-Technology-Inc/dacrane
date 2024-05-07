@@ -24,6 +24,7 @@ var (
 )
 
 var Files = map[string]string{}
+var Modules = map[string]ast.Module{}
 
 func Start() {
 	// This increases logging verbosity (optional)
@@ -94,6 +95,20 @@ func TextDocumentCompletion(context *glsp.Context, params *protocol.CompletionPa
 			Kind:  &operator,
 		})
 	}
+	variable := protocol.CompletionItemKindVariable
+	m := Modules[params.TextDocument.URI]
+	for _, v := range m.Vars {
+		t, err := v.Expr.Infer(m.Vars)
+		if err != nil {
+			continue
+		}
+		ts := t.String()
+		completionItems = append(completionItems, protocol.CompletionItem{
+			Label:  v.Name,
+			Kind:   &variable,
+			Detail: &ts,
+		})
+	}
 
 	return completionItems, nil
 }
@@ -135,6 +150,7 @@ func SendNotifications(context *glsp.Context, uri string, text string) {
 		SendCodeError(context, uri, codeErrors)
 		return
 	}
+	Modules[uri] = m
 
 	for _, v := range m.Vars {
 		_, err := v.Expr.Infer(m.Vars)
