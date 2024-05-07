@@ -3,4 +3,4 @@ install:
 uninstall:
 	rm /usr/local/bin/dacrane
 build-parser:
-	goyacc -o src/code/parser/parser.go src/code/parser/parser.go.y
+	goyacc -o src/parser/parser.go src/parser/parser.go.y
